@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Works On — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 120ms;
+    }
+    .nav-item:hover { background: var(--bg-overlay); color: var(--text-primary); outline: 1px solid var(--border); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); border-left: 2px solid var(--accent); }
+    .nav-icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; color: var(--text-muted); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    
+    .sidebar-company { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .company-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+    .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── MAIN CONTENT ── */
+    .main-content { margin-left: 240px; padding: 32px 36px; min-height: 100vh; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .count-badge { font-size: 11px; font-weight: 500; color: var(--accent-text); background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2); padding: 2px 8px; margin-left: 10px; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+      color: var(--accent-text); border: 1px solid var(--accent); background: transparent; cursor: pointer; transition: all 200ms;
+    }
+    .btn-primary:hover { border-color: var(--accent-hover); box-shadow: 0 0 8px rgba(41,82,204,0.4); }
+
+    /* ── TABS ── */
+    .page-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; animation-delay: 60ms; }
+    .page-tab { padding: 12px 4px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 200ms; }
+    .page-tab.active { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+    /* ── FILTERS ── */
+    .filter-bar { display: flex; align-items: center; gap: 8px; padding: 12px 0; margin-bottom: 16px; flex-wrap: wrap; animation: sectionFadeIn 350ms ease both; animation-delay: 100ms; }
+    .filter-select { background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; padding: 7px 12px; outline: none; cursor: pointer; appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 12px; }
+    .filter-select:focus { border-color: var(--border-focus); }
+    .clear-btn { font-size: 12px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0 8px; }
+    .clear-btn:hover { color: var(--text-secondary); }
+
+    .table-controls { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .showing-text { font-size: 12px; color: var(--text-muted); }
+    .view-toggle { display: flex; border: 1px solid var(--border); }
+    .view-btn { padding: 5px 10px; font-size: 12px; background: var(--bg-surface); color: var(--text-muted); border: none; cursor: pointer; transition: all 120ms; }
+    .view-btn.active { background: var(--accent-subtle); color: var(--accent-text); }
+
+    /* ── TABLES ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .data-table th:hover { color: var(--text-secondary); }
+    .data-table td { font-size: 13px; color: var(--text-secondary); padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tbody tr { transition: background 80ms; cursor: pointer; animation: rowFadeIn 350ms ease both; }
+    .data-table tbody tr:hover td { background: var(--bg-overlay); }
+    .data-table tbody tr:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+
+    .cell-mono { font-size: 12px; font-weight: 600; color: var(--accent-text); font-family: 'SF Mono', 'Fira Code', monospace; }
+    .cell-name { font-weight: 500; color: var(--text-primary); text-decoration: none; }
+    .cell-name:hover { text-decoration: underline; }
+    
+    .hours-cell { display: flex; align-items: center; gap: 8px; }
+    .hours-value { font-size: 13px; color: #86efac; font-family: 'SF Mono', 'Fira Code', monospace; font-weight: 500; }
+    .hours-unit { font-size: 11px; color: var(--text-muted); }
+    .hours-edit-btn { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); opacity: 0; cursor: pointer; transition: 120ms; }
+    tr:hover .hours-edit-btn { opacity: 1; }
+    .hours-edit-btn:hover { color: var(--accent-text); }
+
+    .hours-inline-form { display: flex; align-items: center; gap: 6px; }
+    .hours-inline-input { background: var(--bg-base); border: 1px solid var(--border-focus); color: var(--text-primary); font-size: 13px; font-family: 'SF Mono', monospace; padding: 4px 8px; width: 80px; text-align: right; outline: none; }
+    
+    .action-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); cursor: pointer; transition: 120ms; }
+    .action-btn:hover { color: var(--danger); outline: 1px solid var(--border); }
+
+    /* ── CARDS ── */
+    .assignments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px; background: var(--bg-base); border: 1px solid var(--border); }
+    .assignment-card { background: var(--bg-surface); padding: 20px; transition: background 120ms; cursor: pointer; position: relative; }
+    .assignment-card:hover { background: var(--bg-overlay); outline: 1px solid var(--border); z-index: 2; }
+    
+    .card-section-label { font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .card-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+    .card-id-badge { font-size: 10px; color: var(--accent-text); background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2); padding: 1px 6px; }
+    .card-main-text { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .card-sub-text { font-size: 12px; color: var(--text-muted); }
+
+    .hours-section { margin-top: 20px; }
+    .hours-display { display: flex; align-items: baseline; gap: 6px; }
+    .hours-big-num { font-size: 22px; font-weight: 700; color: #86efac; }
+    .full-badge { font-size: 9px; font-weight: 600; color: #fcd34d; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 1px 6px; vertical-align: middle; margin-left: 8px; }
+    
+    .hours-bar-track { width: 100%; height: 4px; background: var(--border); margin-top: 8px; overflow: hidden; }
+    .hours-bar-fill { height: 100%; background: var(--success); width: 0%; transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* ── WORKLOAD SUMMARY ── */
+    .summary-header-wrap { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 20px; }
+    .summary-tiles { display: flex; gap: 8px; }
+    .summary-tile { padding: 10px 16px; background: var(--bg-surface); border: 1px solid var(--border); text-align: center; min-width: 90px; }
+    .tile-number { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+    .tile-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+
+    .summary-name-cell { display: flex; flex-direction: column; }
+    .summary-id { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+    .dept-pill { font-size: 11px; font-weight: 500; color: var(--text-secondary); background: var(--bg-overlay); border: 1px solid var(--border); padding: 2px 8px; }
+
+    .load-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border: 1px solid; }
+    .load-badge.none   { color: var(--danger); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); }
+    .load-badge.light  { color: var(--warning); background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); }
+    .load-badge.active { color: var(--success); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.25); }
+
+    .total-hrs-cell { color: var(--success); font-family: monospace; font-weight: 600; }
+
+    .project-tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+    .project-tag { font-size: 10px; font-weight: 500; color: var(--accent-text); background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2); padding: 2px 7px; cursor: pointer; text-decoration: none; transition: 120ms; }
+    .project-tag:hover { background: var(--accent-subtle2); border-color: rgba(41,82,204,0.4); }
+
+    /* ── SLIDE PANEL ── */
+    .slide-panel { position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: var(--bg-surface); border-left: 1px solid var(--border); z-index: 200; transform: translateX(100%); transition: transform 250ms ease; display: flex; flex-direction: column; }
+    .slide-panel.open { transform: translateX(0); }
+    .panel-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 250ms; }
+    .panel-backdrop.open { opacity: 1; pointer-events: all; }
+    
+    .panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-close { background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+    .panel-body { padding: 24px; flex: 1; overflow-y: auto; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); }
+
+    .panel-section-divider { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 16px 0 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+    .input-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+    .select-full { width: 100%; border-radius: 0; }
+    .helper-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+
+    .duplicate-warning { display: none; padding: 10px 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); font-size: 12px; color: #fcd34d; margin-bottom: 12px; line-height: 1.5; }
+    .btn-submit { width: 100%; padding: 10px; font-size: 14px; color: var(--accent-text); border: 1px solid var(--accent); background: none; cursor: pointer; transition: 200ms; }
+    .btn-submit:hover { border-color: var(--accent-hover); box-shadow: 0 0 8px rgba(41,82,204,0.4); }
+
+    /* ── MODALS ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 200ms; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box { background: var(--bg-surface); border: 1px solid var(--border); width: 360px; padding: 24px; transform: scale(0.95); transition: 200ms; }
+    .modal-overlay.open .modal-box { transform: scale(1); }
+    .modal-warning { color: var(--warning); font-size: 24px; margin-bottom: 12px; }
+    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .modal-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-danger { color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); padding: 6px 14px; font-size: 12px; background: none; cursor: pointer; transition: 120ms; }
+    .btn-danger:hover { color: var(--danger); border-color: var(--danger); }
+    .btn-ghost { color: var(--text-muted); padding: 6px 14px; font-size: 12px; background: none; border: none; cursor: pointer; }
+    .btn-ghost:hover { color: var(--text-primary); }
+
+    /* ── TOASTS ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 400; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); min-width: 280px; font-size: 13px; color: var(--text-primary); animation: toastIn 250ms ease both; }
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ── ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rowFadeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes rowFlash { 0% { background: rgba(34,197,94,0.15); } 100% { background: transparent; } }
+    .new-row { animation: rowFlash 1200ms ease forwards; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .main-content { margin-left: 0; }
+      .slide-panel { width: 100%; }
+    }
+
+    .svg-defs { position: absolute; width: 0; height: 0; }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Works On</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Works On</h2>
+        <p class="page-subtitle">Project assignment records</p>
+      </div>
+      <button class="btn-primary" id="btn-add-assignment">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Assignment
+      </button>
+    </div>
+
+    <div class="page-tabs">
+      <button class="page-tab active" id="tab-assignments">Assignments</button>
+      <button class="page-tab" id="tab-summary">Workload Summary</button>
+    </div>
+
+    <!-- TAB 1 CONTENT -->
+    <div id="tab1-content">
+      <div class="filter-bar">
+        <select id="filter-employee" class="filter-select">
+          <option value="all">All Employees</option>
+        </select>
+        <select id="filter-project" class="filter-select">
+          <option value="all">All Projects</option>
+        </select>
+        <button class="clear-btn" id="btn-clear-filters">Clear</button>
+        
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 16px;">
+          <span class="showing-text" id="showing-text">Showing 0 of 0 assignments</span>
+          <div class="view-toggle">
+            <button class="view-btn active" id="view-table">≡ Table</button>
+            <button class="view-btn" id="view-cards">⊞ Cards</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="table-view">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-sort="eno">EMP ID</th>
+              <th data-sort="ename">EMPLOYEE NAME</th>
+              <th data-sort="pno">PROJECT ID</th>
+              <th data-sort="pname">PROJECT NAME</th>
+              <th data-sort="hours">HOURS/WEEK</th>
+              <th style="width: 80px;">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="assignments-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="cards-view" style="display: none;">
+        <div class="assignments-grid" id="assignments-cards-grid"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2 CONTENT -->
+    <div id="tab2-content" style="display: none;">
+      <div class="summary-header-wrap">
+        <div>
+          <h3 class="page-title">Workload Summary</h3>
+          <p class="page-subtitle">One row per employee — all assigned projects shown together</p>
+        </div>
+        <div class="summary-tiles" id="summary-tiles"></div>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th data-sort="ename">EMPLOYEE</th>
+            <th data-sort="dname">DEPT</th>
+            <th data-sort="project_count">PROJECTS ASSIGNED</th>
+            <th data-sort="total_hours">TOTAL HRS</th>
+            <th>PROJECTS LIST</th>
+          </tr>
+        </thead>
+        <tbody id="summary-table-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ADD PANEL -->
+  <div class="panel-backdrop" id="panel-backdrop"></div>
+  <div class="slide-panel" id="add-panel">
+    <div class="panel-header">
+      <h3 class="panel-title">Add Project Assignment</h3>
+      <button class="panel-close" id="close-panel">&times;</button>
+    </div>
+    <div class="panel-body">
+      <form id="assignment-form">
+        <div class="panel-section-divider">ASSIGN EMPLOYEE</div>
+        <div style="margin-bottom: 20px;">
+          <label class="input-label">Employee</label>
+          <select id="add-eno" class="filter-select select-full" required>
+            <option value="">Select employee...</option>
+          </select>
+        </div>
+
+        <div class="panel-section-divider">TO PROJECT</div>
+        <div style="margin-bottom: 20px;">
+          <label class="input-label">Project</label>
+          <select id="add-pno" class="filter-select select-full" required>
+            <option value="">Select project...</option>
+          </select>
+        </div>
+
+        <div class="panel-section-divider">HOURS PER WEEK</div>
+        <div style="margin-bottom: 20px;">
+          <label class="input-label">Hours</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" id="add-hours" class="filter-select" step="0.5" min="0.5" max="40" placeholder="20" required style="width: 100%;">
+            <span class="hours-unit">hrs/week</span>
+          </div>
+          <p class="helper-text">Between 0.5 and 40 hours. Decimal values allowed (e.g. 32.5).</p>
+        </div>
+
+        <div id="duplicate-warning" class="duplicate-warning">
+          ⚠ This employee is already assigned to this project. Saving will overwrite the existing hours record.
+        </div>
+      </form>
+    </div>
+    <div class="panel-footer">
+      <button type="submit" form="assignment-form" class="btn-submit">Create Assignment</button>
+      <button class="btn-ghost" style="width: 100%; margin-top: 8px;" id="cancel-panel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="modal-warning">⚠</div>
+      <h3 class="modal-title">Remove Assignment</h3>
+      <p class="modal-text" id="delete-modal-text"></p>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cancel-delete">Cancel</button>
+        <button class="btn-danger" id="confirm-delete">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK DATA
+    // ══════════════════════════════════════════════════════════════════
+
+    let MOCK_WORKS_ON = [
+      { eno: 101, pno: 20, hours: 20.0  },
+      { eno: 102, pno: 10, hours: 10.0  },
+      { eno: 102, pno: 20, hours: 10.0  },
+      { eno: 103, pno: 1,  hours: 32.5  },
+      { eno: 103, pno: 2,  hours: 7.5   },
+      { eno: 104, pno: 30, hours: 20.0  },
+      { eno: 105, pno: 1,  hours: 20.0  },
+      { eno: 105, pno: 2,  hours: 20.0  },
+      { eno: 106, pno: 3,  hours: 40.0  },
+      { eno: 107, pno: 10, hours: 35.0  },
+      { eno: 108, pno: 10, hours: 10.0  },
+      { eno: 108, pno: 30, hours: 30.0  },
+      { eno: 109, pno: 1,  hours: 20.0  },
+      { eno: 109, pno: 2,  hours: 20.0  },
+      { eno: 110, pno: 20, hours: 15.0  },
+    ];
+
+    const MOCK_EMPLOYEES = [
+      { eno: 101, ename: 'James Borg',       dno: 1 },
+      { eno: 102, ename: 'Michael Wallace',  dno: 4 },
+      { eno: 103, ename: 'Franklin Wong',    dno: 5 },
+      { eno: 104, ename: 'Jennifer Wallace', dno: 4 },
+      { eno: 105, ename: 'Ramesh Narayan',   dno: 5 },
+      { eno: 106, ename: 'Joyce English',    dno: 5 },
+      { eno: 107, ename: 'Ahmad Jabbar',     dno: 4 },
+      { eno: 108, ename: 'Alicia Zelaya',    dno: 4 },
+      { eno: 109, ename: 'John Smith',       dno: 5 },
+      { eno: 110, ename: 'Tanish Sanghavi',  dno: 1 },
+    ];
+
+    const MOCK_PROJECTS = [
+      { pno: 1,  pname: 'ProductX',    dno: 5 },
+      { pno: 2,  pname: 'ProductY',    dno: 5 },
+      { pno: 3,  pname: 'ProductZ',    dno: 5 },
+      { pno: 10, pname: 'Computerize', dno: 4 },
+      { pno: 20, pname: 'Reorganize',  dno: 1 },
+      { pno: 30, pname: 'Newbenefits', dno: 4 },
+    ];
+
+    const MOCK_DEPARTMENTS = [
+      { dno: 1, dname: 'Headquarters'   },
+      { dno: 4, dname: 'Administration' },
+      { dno: 5, dname: 'Research'       },
+      { dno: 6, dname: 'Finance'        },
+    ];
+
+    // ── STATE ──
+    let currentTab = 'assignments';
+    let currentView = 'table';
+    let filterEno = 'all';
+    let filterPno = 'all';
+    let sortColumn = 'eno';
+    let sortDirection = 'asc';
+    let inlineEditKey = null; // "eno-pno"
+    let deleteKey = null; // {eno, pno}
+
+    // ── DOM ELEMENTS ──
+    const tableBody = document.getElementById('assignments-table-body');
+    const cardsGrid = document.getElementById('assignments-cards-grid');
+    const summaryBody = document.getElementById('summary-table-body');
+    const summaryTiles = document.getElementById('summary-tiles');
+    const showingText = document.getElementById('showing-text');
+    const countBadge = document.querySelector('.count-badge');
+
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', () => {
+      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
+      document.getElementById('sidebar-company-name').textContent = storedCompany;
+      
+      populateDropdowns();
+      renderAll();
+    });
+
+    function populateDropdowns() {
+      const empSelects = ['filter-employee', 'add-eno'];
+      const projSelects = ['filter-project', 'add-pno'];
+      
+      empSelects.forEach(id => {
+        const select = document.getElementById(id);
+        MOCK_EMPLOYEES.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e.eno;
+          opt.textContent = `${e.eno} — ${e.ename}`;
+          select.appendChild(opt);
+        });
+      });
+
+      projSelects.forEach(id => {
+        const select = document.getElementById(id);
+        MOCK_PROJECTS.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.pno;
+          opt.textContent = `${p.pno} — ${p.pname}`;
+          select.appendChild(opt);
+        });
+      });
+    }
+
+    // ── TAB SWITCHING ──
+    document.getElementById('tab-assignments').addEventListener('click', () => switchTab('assignments'));
+    document.getElementById('tab-summary').addEventListener('click', () => switchTab('summary'));
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-assignments').classList.toggle('active', tab === 'assignments');
+      document.getElementById('tab-summary').classList.toggle('active', tab === 'summary');
+      document.getElementById('tab1-content').style.display = tab === 'assignments' ? 'block' : 'none';
+      document.getElementById('tab2-content').style.display = tab === 'summary' ? 'block' : 'none';
+      renderAll();
+    }
+
+    // ── VIEW TOGGLES ──
+    document.getElementById('view-table').addEventListener('click', () => { currentView = 'table'; updateViewToggle(); renderAll(); });
+    document.getElementById('view-cards').addEventListener('click', () => { currentView = 'cards'; updateViewToggle(); renderAll(); });
+
+    function updateViewToggle() {
+      document.getElementById('view-table').classList.toggle('active', currentView === 'table');
+      document.getElementById('view-cards').classList.toggle('active', currentView === 'cards');
+      document.getElementById('table-view').style.display = currentView === 'table' ? 'block' : 'none';
+      document.getElementById('cards-view').style.display = currentView === 'cards' ? 'block' : 'none';
+    }
+
+    // ── FILTERS ──
+    document.getElementById('filter-employee').addEventListener('change', (e) => { filterEno = e.target.value; renderAll(); });
+    document.getElementById('filter-project').addEventListener('change', (e) => { filterPno = e.target.value; renderAll(); });
+    document.getElementById('btn-clear-filters').addEventListener('click', () => {
+      document.getElementById('filter-employee').value = 'all';
+      document.getElementById('filter-project').value = 'all';
+      filterEno = 'all'; filterPno = 'all';
+      renderAll();
+    });
+
+    // ── DATA HELPERS ──
+    function getEmployee(eno) { return MOCK_EMPLOYEES.find(e => e.eno === parseInt(eno)); }
+    function getProject(pno) { return MOCK_PROJECTS.find(p => p.pno === parseInt(pno)); }
+    function getDept(dno) { return MOCK_DEPARTMENTS.find(d => d.dno === dno); }
+
+    // ── RENDERING ──
+    function renderAll() {
+      if (currentTab === 'assignments') {
+        const filtered = MOCK_WORKS_ON.filter(w => {
+          const matchEmp = filterEno === 'all' || w.eno === parseInt(filterEno);
+          const matchProj = filterPno === 'all' || w.pno === parseInt(filterPno);
+          return matchEmp && matchProj;
+        }).sort((a, b) => {
+          let valA = a[sortColumn];
+          let valB = b[sortColumn];
+          if (sortColumn === 'ename') { valA = getEmployee(a.eno)?.ename || ''; valB = getEmployee(b.eno)?.ename || ''; }
+          if (sortColumn === 'pname') { valA = getProject(a.pno)?.pname || ''; valB = getProject(b.pno)?.pname || ''; }
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        countBadge.textContent = `${MOCK_WORKS_ON.length} assignments`;
+        showingText.textContent = `Showing ${filtered.length} of ${MOCK_WORKS_ON.length} assignments`;
+
+        if (currentView === 'table') renderTable(filtered);
+        else renderCards(filtered);
+      } else {
+        renderSummary();
+      }
+    }
+
+    function renderTable(data) {
+      tableBody.innerHTML = '';
+      data.forEach((w, idx) => {
+        const emp = getEmployee(w.eno);
+        const proj = getProject(w.pno);
+        const tr = document.createElement('tr');
+        tr.id = `row-${w.eno}-${w.pno}`;
+        tr.style.animationDelay = `${idx * 40}ms`;
+        
+        const isEditing = inlineEditKey === `${w.eno}-${w.pno}`;
+
+        tr.innerHTML = `
+          <td class="cell-mono">#${w.eno}</td>
+          <td><a href="employees.html" class="cell-name">${emp?.ename}</a></td>
+          <td class="cell-mono">#${w.pno}</td>
+          <td><a href="projects.html" class="cell-name">${proj?.pname}</a></td>
+          <td id="hrs-cell-${w.eno}-${w.pno}">
+            ${isEditing ? renderInlineEdit(w) : renderHoursDisplay(w)}
+          </td>
+          <td>
+            <button class="action-btn" onclick="openDeleteModal(${w.eno}, ${w.pno})">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function renderHoursDisplay(w) {
+      return `
+        <div class="hours-cell">
+          <span class="hours-value">${w.hours.toFixed(1)}</span>
+          <span class="hours-unit">hrs</span>
+          <button class="hours-edit-btn" onclick="startEdit(${w.eno}, ${w.pno}, event)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderInlineEdit(w) {
+      return `
+        <div class="hours-inline-form" onclick="event.stopPropagation()">
+          <input type="number" class="hours-inline-input" id="edit-input-${w.eno}-${w.pno}" value="${w.hours}" step="0.5" min="0" max="40" onkeydown="handleKey(event, ${w.eno}, ${w.pno})">
+          <button class="action-btn" style="color:var(--success)" // // FUTURE BUG F1: Backend missing update_works_on_hours
+    // Add to query_engine.py: def update_work_record_hours(eno, pno, new_hours)
+    //   sql = "UPDATE works_on SET hours=%s WHERE eno=%s AND pno=%s"
+    // FastAPI: PATCH /works-on/{eno}/{pno}  Body: {"hours": float}
+    onclick="saveEdit(${w.eno}, ${w.pno})">✓</button>
+          <button class="action-btn" onclick="cancelEdit()">×</button>
+        </div>
+      `;
+    }
+
+    function renderCards(data) {
+      cardsGrid.innerHTML = '';
+      data.forEach((w, idx) => {
+        const emp = getEmployee(w.eno);
+        const proj = getProject(w.pno);
+        const dept = getDept(emp?.dno);
+        const card = document.createElement('div');
+        card.className = 'assignment-card';
+        card.style.animation = `rowFadeIn 350ms ease both ${idx * 40}ms`;
+
+        card.innerHTML = `
+          <div class="card-section-label">EMPLOYEE</div>
+          <div class="card-row">
+            <span class="card-id-badge">#${w.eno}</span>
+            <div>
+              <div class="card-main-text">${emp?.ename}</div>
+              <div class="card-sub-text">${dept?.dname}</div>
+            </div>
+          </div>
+
+          <div class="card-section-label">PROJECT</div>
+          <div class="card-row">
+            <span class="card-id-badge">#${w.pno}</span>
+            <div class="card-main-text">${proj?.pname}</div>
+          </div>
+
+          <div class="hours-section">
+            <div class="card-section-label">HOURS / WEEK</div>
+            <div class="hours-display">
+              <span class="hours-big-num">${w.hours.toFixed(1)}</span>
+              <span class="hours-unit">hrs / week</span>
+              ${w.hours === 40 ? '<span class="full-badge">FULL</span>' : ''}
+            </div>
+            <div class="hours-bar-track">
+              <div class="hours-bar-fill" id="bar-${w.eno}-${w.pno}"></div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+            <button class="btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="openDeleteModal(${w.eno}, ${w.pno})">Delete</button>
+          </div>
+        `;
+        cardsGrid.appendChild(card);
+
+        setTimeout(() => {
+          const bar = document.getElementById(`bar-${w.eno}-${w.pno}`);
+          if (bar) bar.style.width = `${(w.hours / 40) * 100}%`;
+        }, 100 + (idx * 50));
+      });
+    }
+
+    // ── INLINE EDIT LOGIC ──
+    window.startEdit = (eno, pno, e) => {
+      e.stopPropagation();
+      inlineEditKey = `${eno}-${pno}`;
+      renderAll();
+      setTimeout(() => {
+        const input = document.getElementById(`edit-input-${eno}-${pno}`);
+        if(input) { input.focus(); input.select(); }
+      }, 50);
+    };
+
+    window.cancelEdit = () => { inlineEditKey = null; renderAll(); };
+
+    window.saveEdit = (eno, pno) => {
+      const input = document.getElementById(`edit-input-${eno}-${pno}`);
+      const val = parseFloat(input.value);
+      if (isNaN(val) || val < 0 || val > 40) { showToast('Invalid hours (0-40)', 'error'); return; }
+      
+      const record = MOCK_WORKS_ON.find(w => w.eno === eno && w.pno === pno);
+      record.hours = val;
+      
+      const emp = getEmployee(eno);
+      const proj = getProject(pno);
+      showToast(`Hours updated for ${emp.ename} on ${proj.pname}`, 'success');
+      
+      inlineEditKey = null;
+      renderAll();
+
+      const cell = document.getElementById(`hrs-cell-${eno}-${pno}`);
+      if(cell) cell.style.animation = 'rowFlash 1200ms ease';
+    };
+
+    window.handleKey = (e, eno, pno) => {
+      if (e.key === 'Enter') saveEdit(eno, pno);
+      if (e.key === 'Escape') cancelEdit();
+    };
+
+    // ── SORTING ──
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        else { sortColumn = col; sortDirection = 'asc'; }
+        renderAll();
+      });
+    });
+
+    // ── SUMMARY LOGIC ──
+    function renderSummary() {
+      const workload = MOCK_EMPLOYEES.map(emp => {
+        const assignments = MOCK_WORKS_ON.filter(w => w.eno === emp.eno);
+        const total = assignments.reduce((sum, w) => sum + w.hours, 0);
+        const projects = assignments.map(w => {
+          const p = getProject(w.pno);
+          return { pno: w.pno, pname: p?.pname, hours: w.hours };
+        });
+        return { 
+          eno: emp.eno, 
+          ename: emp.ename, 
+          dname: getDept(emp.dno)?.dname, 
+          project_count: assignments.length, 
+          total_hours: total,
+          projects 
+        };
+      });
+
+      // Summary Tiles
+      const avg = MOCK_WORKS_ON.reduce((s, w) => s + w.hours, 0) / MOCK_EMPLOYEES.length;
+      summaryTiles.innerHTML = `
+        <div class="summary-tile"><div class="tile-number">${MOCK_EMPLOYEES.length}</div><div class="tile-label">Employees</div></div>
+        <div class="summary-tile"><div class="tile-number">${MOCK_PROJECTS.length}</div><div class="tile-label">Projects</div></div>
+        <div class="summary-tile"><div class="tile-number">${avg.toFixed(1)}</div><div class="tile-label">Avg Hrs/Week</div></div>
+      `;
+
+      summaryBody.innerHTML = '';
+      workload.sort((a,b) => b.project_count - a.project_count).forEach((w, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.animationDelay = `${idx * 40}ms`;
+
+        let loadClass = 'active';
+        let badgeText = `${w.project_count} projects`;
+        if (w.project_count === 0) { loadClass = 'none'; badgeText = 'Unassigned'; }
+        else if (w.project_count === 1) { loadClass = 'light'; badgeText = '1 project'; }
+
+        tr.innerHTML = `
+          <td>
+            <div class="summary-name-cell">
+              <span class="card-main-text">${w.ename}</span>
+              <span class="summary-id">#${w.eno}</span>
+            </div>
+          </td>
+          <td><span class="dept-pill">${w.dname}</span></td>
+          <td><span class="load-badge ${loadClass}">${badgeText}</span></td>
+          <td class="total-hrs-cell">${w.total_hours > 0 ? w.total_hours.toFixed(1) + ' hrs' : '<span style="color:var(--text-muted)">—</span>'}</td>
+          <td>
+            <div class="project-tags-wrap">
+              ${w.projects.length ? w.projects.map(p => `
+                <a href="projects.html" class="project-tag">${p.pname} (${p.hours}h)</a>
+              `).join('') : '<span style="color:var(--text-muted); font-size: 12px; font-style: italic;">No assignments</span>'}
+            </div>
+          </td>
+        `;
+        summaryBody.appendChild(tr);
+      });
+    }
+
+    // ── ADD PANEL LOGIC ──
+    const addPanel = document.getElementById('add-panel');
+    const backdrop = document.getElementById('panel-backdrop');
+    const addEno = document.getElementById('add-eno');
+    const addPno = document.getElementById('add-pno');
+    const warning = document.getElementById('duplicate-warning');
+
+    const openPanel  = () => { addPanel.classList.add('open'); backdrop.classList.add('open'); };
+    const closePanel = () => { addPanel.classList.remove('open'); backdrop.classList.remove('open'); resetForm(); };
+
+    document.getElementById('btn-add-assignment').addEventListener('click', openPanel);
+    document.getElementById('close-panel').addEventListener('click', closePanel);
+    document.getElementById('cancel-panel').addEventListener('click', closePanel);
+    backdrop.addEventListener('click', closePanel);
+
+    function checkDuplicate() {
+      const eno = parseInt(addEno.value);
+      const pno = parseInt(addPno.value);
+      if (eno && pno) {
+        const exists = MOCK_WORKS_ON.some(w => w.eno === eno && w.pno === pno);
+        warning.style.display = exists ? 'block' : 'none';
+      } else {
+        warning.style.display = 'none';
+      }
+    }
+    addEno.addEventListener('change', checkDuplicate);
+    addPno.addEventListener('change', checkDuplicate);
+
+    function resetForm() {
+      document.getElementById('assignment-form').reset();
+      warning.style.display = 'none';
+    }
+
+    document.getElementById('assignment-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const eno = parseInt(addEno.value);
+      const pno = parseInt(addPno.value);
+      const hrs = parseFloat(document.getElementById('add-hours').value);
+
+      const existing = MOCK_WORKS_ON.find(w => w.eno === eno && w.pno === pno);
+      if (existing) {
+        existing.hours = hrs;
+        showToast('Assignment updated', 'success');
+      } else {
+        MOCK_WORKS_ON.unshift({ eno, pno, hours: hrs });
+        showToast('Assignment created', 'success');
+      }
+
+      closePanel();
+      renderAll();
+      
+      const row = document.getElementById(`row-${eno}-${pno}`);
+      if(row) row.classList.add('new-row');
+    });
+
+    // ── DELETE MODAL LOGIC ──
+    const deleteModal = document.getElementById('delete-modal');
+    window.openDeleteModal = (eno, pno) => {
+      deleteKey = { eno, pno };
+      const emp = getEmployee(eno);
+      const proj = getProject(pno);
+      const record = MOCK_WORKS_ON.find(w => w.eno === eno && w.pno === pno);
+      document.getElementById('delete-modal-text').innerHTML = `Remove <strong>${emp.ename}</strong> from <strong>${proj.pname}</strong>?<br><br>This will delete their ${record.hours} hrs/week assignment record.`;
+      deleteModal.classList.add('open');
+    };
+
+    document.getElementById('cancel-delete').addEventListener('click', () => deleteModal.classList.remove('open'));
+    document.getElementById('confirm-delete').addEventListener('click', () => {
+      const { eno, pno } = deleteKey;
+      const row = document.getElementById(`row-${eno}-${pno}`);
+      if(row) row.style.opacity = '0';
+
+      setTimeout(() => {
+        MOCK_WORKS_ON = MOCK_WORKS_ON.filter(w => !(w.eno === eno && w.pno === pno));
+        deleteModal.classList.remove('open');
+        showToast('Assignment removed', 'info');
+        renderAll();
+      }, 200);
+    });
+
+    // ── TOAST SYSTEM ──
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = '300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+
+</body>
+</html>

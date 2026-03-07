@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Departments — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+
+    /* Reset + global */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; border: none; cursor: pointer; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    .svg-defs { width: 0; height: 0; position: absolute; }
+
+    /* ── SIDEBAR (exact copy) ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      overflow-y: auto; overflow-x: hidden; transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .sidebar-close-btn {
+      display: none; margin-left: auto; background: none; border: none;
+      color: var(--text-muted); font-size: 20px; cursor: pointer;
+    }
+    .sidebar-company {
+      padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .company-label {
+      font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 2px;
+    }
+    .company-name-display {
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 16px;
+      font-size: 13px; font-weight: 400; color: var(--text-secondary);
+      text-decoration: none; cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+      border-radius: 0; position: relative;
+    }
+    .nav-item:hover { background: var(--bg-overlay); outline: 1px solid var(--border); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); font-weight: 500; }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    }
+    .nav-icon {
+      width: 16px; height: 16px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    .nav-item:hover .nav-icon { color: var(--text-secondary); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    .sidebar-footer {
+      padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-icon {
+      width: 14px; height: 14px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── MOBILE TOP BAR & OVERLAY ── */
+    .mobile-topbar {
+      display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px;
+      background: var(--bg-surface); border-bottom: 1px solid var(--border);
+      z-index: 90; align-items: center; padding: 0 16px;
+    }
+    .hamburger-btn {
+      width: 44px; height: 44px; background: none; border: none; color: var(--text-primary);
+      font-size: 24px; display: flex; align-items: center; justify-content: flex-start; margin-left: -8px;
+    }
+    .mobile-page-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-left: 8px; }
+    .sidebar-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 95; backdrop-filter: blur(2px);
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main-content {
+      margin-left: 240px; min-height: 100vh; background: var(--bg-base); padding: 32px 36px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 0ms;
+    }
+    .page-title-wrap { display: flex; align-items: center; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; }
+    .count-badge {
+      font-size: 11px; font-weight: 500; color: var(--accent-text); background: var(--accent-subtle);
+      border: 1px solid rgba(41,82,204,0.2); padding: 2px 8px; margin-left: 10px; vertical-align: middle;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+      font-family: 'Inter', sans-serif; cursor: pointer; background: transparent; color: var(--accent-text);
+      border: 1px solid var(--accent); border-radius: 4px; transition: all 200ms;
+    }
+    .btn-primary:hover {
+      border-color: var(--accent-hover); color: #c4d4ff;
+      box-shadow: 0 0 8px rgba(41,82,204,0.4), 0 0 20px rgba(41,82,204,0.15);
+      text-shadow: 0 0 12px rgba(168,191,255,0.6);
+    }
+    .btn-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── TABS ── */
+    .page-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 60ms;
+    }
+    .page-tab {
+      padding: 10px 20px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
+      color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent;
+      cursor: pointer; transition: color 150ms, border-color 150ms; margin-bottom: -1px;
+    }
+    .page-tab:hover { color: var(--text-secondary); }
+    .page-tab.active { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+    /* ── CONTROLS ── */
+    .dept-controls {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 100ms;
+    }
+    .search-input {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);
+      font-size: 13px; font-family: 'Inter', sans-serif; padding: 7px 12px; border-radius: 0; outline: none;
+      width: 180px; transition: border-color 150ms;
+    }
+    .search-input:focus { border-color: var(--border-focus); }
+    .search-input::placeholder { color: var(--text-muted); font-size: 12px; }
+    
+    .view-toggle { display: flex; gap: 0; }
+    .view-btn {
+      padding: 5px 10px; font-size: 12px; background: var(--bg-surface); color: var(--text-muted);
+      border: 1px solid var(--border); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 120ms;
+    }
+    .view-btn:first-child { border-right: none; }
+    .view-btn.active { background: var(--accent-subtle); color: var(--accent-text); border-color: rgba(41,82,204,0.3); }
+
+    /* ── TABLE VIEW ── */
+    #dept-content { animation: sectionFadeIn 350ms ease both; animation-delay: 140ms; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border);
+      white-space: nowrap; user-select: none;
+    }
+    .data-table td {
+      font-size: 13px; color: var(--text-secondary); padding: 11px 16px; border-bottom: 1px solid var(--border);
+      vertical-align: middle; white-space: nowrap;
+    }
+    .data-table tr.main-row { transition: background 80ms; cursor: pointer; }
+    .data-table tr.main-row:hover td { background: var(--bg-overlay); }
+    .data-table tr.main-row:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+
+    /* Cell styles */
+    .cell-id { font-size: 12px; font-weight: 600; color: var(--accent-text); font-family: 'SF Mono', 'Fira Code', monospace; }
+    .cell-name { font-weight: 500; color: var(--text-primary); }
+    .headcount-badge {
+      font-size: 11px; font-weight: 600; color: var(--accent-text); background: var(--accent-subtle);
+      border: 1px solid rgba(41,82,204,0.2); padding: 2px 10px; min-width: 28px; text-align: center; display: inline-block;
+    }
+    .location-tag {
+      display: inline-block; font-size: 10px; font-weight: 500; color: var(--text-secondary);
+      background: var(--bg-overlay); border: 1px solid var(--border); padding: 2px 7px; margin-right: 4px; margin-bottom: 2px;
+    }
+    
+    .action-btn {
+      width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--text-muted);
+      transition: color 120ms, border-color 120ms, background 120ms; margin-right: 4px; z-index: 10;
+    }
+    .action-btn:hover { background: var(--bg-overlay); border-color: var(--border); color: var(--text-primary); }
+    .action-btn.delete:hover { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+    .action-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Expandable Row */
+    .locations-row { background: var(--bg-base); }
+    .locations-row td { padding: 0; border-bottom: 1px solid var(--border); }
+    .locations-expanded { padding: 16px 20px 16px 48px; display: none; border-top: 1px solid var(--border); }
+    .locations-expanded.open { display: block; }
+    
+    .loc-header {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .loc-header-line { flex: 1; height: 1px; background: var(--border); }
+    
+    .location-item {
+      display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid var(--border);
+      font-size: 13px; color: var(--text-secondary); width: 360px;
+    }
+    .location-item:last-of-type { border-bottom: none; }
+    .location-remove {
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: transparent;
+      border: none; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: color 120ms;
+    }
+    .location-remove:hover { color: var(--danger); }
+    .loc-confirm-wrap { display: flex; align-items: center; gap: 8px; }
+    .loc-btn { background: transparent; border: 1px solid var(--border); font-size: 11px; padding: 2px 6px; cursor: pointer; color: var(--text-muted); }
+    .loc-btn.yes:hover { color: var(--danger); border-color: var(--danger); }
+    .loc-btn.no:hover { color: var(--text-primary); }
+    
+    .add-location-form {
+      display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); margin-top: 4px; width: 360px;
+    }
+
+    /* ── CARDS VIEW ── */
+    #cards-view { padding: 16px 0; }
+    .dept-cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border);
+    }
+    .dept-card {
+      background: var(--bg-surface); padding: 24px; transition: background 120ms; cursor: pointer; display: flex; flex-direction: column; gap: 16px;
+    }
+    .dept-card:hover { background: var(--bg-overlay); outline: 1px solid var(--border); z-index: 2; }
+    
+    .dept-id-badge {
+      font-size: 11px; font-weight: 700; color: var(--accent-text); background: var(--accent-subtle);
+      border: 1px solid rgba(41,82,204,0.2); padding: 2px 8px; font-family: 'SF Mono', 'Fira Code', monospace; margin-right: 10px;
+    }
+    .card-title-row { display: flex; align-items: center; }
+    .card-title-text { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .card-subtext { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    
+    .card-details {
+      display: grid; grid-template-columns: 80px 1fr; gap: 6px 12px; font-size: 12px; padding: 16px 0;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .cd-label { color: var(--text-muted); }
+    .cd-val { color: var(--text-secondary); font-weight: 500; }
+    
+    .card-locs { padding: 4px 0 0; }
+    .card-locs-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+    .card-locs-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    
+    .card-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: auto; }
+
+    /* ── TAB 2: PAYROLL SUMMARY ── */
+    .payroll-summary-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .payroll-title { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+    .payroll-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .grand-total { font-size: 13px; color: var(--text-muted); }
+    .grand-total span { font-size: 16px; font-weight: 700; color: #86efac; font-family: 'SF Mono', 'Fira Code', monospace; margin-left: 6px; }
+    
+    .col-money { font-family: 'SF Mono', 'Fira Code', monospace; color: #86efac; text-align: right; }
+    .payroll-total-row td { font-weight: 600; color: var(--text-primary); border-top: 2px solid var(--border); background: var(--bg-overlay); }
+    .payroll-total-row .col-money { color: #fff; }
+    
+    .salary-bar-track { width: 80px; height: 3px; background: var(--border); display: inline-block; vertical-align: middle; margin-left: 12px; border-radius: 2px; overflow: hidden; }
+    .salary-bar-fill { height: 100%; background: var(--accent); transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1); width: 0%; }
+
+    /* ── UI ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rowFlash { 0% { background: rgba(34,197,94,0.15); } 100% { background: transparent; } }
+    .new-row { animation: rowFlash 1200ms ease forwards; }
+    @keyframes cellFlash { 0% { background: rgba(41,82,204,0.3); } 100% { background: transparent; } }
+    .flashing { animation: cellFlash 1000ms ease forwards; }
+
+    /* ── SLIDE PANELS ── */
+    .slide-panel {
+      position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: var(--bg-surface);
+      border-left: 1px solid var(--border); z-index: 200; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 250ms ease; overflow-y: auto;
+    }
+    .slide-panel.open { transform: translateX(0); }
+    .panel-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 250ms ease;
+    }
+    .panel-backdrop.open { opacity: 1; pointer-events: all; }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .panel-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .panel-close {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent; color: var(--text-muted); cursor: pointer;
+      font-size: 16px; transition: border-color 120ms, color 120ms;
+    }
+    .panel-close:hover { border-color: var(--border); color: var(--text-primary); }
+    .panel-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); flex-shrink: 0; margin-top: auto; }
+
+    /* Panel elements */
+    .input-group { margin-bottom: 20px; }
+    .input-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.02em; margin-bottom: 6px; }
+    .input-field {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border); color: var(--text-primary);
+      font-size: 14px; font-family: 'Inter', sans-serif; padding: 9px 12px; border-radius: 0; outline: none; transition: border-color 150ms ease; box-sizing: border-box;
+    }
+    .input-field:focus { border-color: var(--border-focus); }
+    .input-field::placeholder { color: var(--text-muted); font-size: 13px; }
+    .format-hint {
+      font-size: 11px; color: var(--text-muted); margin-top: 6px;
+    }
+    .optional-badge {
+      font-size: 10px; font-weight: 400; color: var(--text-muted); background: var(--bg-overlay);
+      border: 1px solid var(--border); padding: 1px 6px; border-radius: 100px; margin-left: 4px; vertical-align: middle;
+    }
+    .btn-submit {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px;
+      font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: transparent; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 4px; transition: all 200ms;
+    }
+    .btn-submit:hover {
+      border-color: var(--accent-hover); color: #c4d4ff;
+      box-shadow: 0 0 8px rgba(41,82,204,0.4), 0 0 20px rgba(41,82,204,0.15); text-shadow: 0 0 12px rgba(168,191,255,0.6);
+    }
+    .filter-select {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary);
+      font-size: 13px; font-family: 'Inter', sans-serif; padding: 9px 32px 9px 12px; border-radius: 0; outline: none; cursor: pointer;
+      appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+      background-repeat: no-repeat; background-position: right 10px center; background-size: 12px; transition: border-color 150ms; width: 100%;
+    }
+    .filter-select:focus { border-color: var(--border-focus); }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--bg-surface); border: 1px solid var(--border); width: 360px; padding: 28px; border-radius: 0;
+      transform: translateY(-12px); transition: transform 200ms ease;
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .modal-title-blk { margin-bottom: 16px; }
+    .modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .modal-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .modal-divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+    .modal-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+    
+    .btn-ghost {
+      padding: 9px 16px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 4px; transition: all 150ms;
+    }
+    .btn-ghost:hover { border-color: #555; color: var(--text-primary); }
+    .btn-danger {
+      padding: 9px 20px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; background: transparent;
+      color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; transition: border-color 150ms, box-shadow 150ms;
+    }
+    .btn-danger:hover { border-color: var(--danger); box-shadow: 0 0 8px rgba(239,68,68,0.25); }
+    .warning-icon { font-size: 24px; color: var(--warning); margin-bottom: 12px; }
+    .modal-body-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;}
+    .modal-current-val { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* ── TOASTS ── */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 400; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-surface);
+      border: 1px solid var(--border); min-width: 280px; max-width: 380px; font-size: 13px; color: var(--text-primary);
+      animation: toastIn 250ms ease both; border-radius: 0;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+
+    /* Media Queries */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-close-btn { display: block; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0; padding: 16px; padding-top: 68px; }
+      .slide-panel { width: 100%; }
+      .dept-controls { flex-direction: column; align-items: stretch; }
+      .search-input { width: 100%; }
+      .view-toggle { align-self: flex-start; }
+      #table-view { overflow-x: auto; }
+    }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Sprite/Defs (Shield Logo + Icons) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Departments</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-title-wrap">
+        <h1 class="page-title">Departments</h1>
+        <span class="count-badge" id="total-badge">0 departments</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" id="btn-add-dept">
+          <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add Department
+        </button>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="page-tabs">
+      <button class="page-tab active" id="tab-depts">Departments</button>
+      <button class="page-tab" id="tab-payroll">Payroll Summary</button>
+    </div>
+
+    <!-- TAB 1: DEPARTMENTS -->
+    <div id="dept-content">
+      <div class="dept-controls">
+        <input type="number" id="filter-id" class="search-input" placeholder="Search by dept ID...">
+        
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-table">≡ Table</button>
+          <button class="view-btn" id="view-cards">⊞ Cards</button>
+        </div>
+      </div>
+
+      <!-- TABLE VIEW -->
+      <div id="table-view">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:60px">ID</th>
+              <th>DEPARTMENT NAME</th>
+              <th style="width:140px">MANAGER</th>
+              <th style="width:120px">MANAGER SINCE</th>
+              <th style="width:100px">HEADCOUNT</th>
+              <th>LOCATIONS</th>
+              <th style="width:80px">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Rows injected via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CARDS VIEW -->
+      <div id="cards-view" style="display:none;">
+        <div class="dept-cards-grid" id="cards-grid">
+          <!-- Cards injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PAYROLL SUMMARY -->
+    <div id="payroll-content" style="display:none;">
+      <div class="payroll-summary-header">
+        <div>
+          <div class="payroll-title">Payroll Summary</div>
+          <div class="payroll-subtitle">Total salary expenditure across all departments</div>
+        </div>
+        <div class="grand-total">
+          Grand Total: <span id="grand-total-val">₹ 0</span>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="payroll-table">
+          <thead>
+            <tr>
+              <th style="width:60px">DEPT</th>
+              <th>DEPARTMENT NAME</th>
+              <th style="width:80px; text-align:center">HEADCOUNT</th>
+              <th style="width:200px; text-align:right">TOTAL SALARY</th>
+              <th style="width:120px; text-align:right">AVG SALARY</th>
+              <th style="width:120px; text-align:right">MAX SALARY</th>
+              <th style="width:120px; text-align:right">MIN SALARY</th>
+            </tr>
+          </thead>
+          <tbody id="payroll-body">
+            <!-- Injected via JS -->
+          </tbody>
+          <tfoot id="payroll-foot">
+            <!-- Total row injected via JS -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── PANELS ── -->
+  <div class="panel-backdrop" id="panel-backdrop"></div>
+  
+  <!-- Add Dept Slide Panel -->
+  <div class="slide-panel" id="add-dept-panel">
+    <div class="panel-header">
+      <div class="panel-title">Add Department</div>
+      <button class="panel-close" id="close-add-panel">&times;</button>
+    </div>
+    <div class="panel-body">
+      <form id="add-dept-form">
+        <div class="input-group">
+          <label class="input-label">Department ID</label>
+          <input type="number" id="add-dno" class="input-field" placeholder="5" required>
+          <div class="format-hint">Must be unique. Used as the primary identifier.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Department Name</label>
+          <input type="text" id="add-dname" class="input-field" placeholder="Research" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Manager ID <span class="optional-badge">optional</span></label>
+          <input type="number" id="add-mgr" class="input-field" placeholder="103 (leave blank if none)">
+          <div class="format-hint">Must be a valid Employee ID already in the system.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Manager Start Date <span class="optional-badge">optional</span></label>
+          <input type="date" id="add-mgr-date" class="input-field">
+        </div>
+      </form>
+    </div>
+    <div class="panel-footer">
+      <button type="submit" form="add-dept-form" class="btn-submit">Create Department</button>
+    </div>
+  </div>
+
+  <!-- ── MODALS ── -->
+  <!-- Update Manager Modal -->
+  <div class="modal-overlay" id="manager-modal">
+    <div class="modal-box">
+      <div class="modal-title-blk">
+        <div class="modal-title">Update Department Manager</div>
+        <div class="modal-sub" id="manager-modal-sub">Department: Name (ID: X)</div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="modal-current-val" id="manager-modal-current">Current: Name (ID)</div>
+      
+      <div class="input-group" style="margin-bottom:0">
+        <label class="input-label">New Manager</label>
+        <select id="update-mgr-select" class="filter-select">
+          <option value="">Select employee...</option>
+          <!-- Injected -->
+        </select>
+      </div>
+      
+      <div class="modal-row">
+        <button class="btn-ghost" id="btn-cancel-mgr">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-mgr">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="warning-icon">⚠</div>
+      <div class="modal-title" style="margin-bottom:8px">Delete Department</div>
+      <div class="modal-body-text" id="delete-modal-text">Are you sure you want to permanently delete Dept (ID: X)? All employees in this department must be reassigned first.</div>
+      <div class="modal-row">
+        <button class="btn-ghost" id="btn-cancel-delete">Cancel</button>
+        <button class="btn-danger" // // FUTURE BUG F6: FK violations on department delete
+    // Cannot delete department with employees assigned. Backend returns HTTP 409.
+    id="btn-confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK DATA — Replace with real API calls when FastAPI is ready
+    //
+    // Endpoints needed for this page:
+    //   GET  /departments                  → get_all_departments()
+    //   GET  /departments/{dno}            → get_department_by_id()
+    //   POST /departments                  → add_new_department()
+    //   DELETE /departments/{dno}          → delete_department()
+    //   PUT  /departments/{dno}/manager    → update_department_manager()
+    //   GET  /departments/headcount        → get_department_headcount()
+    //   GET  /departments/payroll-summary  → get_payroll_summary()
+    //   GET  /dept-locations/{dno}         → get_locations_by_dno()
+    //   POST /dept-locations               → add_dept_location()
+    //   DELETE /dept-locations/{dno}/{loc} → delete_dept_location()
+    // ══════════════════════════════════════════════════════════════════
+
+    let MOCK_DEPARTMENTS = [
+      { dno: 1, dname: 'Headquarters',   mgr_eno: 101, mgrstartdate: '2019-06-01' },
+      { dno: 4, dname: 'Administration', mgr_eno: 104, mgrstartdate: '2020-01-15' },
+      { dno: 5, dname: 'Research',       mgr_eno: 103, mgrstartdate: '2021-03-10' },
+      { dno: 6, dname: 'Finance',        mgr_eno: 108, mgrstartdate: '2022-07-01' },
+    ];
+
+    let MOCK_HEADCOUNT = {
+      1: { count: 2,  manager_name: 'James Borg',       total_salary: 115000 },
+      4: { count: 4,  manager_name: 'Jennifer Wallace',  total_salary: 136000 },
+      5: { count: 3,  manager_name: 'Franklin Wong',     total_salary: 103000 },
+      6: { count: 1,  manager_name: 'Alicia Zelaya',     total_salary: 25000  },
+    };
+
+    let MOCK_LOCATIONS = {
+      1: ['Houston'],
+      4: ['Houston', 'Stafford'],
+      5: ['Bellaire', 'Sugarland', 'Houston'],
+      6: ['Houston'],
+    };
+
+    let MOCK_PAYROLL = [
+      { dno: 1, dname: 'Headquarters',   headcount: 2, total: 115000, avg: 57500,  max: 60000, min: 55000 },
+      { dno: 4, dname: 'Administration', headcount: 4, total: 136000, avg: 34000,  max: 43000, min: 25000 },
+      { dno: 5, dname: 'Research',       headcount: 3, total: 103000, avg: 34333,  max: 40000, min: 25000 },
+      { dno: 6, dname: 'Finance',        headcount: 1, total: 25000,  avg: 25000,  max: 25000, min: 25000 },
+    ];
+
+    let MOCK_EMPLOYEES_BRIEF = [
+      { eno: 101, ename: 'James Borg' },
+      { eno: 102, ename: 'Michael Wallace' },
+      { eno: 103, ename: 'Franklin Wong' },
+      { eno: 104, ename: 'Jennifer Wallace' },
+      { eno: 105, ename: 'Ramesh Narayan' },
+      { eno: 106, ename: 'Joyce English' },
+      { eno: 107, ename: 'Ahmad Jabbar' },
+      { eno: 108, ename: 'Alicia Zelaya' },
+      { eno: 109, ename: 'John Smith' },
+      { eno: 110, ename: 'Tanish Sanghavi' },
+    ];
+
+    /* ── STATE ── */
+    let currentView = 'table';
+    let filterID = '';
+    let expandedLocs = new Set();
+    
+    let activeDeptForManager = null;
+    let activeDeptForDelete = null;
+
+    // Formatters
+    const formatINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    const formatDate = (ds) => {
+      if(!ds) return '—';
+      const d = new Date(ds);
+      return isNaN(d) ? ds : d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+    const getMgrName = (eno) => {
+      if(!eno) return '—';
+      const emp = MOCK_EMPLOYEES_BRIEF.find(e => e.eno === eno);
+      return emp ? emp.ename : `Unknown (${eno})`;
+    };
+
+    /* ── DOM ELEMENTS & SIDEBAR ── */
+    const tbody = document.getElementById('table-body');
+    const cardsGrid = document.getElementById('cards-grid');
+    const totalBadge = document.getElementById('total-badge');
+    const viewTableBtn = document.getElementById('view-table');
+    const viewCardsBtn = document.getElementById('view-cards');
+    const tableView = document.getElementById('table-view');
+    const cardsView = document.getElementById('cards-view');
+    const tabDepts = document.getElementById('tab-depts');
+    const tabPayroll = document.getElementById('tab-payroll');
+    const deptContent = document.getElementById('dept-content');
+    const payrollContent = document.getElementById('payroll-content');
+    
+    // Auth & Sidebar init
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+    document.getElementById('hamburger-btn').addEventListener('click', () => toggleSidebar(true));
+    document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+
+    /* ── TOASTS ── */
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'opacity 200ms, transform 200ms';
+        setTimeout(() => toast.remove(), 200);
+      }, duration);
+    }
+
+    /* ── TAB & VIEW TOGGLES ── */
+    tabDepts.addEventListener('click', () => {
+      tabDepts.classList.add('active'); tabPayroll.classList.remove('active');
+      deptContent.style.display = 'block'; payrollContent.style.display = 'none';
+    });
+    tabPayroll.addEventListener('click', () => {
+      tabPayroll.classList.add('active'); tabDepts.classList.remove('active');
+      payrollContent.style.display = 'block'; deptContent.style.display = 'none';
+      renderPayroll();
+    });
+
+    viewTableBtn.addEventListener('click', () => {
+      currentView = 'table';
+      viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active');
+      tableView.style.display = 'block'; cardsView.style.display = 'none';
+      renderDepartments();
+    });
+    viewCardsBtn.addEventListener('click', () => {
+      currentView = 'cards';
+      viewCardsBtn.classList.add('active'); viewTableBtn.classList.remove('active');
+      cardsView.style.display = 'block'; tableView.style.display = 'none';
+      renderDepartments();
+    });
+
+    document.getElementById('filter-id').addEventListener('input', (e) => {
+      filterID = e.target.value; renderDepartments();
+    });
+
+    /* ── RENDER DEPARTMENTS (TAB 1) ── */
+    function renderDepartments() {
+      let data = MOCK_DEPARTMENTS;
+      if (filterID) data = data.filter(d => d.dno.toString().includes(filterID));
+      totalBadge.textContent = `${data.length} departments`;
+
+      if (currentView === 'table') {
+        tbody.innerHTML = '';
+        data.forEach(d => {
+          const m = MOCK_HEADCOUNT[d.dno] || { count: 0 };
+          const locs = MOCK_LOCATIONS[d.dno] || [];
+          
+          let locHtml = '';
+          locs.slice(0, 2).forEach(l => { locHtml += `<span class="location-tag">${l}</span>`; });
+          if (locs.length > 2) locHtml += `<span style="font-size:10px; color:var(--text-muted)">+${locs.length - 2} more</span>`;
+          if (locs.length === 0) locHtml = `<span style="color:var(--text-muted)">—</span>`;
+
+          const mgrName = getMgrName(d.mgr_eno);
+          const mgrHtml = d.mgr_eno ? mgrName : `<span style="color:var(--text-muted)">—</span>`;
+          
+          const isExpanded = expandedLocs.has(d.dno);
+          
+          // Main Row
+          const tr = document.createElement('tr');
+          tr.className = 'main-row';
+          tr.id = `row-${d.dno}`;
+          tr.onclick = (e) => {
+            // Avoid toggling accordion if action buttons clicked
+            if(e.target.closest('.action-btn')) return;
+            toggleLocations(d.dno);
+          };
+          
+          tr.innerHTML = `
+            <td class="cell-id">${d.dno}</td>
+            <td class="cell-name">${d.dname}</td>
+            <td id="cell-mgr-${d.dno}">${mgrHtml}</td>
+            <td style="font-size:12px; color:var(--text-muted)">${formatDate(d.mgrstartdate)}</td>
+            <td><div class="headcount-badge">${m.count}</div></td>
+            <td>${locHtml}</td>
+            <td>
+              <button class="action-btn" onclick="openManagerModal(${d.dno})" title="Update Manager">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="action-btn delete" onclick="openDeleteModal(${d.dno})" title="Delete">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+
+          // Accordion Sub-row
+          const trSub = document.createElement('tr');
+          trSub.className = 'locations-row';
+          trSub.innerHTML = `
+            <td colspan="7">
+              <div class="locations-expanded ${isExpanded ? 'open' : ''}" id="loc-exp-${d.dno}">
+                <div class="loc-header">
+                  OFFICE LOCATIONS — ${d.dname.toUpperCase()}
+                  <div class="loc-header-line"></div>
+                </div>
+                <div id="loc-list-${d.dno}">
+                  ${renderLocationsList(d.dno)}
+                </div>
+                <form class="add-location-form" onsubmit="addLocation(event, ${d.dno})">
+                  <input type="text" class="search-input loc-input" id="new-loc-${d.dno}" placeholder="New location name..." required style="flex:1">
+                  <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 12px">Add</button>
+                </form>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(trSub);
+        });
+      } else {
+        cardsGrid.innerHTML = '';
+        data.forEach(d => {
+          const m = MOCK_HEADCOUNT[d.dno] || { count: 0, total_salary: 0 };
+          const locs = MOCK_LOCATIONS[d.dno] || [];
+          let locHtml = '';
+          locs.forEach(l => { locHtml += `<span class="location-tag">${l}</span>`; });
+          if(locs.length === 0) locHtml = `<span style="color:var(--text-muted)">—</span>`;
+
+          const card = document.createElement('div');
+          card.className = 'dept-card';
+          card.innerHTML = `
+            <div>
+              <div class="card-title-row">
+                <span class="dept-id-badge">#${d.dno}</span>
+                <span class="card-title-text">${d.dname}</span>
+              </div>
+              <div class="card-subtext">${m.count} employee${m.count !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="card-details">
+              <div class="cd-label">Manager:</div><div class="cd-val">${getMgrName(d.mgr_eno)}</div>
+              <div class="cd-label">Since:</div><div class="cd-val" style="font-size:11px">${formatDate(d.mgrstartdate)}</div>
+              <div class="cd-label">Total Salary:</div><div class="cd-val" style="color:#86efac; font-family:monospace">${formatINR(m.total_salary)}</div>
+            </div>
+            <div class="card-locs">
+              <div class="card-locs-label">Locations:</div>
+              <div class="card-locs-list">${locHtml}</div>
+            </div>
+            <div class="card-footer">
+              <button class="btn-ghost" style="font-size:11px; padding:5px 12px" onclick="openManagerModal(${d.dno})">Update Manager</button>
+              <button class="btn-danger" style="font-size:11px; padding:5px 12px" onclick="openDeleteModal(${d.dno})">Delete</button>
+            </div>
+          `;
+          cardsGrid.appendChild(card);
+        });
+      }
+    }
+
+    /* ── ACCORDION / LOCATIONS ── */
+    function toggleLocations(dno) {
+      const el = document.getElementById(`loc-exp-${dno}`);
+      if (!el) return;
+      if (expandedLocs.has(dno)) {
+        expandedLocs.delete(dno);
+        el.classList.remove('open');
+      } else {
+        expandedLocs.add(dno);
+        el.classList.add('open');
+      }
+    }
+
+    function renderLocationsList(dno) {
+      const locs = MOCK_LOCATIONS[dno] || [];
+      if (locs.length === 0) return '<div class="location-item"><span style="color:var(--text-muted)">No locations configured.</span></div>';
+      let html = '';
+      locs.forEach(loc => {
+        const idStr = `loc-item-${dno}-${loc.replace(/\\s+/g, '-')}`;
+        html += `
+          <div class="location-item" id="${idStr}">
+            <span>${loc}</span>
+            <div id="${idStr}-action">
+              <button class="location-remove" onclick="reqRemoveLoc('${dno}', '${loc}', '${idStr}')">×</button>
+            </div>
+          </div>
+        `;
+      });
+      return html;
+    }
+
+    window.addLocation = (e, dno) => {
+      e.preventDefault();
+      const input = document.getElementById(`new-loc-${dno}`);
+      const val = input.value.trim();
+      if (!val) return;
+      
+      if (!MOCK_LOCATIONS[dno]) MOCK_LOCATIONS[dno] = [];
+      if (!MOCK_LOCATIONS[dno].includes(val)) {
+        MOCK_LOCATIONS[dno].push(val);
+        document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
+        showToast(`Location '${val}' added`, 'success');
+      }
+      input.value = '';
+    };
+
+    window.reqRemoveLoc = (dnoStr, locStr, idStr) => {
+      // Inline confirmation
+      const container = document.getElementById(`${idStr}-action`);
+      container.innerHTML = `
+        <div class="loc-confirm-wrap">
+          <span style="font-size:11px">Remove?</span>
+          <button class="loc-btn yes" onclick="confRemoveLoc(${dnoStr}, '${locStr}')">Yes</button>
+          <button class="loc-btn no" onclick="cancelRemoveLoc(${dnoStr})">No</button>
+        </div>
+      `;
+    };
+
+    window.cancelRemoveLoc = (dno) => {
+      document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
+    };
+
+    window.confRemoveLoc = (dno, loc) => {
+      if (MOCK_LOCATIONS[dno]) {
+        MOCK_LOCATIONS[dno] = MOCK_LOCATIONS[dno].filter(l => l !== loc);
+        document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
+        showToast(`Location '${loc}' removed`, 'success');
+      }
+    };
+
+    /* ── RENDER PAYROLL (TAB 2) ── */
+    function renderPayroll() {
+      const pBody = document.getElementById('payroll-body');
+      const pFoot = document.getElementById('payroll-foot');
+      pBody.innerHTML = '';
+      
+      let grandHeadcount = 0;
+      let grandTotal = 0;
+      let maxOfMax = 0;
+      let minOfMin = Infinity;
+
+      let maxDeptTotal = Math.max(...MOCK_PAYROLL.map(p => p.total), 1);
+
+      MOCK_PAYROLL.forEach((p, idx) => {
+        grandHeadcount += p.headcount;
+        grandTotal += p.total;
+        if(p.max > maxOfMax) maxOfMax = p.max;
+        if(p.min !== null && p.min < minOfMin) minOfMin = p.min;
+
+        const perc = (p.total / maxDeptTotal) * 100;
+        
+        pBody.innerHTML += `
+          <tr>
+            <td class="cell-id">${p.dno}</td>
+            <td class="cell-name">${p.dname}</td>
+            <td style="text-align:center"><div class="headcount-badge">${p.headcount}</div></td>
+            <td class="col-money">
+              ${formatINR(p.total)}
+              <div class="salary-bar-track"><div class="salary-bar-fill" id="bar-${p.dno}"></div></div>
+            </td>
+            <td class="col-money">${formatINR(p.avg)}</td>
+            <td class="col-money">${formatINR(p.max)}</td>
+            <td class="col-money">${p.min ? formatINR(p.min) : '—'}</td>
+          </tr>
+        `;
+
+        // Animate bars staggered
+        setTimeout(() => {
+          const bar = document.getElementById(`bar-${p.dno}`);
+          if(bar) bar.style.width = `${perc}%`;
+        }, 80 + (idx * 60));
+      });
+
+      if(minOfMin === Infinity) minOfMin = 0;
+      const weightedAvg = grandHeadcount > 0 ? (grandTotal / grandHeadcount) : 0;
+
+      document.getElementById('grand-total-val').textContent = formatINR(grandTotal);
+
+      pFoot.innerHTML = `
+        <tr class="payroll-total-row">
+          <td>TOTAL</td>
+          <td></td>
+          <td style="text-align:center"><div class="headcount-badge" style="background:var(--accent); color:#fff">${grandHeadcount}</div></td>
+          <td class="col-money">${formatINR(grandTotal)}</td>
+          <td class="col-money">${formatINR(weightedAvg)}</td>
+          <td class="col-money">${formatINR(maxOfMax)}</td>
+          <td class="col-money">${formatINR(minOfMin)}</td>
+        </tr>
+      `;
+    }
+
+    /* ── PANELS ── */
+    const backdrop = document.getElementById('panel-backdrop');
+    function openPanel(id) { backdrop.classList.add('open'); document.getElementById(id).classList.add('open'); }
+    function closePanel(id) { backdrop.classList.remove('open'); document.getElementById(id).classList.remove('open'); }
+    backdrop.addEventListener('click', () => closePanel('add-dept-panel'));
+
+    document.getElementById('btn-add-dept').addEventListener('click', () => openPanel('add-dept-panel'));
+    document.getElementById('close-add-panel').addEventListener('click', () => closePanel('add-dept-panel'));
+
+    document.getElementById('add-dept-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dno = parseInt(document.getElementById('add-dno').value);
+      const newDept = {
+        dno: dno,
+        dname: document.getElementById('add-dname').value,
+        mgr_eno: document.getElementById('add-mgr').value ? parseInt(document.getElementById('add-mgr').value) : null,
+        mgrstartdate: document.getElementById('add-mgr-date').value || null
+      };
+
+      if (MOCK_DEPARTMENTS.find(d => d.dno === dno)) {
+        showToast('Department ID already exists', 'error');
+        return;
+      }
+
+      MOCK_DEPARTMENTS.push(newDept);
+      MOCK_HEADCOUNT[dno] = { count: 0, manager_name: getMgrName(newDept.mgr_eno), total_salary: 0 };
+      MOCK_LOCATIONS[dno] = [];
+      MOCK_PAYROLL.push({ dno: dno, dname: newDept.dname, headcount: 0, total: 0, avg: 0, max: 0, min: 0 });
+
+      closePanel('add-dept-panel');
+      
+      if(tabPayroll.classList.contains('active')) {
+        tabDepts.click();
+      } else {
+        renderDepartments();
+      }
+
+      // Flash
+      setTimeout(() => {
+        if(currentView === 'table') {
+          const row = document.getElementById(`row-${dno}`);
+          if(row) row.classList.add('new-row');
+        }
+      }, 100);
+
+      showToast('Department created successfully', 'success');
+      e.target.reset();
+    });
+
+    /* ── MODALS ── */
+    const modalMgr = document.getElementById('manager-modal');
+    const modalDel = document.getElementById('delete-modal');
+
+    // Update Manager Modal
+    const selectMgr = document.getElementById('update-mgr-select');
+    function populateMgrDropdown() {
+      selectMgr.innerHTML = '<option value="">Select employee...</option>';
+      MOCK_EMPLOYEES_BRIEF.forEach(e => {
+        selectMgr.innerHTML += `<option value="${e.eno}">${e.ename} (${e.eno})</option>`;
+      });
+    }
+
+    window.openManagerModal = (dno) => {
+      activeDeptForManager = MOCK_DEPARTMENTS.find(d => d.dno === dno);
+      if(!selectMgr.options.length || selectMgr.options.length === 1) populateMgrDropdown();
+      
+      document.getElementById('manager-modal-sub').textContent = `Department: ${activeDeptForManager.dname} (ID: ${dno})`;
+      
+      const currMgrName = getMgrName(activeDeptForManager.mgr_eno);
+      const currText = activeDeptForManager.mgr_eno ? `${currMgrName} (${activeDeptForManager.mgr_eno})` : 'None';
+      document.getElementById('manager-modal-current').textContent = `Current: ${currText}`;
+      
+      // Select logic and (current) label logic
+      for(let i=1; i<selectMgr.options.length; i++){
+        const opt = selectMgr.options[i];
+        opt.textContent = opt.textContent.replace(' (current)', '');
+        if(parseInt(opt.value) === activeDeptForManager.mgr_eno) {
+          opt.textContent += ' (current)';
+          opt.selected = true;
+        } else {
+          opt.selected = false;
+        }
+      }
+      if(!activeDeptForManager.mgr_eno) selectMgr.selectedIndex = 0;
+
+      modalMgr.classList.add('open');
+    };
+
+    document.getElementById('btn-cancel-mgr').addEventListener('click', () => modalMgr.classList.remove('open'));
+    document.getElementById('btn-confirm-mgr').addEventListener('click', () => {
+      const newMgr = selectMgr.value ? parseInt(selectMgr.value) : null;
+      if (newMgr === activeDeptForManager.mgr_eno) { modalMgr.classList.remove('open'); return; }
+      
+      activeDeptForManager.mgr_eno = newMgr;
+      activeDeptForManager.mgrstartdate = new Date().toISOString().split('T')[0];
+      
+      modalMgr.classList.remove('open');
+      showToast(`Manager updated for ${activeDeptForManager.dname}`, 'success');
+      
+      if(currentView === 'table') {
+        const cell = document.getElementById(`cell-mgr-${activeDeptForManager.dno}`);
+        if(cell) {
+          cell.textContent = getMgrName(newMgr);
+          cell.classList.remove('flashing');
+          void cell.offsetWidth;
+          cell.classList.add('flashing');
+        }
+      } else {
+        renderDepartments();
+      }
+    });
+
+    // Delete Modal
+    window.openDeleteModal = (dno) => {
+      activeDeptForDelete = MOCK_DEPARTMENTS.find(d => d.dno === dno);
+      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete ${activeDeptForDelete.dname} (ID: ${dno})? All employees in this department must be reassigned first.`;
+      modalDel.classList.add('open');
+    };
+
+    document.getElementById('btn-cancel-delete').addEventListener('click', () => modalDel.classList.remove('open'));
+    document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+      modalDel.classList.remove('open');
+      MOCK_DEPARTMENTS = MOCK_DEPARTMENTS.filter(d => d.dno !== activeDeptForDelete.dno);
+      MOCK_PAYROLL = MOCK_PAYROLL.filter(p => p.dno !== activeDeptForDelete.dno);
+      renderDepartments();
+      showToast('Department deleted', 'success');
+    });
+
+    modalMgr.addEventListener('click', (e) => { if (e.target === modalMgr) modalMgr.classList.remove('open'); });
+    modalDel.addEventListener('click', (e) => { if (e.target === modalDel) modalDel.classList.remove('open'); });
+
+    /* ── INIT ── */
+    renderDepartments();
+
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+</body>
+</html>

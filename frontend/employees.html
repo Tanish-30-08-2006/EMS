@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+
+    /* Reset + global */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; border: none; cursor: pointer; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    .svg-defs { width: 0; height: 0; position: absolute; }
+
+    /* ── SIDEBAR (exact copy) ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      overflow-y: auto; overflow-x: hidden; transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .sidebar-close-btn {
+      display: none; margin-left: auto; background: none; border: none;
+      color: var(--text-muted); font-size: 20px; cursor: pointer;
+    }
+    .sidebar-company {
+      padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .company-label {
+      font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 2px;
+    }
+    .company-name-display {
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 16px;
+      font-size: 13px; font-weight: 400; color: var(--text-secondary);
+      text-decoration: none; cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+      border-radius: 0; position: relative;
+    }
+    .nav-item:hover { background: var(--bg-overlay); outline: 1px solid var(--border); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); font-weight: 500; }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    }
+    .nav-icon {
+      width: 16px; height: 16px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    .nav-item:hover .nav-icon { color: var(--text-secondary); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    .sidebar-footer {
+      padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-icon {
+      width: 14px; height: 14px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── MOBILE TOP BAR & OVERLAY ── */
+    .mobile-topbar {
+      display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px;
+      background: var(--bg-surface); border-bottom: 1px solid var(--border);
+      z-index: 90; align-items: center; padding: 0 16px;
+    }
+    .hamburger-btn {
+      width: 44px; height: 44px; background: none; border: none; color: var(--text-primary);
+      font-size: 24px; display: flex; align-items: center; justify-content: flex-start; margin-left: -8px;
+    }
+    .mobile-page-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-left: 8px; }
+    .sidebar-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 95; backdrop-filter: blur(2px);
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main-content {
+      margin-left: 240px; min-height: 100vh; background: var(--bg-base); padding: 32px 36px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 0ms;
+    }
+    .page-title-wrap { display: flex; align-items: center; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; }
+    .count-badge {
+      font-size: 11px; font-weight: 500; color: var(--accent-text); background: var(--accent-subtle);
+      border: 1px solid rgba(41,82,204,0.2); padding: 2px 8px; margin-left: 10px; vertical-align: middle;
+    }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-secondary-action {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+      font-family: 'Inter', sans-serif; cursor: pointer; background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--border); border-radius: 4px; transition: border-color 150ms, color 150ms;
+    }
+    .btn-secondary-action:hover { border-color: #444; color: var(--text-primary); }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+      font-family: 'Inter', sans-serif; cursor: pointer; background: transparent; color: var(--accent-text);
+      border: 1px solid var(--accent); border-radius: 4px; transition: all 200ms;
+    }
+    .btn-primary:hover {
+      border-color: var(--accent-hover); color: #c4d4ff;
+      box-shadow: 0 0 8px rgba(41,82,204,0.4), 0 0 20px rgba(41,82,204,0.15);
+      text-shadow: 0 0 12px rgba(168,191,255,0.6);
+    }
+    .btn-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; padding: 12px 0; margin-bottom: 16px; flex-wrap: wrap;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 60ms;
+    }
+    .search-input {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);
+      font-size: 13px; font-family: 'Inter', sans-serif; padding: 7px 12px; border-radius: 0; outline: none;
+      width: 140px; transition: border-color 150ms;
+    }
+    .search-input:focus { border-color: var(--border-focus); }
+    .search-input::placeholder { color: var(--text-muted); font-size: 12px; }
+    .search-name { width: 200px; }
+    .filter-select {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary);
+      font-size: 13px; font-family: 'Inter', sans-serif; padding: 7px 32px 7px 12px; border-radius: 0; outline: none; cursor: pointer;
+      appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+      background-repeat: no-repeat; background-position: right 10px center; background-size: 12px; transition: border-color 150ms;
+    }
+    .filter-select:focus { border-color: var(--border-focus); }
+    .gender-filter { display: flex; gap: 0; }
+    .gender-pill {
+      padding: 7px 14px; font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border);
+      transition: background 120ms, color 120ms, border-color 120ms;
+    }
+    .gender-pill:not(:last-child) { border-right: none; }
+    .gender-pill.active { background: var(--accent-subtle); color: var(--accent-text); border-color: rgba(41,82,204,0.3); }
+    .clear-btn {
+      padding: 7px 12px; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: transparent; color: var(--text-muted); border: 1px solid transparent; transition: color 120ms, border-color 120ms;
+    }
+    .clear-btn:hover { color: var(--text-secondary); border-color: var(--border); }
+
+    /* ── TABLE CONTROLS ── */
+    .table-controls {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      animation: sectionFadeIn 350ms ease both; animation-delay: 120ms;
+    }
+    .showing-text { font-size: 12px; color: var(--text-muted); }
+    .view-toggle { display: flex; gap: 0; }
+    .view-btn {
+      padding: 5px 10px; font-size: 12px; background: var(--bg-surface); color: var(--text-muted);
+      border: 1px solid var(--border); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 120ms;
+    }
+    .view-btn:first-child { border-right: none; }
+    .view-btn.active { background: var(--accent-subtle); color: var(--accent-text); border-color: rgba(41,82,204,0.3); }
+
+    /* ── DATA TABLE ── */
+    #table-view {
+      overflow-x: auto;
+      animation: sectionFadeIn 350ms ease both; animation-delay: 180ms;
+    }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border);
+      white-space: nowrap; cursor: pointer; user-select: none; transition: color 120ms;
+    }
+    .data-table th:hover { color: var(--text-secondary); }
+    .data-table th.sorted { color: var(--accent-text); }
+    .sort-arrow { display: inline-block; margin-left: 4px; font-size: 10px; color: var(--accent-text); }
+    .data-table td {
+      font-size: 13px; color: var(--text-secondary); padding: 11px 16px; border-bottom: 1px solid var(--border);
+      vertical-align: middle; white-space: nowrap;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { transition: background 80ms; cursor: pointer; }
+    .data-table tbody tr:hover td { background: var(--bg-overlay); }
+    .data-table tbody tr:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+
+    /* Cell styles */
+    .cell-id { font-size: 12px; font-weight: 600; color: var(--accent-text); font-family: 'SF Mono', 'Fira Code', monospace; }
+    .cell-name { font-weight: 500; color: var(--text-primary); }
+    .cell-salary { font-weight: 500; color: #86efac; text-align: right; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; transition: color 300ms; }
+    .gender-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border: 1px solid var(--border); color: var(--text-muted); }
+    .manager-null { color: var(--text-muted); font-size: 11px; }
+    
+    .action-btn {
+      width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--text-muted);
+      transition: color 120ms, border-color 120ms, background 120ms; margin-right: 4px;
+    }
+    .action-btn:hover { background: var(--bg-overlay); border-color: var(--border); color: var(--text-primary); }
+    .action-btn.delete:hover { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+    .action-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── CARDS VIEW ── */
+    #cards-view {
+      animation: sectionFadeIn 350ms ease both; animation-delay: 180ms; padding: 16px 0;
+    }
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border);
+    }
+    .emp-card {
+      background: var(--bg-surface); padding: 20px; transition: background 120ms; cursor: pointer;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .emp-card:hover { background: var(--bg-overlay); outline: 1px solid var(--border); z-index: 2; }
+    
+    .card-header { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.25);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--accent-text); flex-shrink: 0;
+    }
+    .card-title-blk { display: flex; flex-direction: column; gap: 4px; }
+    .card-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .card-id { font-size: 11px; font-weight: 600; color: var(--accent-text); font-family: 'SF Mono', 'Fira Code', monospace; }
+
+    .card-body {
+      display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 12px; padding: 12px 0;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .card-label { color: var(--text-muted); }
+    .card-val { color: var(--text-secondary); font-weight: 500; }
+    
+    .card-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+    /* ── UI ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rowFlash { 0% { background: rgba(34,197,94,0.15); } 100% { background: transparent; } }
+    .new-row { animation: rowFlash 1200ms ease forwards; }
+    @keyframes rowFadeOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
+    .deleting-row { animation: rowFadeOut 300ms ease forwards; }
+    .flash-salary { color: #fff !important; text-shadow: 0 0 10px #86efac; transition: none !important; }
+
+    /* ── SLIDE PANELS ── */
+    .slide-panel {
+      position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: var(--bg-surface);
+      border-left: 1px solid var(--border); z-index: 200; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 250ms ease; overflow-y: auto;
+    }
+    .slide-panel.open { transform: translateX(0); }
+    .panel-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 250ms ease;
+    }
+    .panel-backdrop.open { opacity: 1; pointer-events: all; }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .panel-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .panel-close {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent; color: var(--text-muted); cursor: pointer;
+      font-size: 16px; transition: border-color 120ms, color 120ms;
+    }
+    .panel-close:hover { border-color: var(--border); color: var(--text-primary); }
+    .panel-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); flex-shrink: 0; margin-top: auto; }
+
+    /* Panel elements */
+    .input-group { margin-bottom: 16px; }
+    .input-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.02em; margin-bottom: 6px; }
+    .input-field {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border); color: var(--text-primary);
+      font-size: 14px; font-family: 'Inter', sans-serif; padding: 9px 12px; border-radius: 0; outline: none; transition: border-color 150ms ease; box-sizing: border-box;
+    }
+    .input-field:focus { border-color: var(--border-focus); }
+    .input-field::placeholder { color: var(--text-muted); font-size: 13px; }
+    .format-hint {
+      font-size: 11px; color: var(--text-muted); padding: 10px 12px; background: var(--bg-base);
+      border: 1px solid var(--border); margin-top: 8px; margin-bottom: 20px; line-height: 1.6;
+    }
+    .optional-badge {
+      font-size: 10px; font-weight: 400; color: var(--text-muted); background: var(--bg-overlay);
+      border: 1px solid var(--border); padding: 1px 6px; border-radius: 100px; margin-left: 6px; vertical-align: middle;
+    }
+    .btn-submit { /* alias for btn-primary but full width */
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px;
+      font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: transparent; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 4px; transition: all 200ms;
+    }
+    .btn-submit:hover {
+      border-color: var(--accent-hover); color: #c4d4ff;
+      box-shadow: 0 0 8px rgba(41,82,204,0.4), 0 0 20px rgba(41,82,204,0.15); text-shadow: 0 0 12px rgba(168,191,255,0.6);
+    }
+    
+    /* Salary History specific */
+    .history-timeline { padding: 24px; display: flex; flex-direction: column; gap: 0; }
+    .history-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); position: relative; }
+    .history-entry:last-child { border-bottom: none; }
+    .history-date { font-size: 12px; color: var(--text-muted); font-family: 'SF Mono', 'Fira Code', monospace;}
+    .history-vals { font-size: 13px; color: var(--text-secondary); flex: 1; text-align: center; }
+    .direction-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border: 1px solid; }
+    .direction-badge.raise  { color: #86efac; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); }
+    .direction-badge.cut    { color: #fca5a5; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+    .direction-badge.hire   { color: #a8bfff; border-color: rgba(41,82,204,0.3); background: rgba(41,82,204,0.08); }
+    .direction-badge.same   { color: var(--text-muted); border-color: var(--border); background: transparent; }
+    .history-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px 0; }
+    
+    .current-salary-block {
+      margin: 0 24px 24px; padding: 14px 16px; background: var(--bg-base); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    }
+    .current-salary-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .current-salary-value { font-size: 20px; font-weight: 700; color: #86efac; margin-top: 4px; font-family: 'SF Mono', 'Fira Code', monospace; }
+    
+    .transfer-section { padding: 20px 24px; border-top: 1px solid var(--border); }
+    .transfer-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* CSV Import specific */
+    .import-panel { width: 520px; }
+    .upload-zone {
+      border: 1px dashed var(--border); background: var(--bg-base); padding: 40px 24px; text-align: center;
+      cursor: pointer; transition: border-color 150ms, background 150ms; margin: 24px;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: var(--accent-subtle); }
+    .upload-zone.drag-over { border-color: var(--accent-text); background: var(--accent-subtle2); }
+    .upload-icon { width: 32px; height: 32px; color: var(--text-muted); margin-bottom: 12px; }
+    .upload-text { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+    .upload-sub { font-size: 11px; color: var(--text-muted); }
+    
+    .import-summary { display: flex; gap: 16px; padding: 12px 24px; font-size: 12px; }
+    .summary-item { display: flex; align-items: center; gap: 6px; }
+    .summary-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .summary-dot.valid { background: var(--success); }
+    .summary-dot.invalid { background: var(--danger); }
+    
+    .preview-container { padding: 0 24px 24px; overflow-x: auto; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th { padding: 6px 10px; font-size: 10px; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left;}
+    .preview-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
+    .preview-row.invalid { background: rgba(239,68,68,0.05); }
+    .preview-row.invalid td { color: #fca5a5; }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--bg-surface); border: 1px solid var(--border); width: 360px; padding: 28px; border-radius: 0;
+      transform: translateY(-12px); transition: transform 200ms ease;
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .modal-title-blk { margin-bottom: 16px; }
+    .modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .modal-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .modal-divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+    .modal-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+    
+    .btn-ghost {
+      padding: 9px 16px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+      background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 4px; transition: all 150ms;
+    }
+    .btn-ghost:hover { border-color: #555; color: var(--text-primary); }
+    .btn-danger {
+      padding: 9px 20px; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; background: transparent;
+      color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; transition: border-color 150ms, box-shadow 150ms;
+    }
+    .btn-danger:hover { border-color: var(--danger); box-shadow: 0 0 8px rgba(239,68,68,0.25); }
+    .warning-icon { font-size: 24px; color: var(--warning); margin-bottom: 12px; }
+    .modal-body-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;}
+    .modal-current-val { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* ── TOASTS ── */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 400; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-surface);
+      border: 1px solid var(--border); min-width: 280px; max-width: 380px; font-size: 13px; color: var(--text-primary);
+      animation: toastIn 250ms ease both; border-radius: 0;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+
+    /* Media Queries */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-close-btn { display: block; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0; padding: 16px; padding-top: 68px; }
+      .slide-panel { width: 100%; }
+      .import-panel { width: 100%; }
+      .header-actions { width: 100%; justify-content: flex-start; }
+      .search-name { width: 100%; }
+      .search-input { width: 100%; margin-bottom: 8px; }
+      .filter-bar { flex-direction: column; align-items: flex-start; }
+      .gender-filter { width: 100%; }
+      .gender-pill { flex: 1; text-align: center; }
+      .filter-select { width: 100%; }
+      .clear-btn { align-self: flex-end; }
+    }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Sprite/Defs (Shield Logo + Icons) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Employees</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-title-wrap">
+        <h1 class="page-title">Employee Records</h1>
+        <span class="count-badge" id="total-badge">0 employees</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary-action" id="btn-import">
+          <svg class="btn-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Import CSV
+        </button>
+        <button class="btn-primary" id="btn-add-emp">
+          <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add Employee
+        </button>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <input type="number" id="filter-id" class="search-input" placeholder="Search by ID...">
+      <input type="text" id="filter-name" class="search-input search-name" placeholder="Search by name...">
+      
+      <select id="filter-dept" class="filter-select">
+        <option value="all">All Departments</option>
+        <!-- Injected via JS -->
+      </select>
+
+      <div class="gender-filter" id="filter-gender">
+        <button class="gender-pill active" data-val="all">All</button>
+        <button class="gender-pill" data-val="M">M</button>
+        <button class="gender-pill" data-val="F">F</button>
+      </div>
+
+      <button class="clear-btn" id="btn-clear-filters">Clear</button>
+    </div>
+
+    <!-- TABLE CONTROLS -->
+    <div class="table-controls">
+      <div class="showing-text" id="showing-text">Showing 0 of 0 employees</div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="view-table">≡ Table</button>
+        <button class="view-btn" id="view-cards">⊞ Cards</button>
+      </div>
+    </div>
+
+    <!-- VIEWS -->
+    <div id="table-view">
+      <table class="data-table">
+        <thead>
+          <tr id="table-header-row">
+            <th data-sort="eno" style="width:60px">ID <span class="sort-arrow"></span></th>
+            <th data-sort="ename">NAME <span class="sort-arrow"></span></th>
+            <th data-sort="dob" style="width:110px">DOB <span class="sort-arrow"></span></th>
+            <th data-sort="gender" style="width:70px">GENDER <span class="sort-arrow"></span></th>
+            <th data-sort="salary" style="width:120px; text-align:right">SALARY <span class="sort-arrow"></span></th>
+            <th data-sort="super_eno" style="width:80px">MANAGER <span class="sort-arrow"></span></th>
+            <th data-sort="dname" style="width:80px">DEPT <span class="sort-arrow"></span></th>
+            <th style="width:80px">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Rows injected via JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div id="cards-view" style="display:none;">
+      <div class="cards-grid" id="cards-grid">
+        <!-- Cards injected via JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ── PANELS ── -->
+  <div class="panel-backdrop" id="panel-backdrop"></div>
+  
+  <!-- Add Employee Slide Panel -->
+  <div class="slide-panel" id="add-panel">
+    <div class="panel-header">
+      <div class="panel-title">Add Employee</div>
+      <button class="panel-close" id="close-add-panel">&times;</button>
+    </div>
+    <div class="panel-body">
+      <form id="add-emp-form">
+        <div class="input-group">
+          <label class="input-label">Employee ID</label>
+          <input type="number" id="add-eno" class="input-field" placeholder="101" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Full Name</label>
+          <input type="text" id="add-name" class="input-field" placeholder="John Smith" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Date of Birth</label>
+          <input type="date" id="add-dob" class="input-field" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Gender</label>
+          <div class="gender-filter" id="add-gender-group">
+            <button type="button" class="gender-pill active" data-val="M" style="flex:1">M</button>
+            <button type="button" class="gender-pill" data-val="F" style="flex:1">F</button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Salary</label>
+          <input type="number" id="add-salary" class="input-field" placeholder="30000" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Manager ID <span class="optional-badge">optional</span></label>
+          <input type="number" id="add-mgr" class="input-field" placeholder="101 (leave blank if none)">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Department</label>
+          <select id="add-dept" class="filter-select" style="width:100%" required>
+            <!-- Injected via JS -->
+          </select>
+        </div>
+        
+        <div class="format-hint">Format: ID, Name, DOB, Gender, Salary, ManagerID (optional), DeptID</div>
+      </form>
+    </div>
+    <div class="panel-footer">
+      <button type="submit" form="add-emp-form" class="btn-submit">Add Employee</button>
+    </div>
+  </div>
+
+  <!-- Salary History Slide Panel -->
+  <div class="slide-panel" id="history-panel">
+    <div class="panel-header">
+      <div class="panel-title" id="history-panel-title">Employee — History</div>
+      <button class="panel-close" id="close-history-panel">&times;</button>
+    </div>
+    <div class="panel-body" style="padding:0; overflow-y:auto;">
+      <div class="history-timeline" id="history-timeline">
+        <!-- Injected via JS -->
+      </div>
+      
+      <div class="current-salary-block">
+        <div class="current-salary-label">Current Salary</div>
+        <div class="current-salary-value" id="history-current-val">₹ 0.00</div>
+      </div>
+
+      <div class="transfer-section">
+        <div class="transfer-label">Transfer Department</div>
+        <div class="input-group" style="margin-bottom:12px">
+          <select id="transfer-dept-select" class="filter-select" style="width:100%">
+            <!-- Injected via JS -->
+          </select>
+        </div>
+        <button class="btn-primary" id="btn-transfer" style="width:100%; justify-content:center;">Transfer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Import Slide Panel -->
+  <div class="slide-panel import-panel" id="import-panel">
+    <div class="panel-header">
+      <div class="panel-title">Bulk CSV Import</div>
+      <button class="panel-close" id="close-import-panel">&times;</button>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      
+      <div class="upload-zone" id="upload-zone">
+        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        <div class="upload-text">Drop your CSV file here, or click to browse</div>
+        <div class="upload-sub">Expected format: eno, ename, dob, gender, salary, super_eno, dno</div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+      </div>
+
+      <div id="import-preview-area" style="display:none;">
+        <div class="import-summary" id="import-summary">
+          <!-- Injected via JS -->
+        </div>
+        <div class="preview-container">
+          <table class="preview-table">
+            <thead>
+              <tr><th>ID</th><th>NAME</th><th>DOB</th><th>G</th><th>SALARY</th><th>MGR</th><th>DEPT</th></tr>
+            </thead>
+            <tbody id="preview-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+          <div id="preview-more-text" style="font-size:11px; color:#555; margin-top:8px;"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="panel-footer" style="display:flex; gap:8px;">
+      <button class="btn-submit" id="btn-confirm-import" disabled style="flex:1;">Import 0 valid rows</button>
+      <button class="btn-ghost" id="btn-cancel-import" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ── MODALS ── -->
+  <!-- Salary Modal -->
+  <div class="modal-overlay" id="salary-modal">
+    <div class="modal-box">
+      <div class="modal-title-blk">
+        <div class="modal-title">Update Salary</div>
+        <div class="modal-sub" id="salary-modal-sub">Employee: Name (ID: X)</div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="modal-current-val" id="salary-modal-current">Current: ₹ 0.00</div>
+      
+      <div class="input-group" style="margin-bottom:0">
+        <label class="input-label">New Salary</label>
+        <input type="number" id="update-salary-input" class="input-field" placeholder="Enter new salary">
+      </div>
+      
+      <div class="modal-row">
+        <button class="btn-ghost" id="btn-cancel-salary">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-salary">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="warning-icon">⚠</div>
+      <div class="modal-title" style="margin-bottom:8px">Delete Employee</div>
+      <div class="modal-body-text" id="delete-modal-text">Are you sure you want to permanently delete Employee? This action cannot be undone.</div>
+      <div class="modal-row">
+        <button class="btn-ghost" id="btn-cancel-delete">Cancel</button>
+        <button class="btn-danger" id="btn-confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK DATA — Replace with real API calls when FastAPI is ready
+    //
+    // Endpoints needed for this page:
+    //   GET  /employees                    → get_all_employees()
+    //   GET  /employees/{eno}              → get_employee_by_id()
+    //   GET  /employees/search?name=X      → search_employees_by_name()
+    //   POST /employees                    → add_new_employee()
+    //   DELETE /employees/{eno}            → delete_employee()
+    //   PUT  /employees/{eno}/salary       → update_employee_salary()
+    //   GET  /employees/{eno}/salary-history → get_salary_history()
+    //   POST /employees/{eno}/transfer     → transfer_employee()
+    //   POST /employees/bulk-import        → bulk_import_employees()
+    // ══════════════════════════════════════════════════════════════════
+
+    // // FUTURE BUG F5: FK violations on employee delete
+    // Employee who is a dept manager / has dependents / has works_on records cannot be deleted.
+    // Backend returns HTTP 409. Frontend must catch error and NOT remove row from UI.
+    let MOCK_EMPLOYEES = [
+      { eno: 101, ename: 'James Borg',       dob: '1937-11-10', gender: 'M', salary: 55000, super_eno: null, dno: 1 },
+      { eno: 102, ename: 'Michael Wallace',  dob: '1965-04-20', gender: 'M', salary: 43000, super_eno: 101,  dno: 4 },
+      { eno: 103, ename: 'Franklin Wong',    dob: '1955-12-08', gender: 'M', salary: 40000, super_eno: 101,  dno: 5 },
+      { eno: 104, ename: 'Jennifer Wallace', dob: '1941-06-20', gender: 'F', salary: 43000, super_eno: 101,  dno: 4 },
+      { eno: 105, ename: 'Ramesh Narayan',   dob: '1962-09-15', gender: 'M', salary: 38000, super_eno: 103,  dno: 5 },
+      { eno: 106, ename: 'Joyce English',    dob: '1972-07-31', gender: 'F', salary: 25000, super_eno: 103,  dno: 5 },
+      { eno: 107, ename: 'Ahmad Jabbar',     dob: '1969-03-29', gender: 'M', salary: 25000, super_eno: 102,  dno: 4 },
+      { eno: 108, ename: 'Alicia Zelaya',    dob: '1968-01-19', gender: 'F', salary: 25000, super_eno: 104,  dno: 4 },
+      { eno: 109, ename: 'John Smith',       dob: '1965-01-09', gender: 'M', salary: 30000, super_eno: 103,  dno: 5 },
+      { eno: 110, ename: 'Tanish Sanghavi',  dob: '2006-08-30', gender: 'M', salary: 60000, super_eno: null, dno: 1 },
+    ];
+
+    let MOCK_DEPARTMENTS = [
+      { dno: 1, dname: 'Headquarters' },
+      { dno: 4, dname: 'Administration' },
+      { dno: 5, dname: 'Research' },
+    ];
+
+    let MOCK_SALARY_HISTORY = {
+      101: [
+        { date: '2020-01-01', old_salary: 48000, new_salary: 52000 },
+        { date: '2022-06-01', old_salary: 52000, new_salary: 55000 },
+      ],
+      110: [
+        { date: '2024-08-30', old_salary: null,  new_salary: 60000 },
+      ],
+    };
+
+    /* ── STATE ── */
+    let currentView = 'table';
+    let sortColumn = null;
+    let sortDirection = 'asc';
+    let filterID = '';
+    let filterName = '';
+    let filterDept = 'all';
+    let filterGender = 'all';
+
+    let activeEmployeeForSalary = null;
+    let activeEmployeeForDelete = null;
+    let activeEmployeeForHistory = null;
+    
+    let importParsedData = [];
+
+    // Formatter
+    const formatINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
+    const getDeptName = (dno) => MOCK_DEPARTMENTS.find(d => d.dno === dno)?.dname || 'Unknown';
+
+    /* ── DOM ELEMENTS ── */
+    const tbody = document.getElementById('table-body');
+    const cardsGrid = document.getElementById('cards-grid');
+    const showingText = document.getElementById('showing-text');
+    const totalBadge = document.getElementById('total-badge');
+    const viewTableBtn = document.getElementById('view-table');
+    const viewCardsBtn = document.getElementById('view-cards');
+    const tableView = document.getElementById('table-view');
+    const cardsView = document.getElementById('cards-view');
+    
+    // Sidebar & Auth
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    
+    
+    // Mobile Sidebar
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+    document.getElementById('hamburger-btn').addEventListener('click', () => toggleSidebar(true));
+    document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+
+    /* ── TOASTS ── */
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'opacity 200ms, transform 200ms';
+        setTimeout(() => toast.remove(), 200);
+      }, duration);
+    }
+
+    /* ── DATA PROCESSING ── */
+    function getFilteredAndSortedData() {
+      let data = [...MOCK_EMPLOYEES];
+      // Filter ID
+      if (filterID) data = data.filter(e => e.eno.toString().includes(filterID));
+      // Filter Name
+      if (filterName) data = data.filter(e => e.ename.toLowerCase().includes(filterName.toLowerCase()));
+      // Filter Dept
+      if (filterDept !== 'all') data = data.filter(e => e.dno === parseInt(filterDept));
+      // Filter Gender
+      if (filterGender !== 'all') data = data.filter(e => e.gender === filterGender);
+      
+      // Sort
+      if (sortColumn) {
+        data.sort((a, b) => {
+          let valA = a[sortColumn];
+          let valB = b[sortColumn];
+          if (sortColumn === 'dname') { valA = getDeptName(a.dno); valB = getDeptName(b.dno); }
+          
+          if (typeof valA === 'string') valA = valA.toLowerCase();
+          if (typeof valB === 'string') valB = valB.toLowerCase();
+          
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+      return data;
+    }
+
+    function renderActiveView() {
+      const data = getFilteredAndSortedData();
+      showingText.textContent = `Showing ${data.length} of ${MOCK_EMPLOYEES.length} employees`;
+      totalBadge.textContent = `${data.length} employees`;
+
+      if (currentView === 'table') {
+        tbody.innerHTML = '';
+        data.forEach(e => {
+          const mgr = e.super_eno ? e.super_eno : `<span class="manager-null">—</span>`;
+          const tr = document.createElement('tr');
+          tr.id = `row-${e.eno}`;
+          tr.innerHTML = `
+            <td class="cell-id">${e.eno}</td>
+            <td class="cell-name"><a href="#" onclick="openHistoryPanel(${e.eno}); return false;">${e.ename}</a></td>
+            <td>${e.dob}</td>
+            <td><span class="gender-badge">${e.gender}</span></td>
+            <td class="cell-salary" id="cell-salary-${e.eno}">${formatINR(e.salary)}</td>
+            <td>${mgr}</td>
+            <td>${getDeptName(e.dno)}</td>
+            <td>
+              <button class="action-btn" onclick="openSalaryModal(${e.eno})" title="Update Salary">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="action-btn delete" onclick="openDeleteModal(${e.eno})" title="Delete">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        cardsGrid.innerHTML = '';
+        data.forEach(e => {
+          const initials = e.ename.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+          const mgr = e.super_eno ? e.super_eno : '—';
+          const card = document.createElement('div');
+          card.className = 'emp-card';
+          card.innerHTML = `
+            <div class="card-header">
+              <div class="avatar">${initials}</div>
+              <div class="card-title-blk">
+                <div class="card-name">${e.ename}</div>
+                <div class="card-id">ID: ${e.eno}</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-label">Dept</div><div class="card-val">${getDeptName(e.dno)}</div>
+              <div class="card-label">Salary</div><div class="card-val" style="color:#86efac; font-family:monospace">${formatINR(e.salary)}</div>
+              <div class="card-label">Gender</div><div class="card-val">${e.gender}</div>
+              <div class="card-label">Manager</div><div class="card-val">${mgr}</div>
+            </div>
+            <div class="card-footer">
+              <button class="btn-ghost" style="padding:4px 8px; font-size:11px" onclick="openSalaryModal(${e.eno})">Edit Salary</button>
+              <button class="btn-ghost" style="padding:4px 8px; font-size:11px; color:#fca5a5; border-color:rgba(239,68,68,0.4)" onclick="openDeleteModal(${e.eno})">Delete</button>
+            </div>
+          `;
+          cardsGrid.appendChild(card);
+        });
+      }
+    }
+
+    /* ── INIT DROPDOWNS ── */
+    function populateDeptDropdowns() {
+      const filterSelect = document.getElementById('filter-dept');
+      const addSelect = document.getElementById('add-dept');
+      
+      const renderOptions = (includeAll) => {
+        let html = includeAll ? '<option value="all">All Departments</option>' : '';
+        MOCK_DEPARTMENTS.forEach(d => { html += `<option value="${d.dno}">${d.dname}</option>`; });
+        return html;
+      };
+      
+      filterSelect.innerHTML = renderOptions(true);
+      addSelect.innerHTML = renderOptions(false);
+    }
+    populateDeptDropdowns();
+
+    /* ── EVENT LISTENERS (FILTER / SORT / VIEW) ── */
+    document.getElementById('filter-id').addEventListener('input', (e) => { filterID = e.target.value; renderActiveView(); });
+    
+    // Debounce name search
+    let nameTimeout;
+    document.getElementById('filter-name').addEventListener('input', (e) => {
+      clearTimeout(nameTimeout);
+      nameTimeout = setTimeout(() => { filterName = e.target.value; renderActiveView(); }, 300);
+    });
+
+    document.getElementById('filter-dept').addEventListener('change', (e) => { filterDept = e.target.value; renderActiveView(); });
+    
+    document.querySelectorAll('#filter-gender .gender-pill').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('#filter-gender .gender-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterGender = btn.dataset.val;
+        renderActiveView();
+      });
+    });
+
+    document.getElementById('btn-clear-filters').addEventListener('click', () => {
+      document.getElementById('filter-id').value = ''; filterID = '';
+      document.getElementById('filter-name').value = ''; filterName = '';
+      document.getElementById('filter-dept').value = 'all'; filterDept = 'all';
+      
+      document.querySelectorAll('#filter-gender .gender-pill').forEach(b => b.classList.remove('active'));
+      document.querySelector('#filter-gender .gender-pill[data-val="all"]').classList.add('active');
+      filterGender = 'all';
+      
+      sortColumn = null; sortDirection = 'asc';
+      document.querySelectorAll('th').forEach(th => { th.classList.remove('sorted'); th.querySelector('.sort-arrow').textContent = ''; });
+      
+      renderActiveView();
+    });
+
+    // Sub-view Toggles
+    viewTableBtn.addEventListener('click', () => {
+      currentView = 'table';
+      viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active');
+      tableView.style.display = 'block'; cardsView.style.display = 'none';
+      renderActiveView();
+    });
+    viewCardsBtn.addEventListener('click', () => {
+      currentView = 'cards';
+      viewCardsBtn.classList.add('active'); viewTableBtn.classList.remove('active');
+      cardsView.style.display = 'block'; tableView.style.display = 'none';
+      renderActiveView();
+    });
+
+    // Sorting
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (sortColumn === col) {
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortColumn = col; sortDirection = 'asc';
+        }
+        
+        document.querySelectorAll('th').forEach(t => {
+          t.classList.remove('sorted');
+          t.querySelector('.sort-arrow').textContent = '';
+        });
+        th.classList.add('sorted');
+        th.querySelector('.sort-arrow').textContent = sortDirection === 'asc' ? '▲' : '▼';
+        
+        renderActiveView();
+      });
+    });
+
+    /* ── PANELS LOGIC ── */
+    const backdrop = document.getElementById('panel-backdrop');
+    function openPanel(id) { backdrop.classList.add('open'); document.getElementById(id).classList.add('open'); }
+    function closePanel(id) { backdrop.classList.remove('open'); document.getElementById(id).classList.remove('open'); }
+    backdrop.addEventListener('click', () => { closePanel('add-panel'); closePanel('history-panel'); closePanel('import-panel'); });
+
+    // Add Panel
+    document.getElementById('btn-add-emp').addEventListener('click', () => openPanel('add-panel'));
+    document.getElementById('close-add-panel').addEventListener('click', () => closePanel('add-panel'));
+    
+    // Add gender toggles inside add panel
+    let addGender = 'M';
+    document.querySelectorAll('#add-gender-group .gender-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#add-gender-group .gender-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active'); addGender = btn.dataset.val;
+      });
+    });
+
+    document.getElementById('add-emp-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const emp = {
+        eno: parseInt(document.getElementById('add-eno').value),
+        ename: document.getElementById('add-name').value,
+        dob: document.getElementById('add-dob').value,
+        gender: addGender,
+        salary: parseFloat(document.getElementById('add-salary').value),
+        super_eno: document.getElementById('add-mgr').value ? parseInt(document.getElementById('add-mgr').value) : null,
+        dno: parseInt(document.getElementById('add-dept').value),
+      };
+      
+      MOCK_EMPLOYEES.unshift(emp);
+      closePanel('add-panel');
+      
+      // Auto switch to table to see flash
+      if(currentView !== 'table') viewTableBtn.click(); else renderActiveView();
+      
+      const newRow = document.getElementById(`row-${emp.eno}`);
+      if(newRow) newRow.classList.add('new-row');
+      
+      showToast('Employee added successfully', 'success');
+      e.target.reset();
+    });
+
+    // History & Transfer Panel
+    window.openHistoryPanel = (eno) => {
+      activeEmployeeForHistory = MOCK_EMPLOYEES.find(e => e.eno === eno);
+      document.getElementById('history-panel-title').textContent = `${activeEmployeeForHistory.ename} — History`;
+      document.getElementById('history-current-val').textContent = formatINR(activeEmployeeForHistory.salary);
+      
+      const tl = document.getElementById('history-timeline');
+      tl.innerHTML = '';
+      const hist = MOCK_SALARY_HISTORY[eno] || [];
+      if (hist.length === 0) {
+        tl.innerHTML = '<div class="history-empty">No salary changes recorded yet.</div>';
+      } else {
+        hist.forEach(h => {
+          let badge = '';
+          if (h.old_salary === null) badge = '<span class="direction-badge hire">● HIRED</span>';
+          else if (h.new_salary > h.old_salary) badge = '<span class="direction-badge raise">▲ RAISE</span>';
+          else if (h.new_salary < h.old_salary) badge = '<span class="direction-badge cut">▼ CUT</span>';
+          else badge = '<span class="direction-badge same">● SAME</span>';
+          
+          const centerText = h.old_salary ? `${formatINR(h.old_salary)} → ${formatINR(h.new_salary)}` : formatINR(h.new_salary);
+          
+          tl.innerHTML += `
+            <div class="history-entry">
+              <div class="history-date">${h.date}</div>
+              <div class="history-vals">${centerText}</div>
+              ${badge}
+            </div>
+          `;
+        });
+      }
+
+      // Populate transfer dropdown
+      const ts = document.getElementById('transfer-dept-select');
+      ts.innerHTML = '';
+      MOCK_DEPARTMENTS.forEach(d => {
+        const isCurrent = d.dno === activeEmployeeForHistory.dno;
+        ts.innerHTML += `<option value="${d.dno}" ${isCurrent ? 'disabled' : ''}>${d.dname} ${isCurrent ? '(current)' : ''}</option>`;
+      });
+
+      openPanel('history-panel');
+    };
+    document.getElementById('close-history-panel').addEventListener('click', () => closePanel('history-panel'));
+    
+    document.getElementById('btn-transfer').addEventListener('click', () => {
+      const newDno = parseInt(document.getElementById('transfer-dept-select').value);
+      if(newDno === activeEmployeeForHistory.dno) return;
+      activeEmployeeForHistory.dno = newDno;
+      const deptName = getDeptName(newDno);
+      closePanel('history-panel');
+      showToast(`Employee transferred to ${deptName}`, 'success');
+      renderActiveView();
+      const row = document.getElementById(`row-${activeEmployeeForHistory.eno}`);
+      if(row) { row.classList.remove('new-row'); void row.offsetWidth; row.classList.add('new-row'); }
+    });
+
+    // CSV Import Panel
+    document.getElementById('btn-import').addEventListener('click', () => openPanel('import-panel'));
+    document.getElementById('close-import-panel').addEventListener('click', () => closePanel('import-panel'));
+    document.getElementById('btn-cancel-import').addEventListener('click', () => closePanel('import-panel'));
+    
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('csv-file-input');
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+    function handleFile(file) {
+      if(!file) return;
+      // mock parse
+      setTimeout(() => {
+        uploadZone.style.display = 'none';
+        document.getElementById('import-preview-area').style.display = 'block';
+        
+        // Mock 3 rows parsed
+        importParsedData = [
+          { eno: 901, ename: 'New Guy', dob: '1990-01-01', gender: 'M', salary: 45000, super_eno: null, dno: 1, valid: true },
+          { eno: 101, ename: 'Duplicate ID', dob: '1990-01-01', gender: 'M', salary: 40000, super_eno: null, dno: 1, valid: false },
+        ];
+        
+        const tbody = document.getElementById('preview-tbody');
+        tbody.innerHTML = '';
+        let vCount = 0, iCount = 0;
+        
+        importParsedData.forEach(r => {
+          if(r.valid) vCount++; else iCount++;
+          tbody.innerHTML += `
+            <tr class="${r.valid ? '' : 'invalid'}">
+              <td>${r.eno}</td><td>${r.ename}</td><td>${r.dob}</td>
+              <td>${r.gender}</td><td>${r.salary}</td><td>${r.super_eno || '—'}</td><td>${r.dno}</td>
+            </tr>
+          `;
+        });
+        
+        document.getElementById('import-summary').innerHTML = `
+          <div class="summary-item"><div class="summary-dot valid"></div> ${vCount} valid</div>
+          <div class="summary-item"><div class="summary-dot invalid"></div> ${iCount} invalid</div>
+        `;
+        
+        const btnConf = document.getElementById('btn-confirm-import');
+        btnConf.disabled = vCount === 0;
+        btnConf.textContent = `Import ${vCount} valid rows`;
+      }, 500);
+    }
+
+    document.getElementById('btn-confirm-import').addEventListener('click', () => {
+      const validRows = importParsedData.filter(r => r.valid);
+      MOCK_EMPLOYEES = [...validRows, ...MOCK_EMPLOYEES];
+      closePanel('import-panel');
+      showToast(`Imported ${validRows.length} employees successfully`, 'success');
+      renderActiveView();
+      // Reset
+      setTimeout(() => {
+        document.getElementById('upload-zone').style.display = 'block';
+        document.getElementById('import-preview-area').style.display = 'none';
+        fileInput.value = '';
+      }, 300);
+    });
+
+    /* ── MODALS LOGIC ── */
+    const overlaySalary = document.getElementById('salary-modal');
+    const overlayDelete = document.getElementById('delete-modal');
+
+    // Salary Update Modal
+    window.openSalaryModal = (eno) => {
+      activeEmployeeForSalary = MOCK_EMPLOYEES.find(e => e.eno === eno);
+      document.getElementById('salary-modal-sub').textContent = `Employee: ${activeEmployeeForSalary.ename} (ID: ${eno})`;
+      document.getElementById('salary-modal-current').textContent = `Current: ${formatINR(activeEmployeeForSalary.salary)}`;
+      document.getElementById('update-salary-input').value = activeEmployeeForSalary.salary;
+      overlaySalary.classList.add('open');
+    };
+    document.getElementById('btn-cancel-salary').addEventListener('click', () => overlaySalary.classList.remove('open'));
+    document.getElementById('btn-confirm-salary').addEventListener('click', () => {
+      const newSal = parseFloat(document.getElementById('update-salary-input').value);
+      if(!newSal || newSal === activeEmployeeForSalary.salary) return;
+      
+      activeEmployeeForSalary.salary = newSal;
+      overlaySalary.classList.remove('open');
+      showToast('Salary updated successfully', 'success');
+      
+      // Flash cell logic
+      if(currentView === 'table') {
+        const salaryCell = document.getElementById(`cell-salary-${activeEmployeeForSalary.eno}`);
+        if(salaryCell) {
+          salaryCell.textContent = formatINR(newSal);
+          salaryCell.classList.add('flash-salary');
+          setTimeout(() => salaryCell.classList.remove('flash-salary'), 1000);
+        }
+      } else {
+        renderActiveView();
+      }
+    });
+
+    // Delete Modal
+    window.openDeleteModal = (eno) => {
+      activeEmployeeForDelete = MOCK_EMPLOYEES.find(e => e.eno === eno);
+      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete ${activeEmployeeForDelete.ename} (ID: ${eno})? This action cannot be undone.`;
+      overlayDelete.classList.add('open');
+    };
+    document.getElementById('btn-cancel-delete').addEventListener('click', () => overlayDelete.classList.remove('open'));
+    document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+      overlayDelete.classList.remove('open');
+      if(currentView === 'table') {
+        const row = document.getElementById(`row-${activeEmployeeForDelete.eno}`);
+        if(row) {
+          row.classList.add('deleting-row');
+          setTimeout(() => {
+            MOCK_EMPLOYEES = MOCK_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno);
+            renderActiveView();
+            showToast('Employee record deleted', 'success');
+          }, 300);
+        }
+      } else {
+        MOCK_EMPLOYEES = MOCK_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno);
+        renderActiveView();
+        showToast('Employee record deleted', 'success');
+      }
+    });
+
+    overlaySalary.addEventListener('click', (e) => { if(e.target === overlaySalary) overlaySalary.classList.remove('open'); });
+    overlayDelete.addEventListener('click', (e) => { if(e.target === overlayDelete) overlayDelete.classList.remove('open'); });
+
+    /* ── INIT LOAD ── */
+    renderActiveView();
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+</body>
+</html>

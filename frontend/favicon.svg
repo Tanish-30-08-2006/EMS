@@ -1,0 +1,50 @@
+<svg id="shield-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="outerRing" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#c0392b"/>
+      <stop offset="100%" stop-color="#7b1010"/>
+    </radialGradient>
+    <radialGradient id="ring2" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#e8e8e8"/>
+      <stop offset="100%" stop-color="#9ca3af"/>
+    </radialGradient>
+    <radialGradient id="ring3" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#c0392b"/>
+      <stop offset="100%" stop-color="#7b1010"/>
+    </radialGradient>
+    <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#2d52d4"/>
+      <stop offset="100%" stop-color="#1e3a9e"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer glow ring -->
+  <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#glow)"/>
+
+  <!-- Ring 1: Red outer -->
+  <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+  <!-- Ring 2: Silver -->
+  <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+  <!-- Ring 3: Red inner -->
+  <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+  <!-- Ring 4: Blue center -->
+  <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#innerGlow)"/>
+
+  <!-- Star (5-pointed, white metallic) -->
+  <polygon
+    points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44"
+    fill="#e8e8e8"
+    filter="url(#glow)"
+  />
+
+  <!-- Subtle highlight arc on top of each ring for 3D feel -->
+  <path d="M 20 35 Q 50 20 80 35" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3"/>
+</svg>

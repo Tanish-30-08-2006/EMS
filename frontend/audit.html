@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 120ms;
+    }
+    .nav-item:hover { background: var(--bg-overlay); color: var(--text-primary); outline: 1px solid var(--border); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); border-left: 2px solid var(--accent); }
+    .nav-icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; color: var(--text-muted); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    
+    .sidebar-company { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .company-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+    .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── MAIN CONTENT ── */
+    .main-content { margin-left: 240px; padding: 32px 36px; min-height: 100vh; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .live-dot {
+      display: none;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success);
+      margin-left: 10px; vertical-align: middle;
+      animation: livePulse 2s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      50%       { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    }
+
+    /* ── AUTO REFRESH TOGGLE ── */
+    .auto-refresh-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+    .toggle-switch { position: relative; width: 32px; height: 18px; cursor: pointer; }
+    .toggle-input { display: none; }
+    .toggle-track { position: absolute; inset: 0; background: var(--bg-overlay); border: 1px solid var(--border); transition: background 200ms, border-color 200ms; transition: all 200ms; }
+    .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: var(--text-muted); transition: transform 200ms, background 200ms; }
+    .toggle-input:checked ~ .toggle-track { background: var(--accent-subtle); border-color: rgba(41,82,204,0.4); }
+    .toggle-input:checked ~ .toggle-thumb { transform: translateX(14px); background: var(--accent-text); }
+
+    /* ── TABS ── */
+    .page-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; animation-delay: 60ms; }
+    .page-tab { padding: 12px 4px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 200ms; }
+    .page-tab.active { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+    /* ── FILTERS ── */
+    .filter-bar { padding: 12px 0; margin-bottom: 8px; animation: sectionFadeIn 350ms ease both; animation-delay: 100ms; }
+    .filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .filter-select { background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; padding: 7px 12px; outline: none; cursor: pointer; appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 12px; }
+    .filter-select:focus { border-color: var(--border-focus); }
+    .search-input { background: var(--bg-base); border: 1px solid var(--border); color: var(--text-primary); font-size: 13px; padding: 7px 12px; outline: none; width: 130px; transition: border-color 150ms; }
+    .search-input:focus { border-color: var(--border-focus); background: var(--bg-surface); }
+    .clear-btn { font-size: 12px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0 8px; }
+    .clear-btn:hover { color: var(--text-secondary); }
+
+    .filter-pills-row { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; }
+    .filter-pills-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-right: 4px; }
+    .pill { padding: 4px 12px; font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--bg-surface); border: 1px solid var(--border); cursor: pointer; transition: all 120ms; }
+    .pill:hover { border-color: #444; color: var(--text-secondary); }
+    .pill.active[data-op="all"] { color: var(--accent-text); border-color: var(--accent); background: var(--accent-subtle); }
+    .pill.active[data-op="INSERT"] { color: #86efac; border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+    .pill.active[data-op="UPDATE"] { color: #fcd34d; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+    .pill.active[data-op="DELETE"] { color: #fca5a5; border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+    
+    .showing-text { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+    /* ── TABLES ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .data-table td { font-size: 13px; color: var(--text-secondary); padding: 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tbody tr { transition: background 80ms; animation: rowFadeIn 350ms ease both; }
+    .data-table tbody tr:hover td { background: var(--bg-overlay); }
+    .data-table tbody tr:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+
+    .log-id-cell { font-size: 12px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--text-muted); }
+    .table-name-tag { font-size: 11px; font-weight: 500; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--text-secondary); background: var(--bg-overlay); border: 1px solid var(--border); padding: 2px 8px; }
+    
+    .op-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; }
+    .op-badge.insert { color: #86efac; background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.25);  }
+    .op-badge.update { color: #fcd34d; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+    .op-badge.delete { color: #fca5a5; background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.25);  }
+
+    .timestamp-cell { white-space: nowrap; }
+    .timestamp-relative { display: block; font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+    .timestamp-absolute { display: block; font-size: 10px; color: var(--text-muted); opacity: 0.6; margin-top: 2px; }
+
+    .summary-cell { font-size: 12px; color: var(--text-secondary); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .details-btn { padding: 4px 10px; font-size: 11px; font-weight: 500; cursor: pointer; background: transparent; color: var(--text-muted); border: 1px solid var(--border); transition: all 150ms; white-space: nowrap; }
+    .details-btn:hover { color: var(--accent-text); border-color: rgba(41,82,204,0.4); background: var(--accent-subtle); }
+
+    /* ── PAGINATION ── */
+    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 8px; border-top: 1px solid var(--border); }
+    .page-info { font-size: 12px; color: var(--text-muted); }
+    .page-buttons { display: flex; gap: 4px; }
+    .page-btn { padding: 5px 12px; font-size: 12px; cursor: pointer; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); transition: all 120ms; }
+    .page-btn:hover:not(:disabled) { color: var(--text-primary); border-color: #444; background: var(--bg-overlay); }
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .page-btn.active { color: var(--accent-text); border-color: rgba(41,82,204,0.4); background: var(--accent-subtle); }
+
+    /* ── STATS (TAB 2) ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1px; background: var(--bg-base); border: 1px solid var(--border); margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; animation-delay: 50ms; }
+    .stat-card { background: var(--bg-surface); padding: 20px 24px; border-left: 3px solid var(--accent); }
+    .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+    .stat-sub { font-size: 11px; color: var(--text-muted); }
+
+    .ops-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--bg-base); border: 1px solid var(--border); margin-bottom: 24px; border-top: none; }
+    .op-stat-card { background: var(--bg-surface); padding: 20px 24px; display: flex; flex-direction: column; gap: 4px; }
+    .op-value { font-size: 28px; font-weight: 700; }
+    .op-prop-track { height: 4px; background: var(--bg-base); margin-top: 12px; }
+    .op-prop-bar { height: 100%; transition: width 1s ease-out; }
+
+    .table-breakdown { background: var(--bg-surface); padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; }
+    .breakdown-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
+    .breakdown-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .breakdown-table-name { font-size: 12px; font-family: monospace; color: var(--text-secondary); width: 120px; flex-shrink: 0; }
+    .breakdown-bar-track { flex: 1; height: 18px; background: var(--bg-base); border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .bar-seg { position: absolute; top: 0; height: 100%; transition: width 600ms ease; }
+    .bar-seg.ins { background: rgba(34,197,94,0.4); }
+    .bar-seg.upd { background: rgba(245,158,11,0.4); }
+    .bar-seg.del { background: rgba(239,68,68,0.4); }
+    .breakdown-count { font-size: 12px; color: var(--text-muted); width: 40px; text-align: right; flex-shrink: 0; }
+
+    .sparkline-section { background: var(--bg-surface); padding: 24px; border: 1px solid var(--border); }
+    .sparkline-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .sparkline-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+    .sparkline-labels { display: flex; justify-content: space-between; margin-top: 12px; }
+    .spark-day { text-align: center; }
+    .spark-day-label { font-size: 10px; color: var(--text-muted); }
+    .spark-day-count { font-size: 11px; font-weight: 600; color: var(--text-secondary); display: block; margin-top: 2px; }
+
+    /* ── DIFF MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 200ms; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .diff-modal-box { background: var(--bg-surface); border: 1px solid var(--border); width: 640px; max-width: 95vw; max-height: 85vh; padding: 28px 32px; border-radius: 0; display: flex; flex-direction: column; transform: scale(0.95); transition: 200ms; }
+    .modal-overlay.open .diff-modal-box { transform: scale(1); }
+    
+    .diff-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .diff-title { font-size: 16px; font-weight: 600; color: var(--text-primary); font-family: monospace; }
+    .diff-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .panel-close { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; }
+
+    .diff-body { flex: 1; overflow-y: auto; padding-right: 8px; }
+    .diff-block { padding: 16px 20px; border: 1px solid var(--border); }
+    .diff-insert { background: rgba(34,197,94,0.04); border-color: rgba(34,197,94,0.15); }
+    .diff-delete { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.15); }
+    .diff-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+    
+    .diff-fields { width: 100%; border-collapse: collapse; }
+    .diff-row td { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    .diff-key { font-family: monospace; color: var(--text-muted); width: 150px; }
+    .diff-val { font-family: monospace; font-weight: 500; }
+    .val-ins { color: #86efac; }
+    .val-del { color: #fca5a5; }
+
+    .diff-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--bg-base); border: 1px solid var(--border); }
+    .diff-col { padding: 16px 20px; }
+    .diff-col.before { background: rgba(239,68,68,0.04); }
+    .diff-col.after { background: rgba(34,197,94,0.04); }
+    .changed-field { background: rgba(255,255,255,0.03); }
+    .val-old { color: #fca5a5; text-decoration: line-through; }
+    .val-new { color: #86efac; font-weight: 600; }
+
+    .diff-summary-line { margin-top: 20px; padding: 12px 14px; background: var(--bg-base); border: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rowFadeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; padding: 20px; }
+      .diff-columns { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .ops-breakdown { grid-template-columns: 1fr; }
+    }
+
+    .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Audit Trail</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="mobile-topbar" id="mobile-topbar" style="display:none;">
+    <button id="hamburger-btn" style="background:none; border:none; color:var(--text-primary); cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <span style="margin-left:16px; font-weight:600; font-size:14px;">Audit Trail</span>
+  </div>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Audit Trail <span class="live-dot" id="live-dot"></span></h2>
+        <p class="page-subtitle">System-wide change log — all tables, all operations</p>
+      </div>
+      <div class="auto-refresh-toggle">
+        <span>Auto-refresh</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="refresh-toggle" class="toggle-input">
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="page-tabs">
+      <button class="page-tab active" id="tab-log">Change Log</button>
+      <button class="page-tab" id="tab-stats">Activity Stats</button>
+    </div>
+
+    <!-- TAB 1: CHANGE LOG -->
+    <div id="tab1-content">
+      <div class="filter-bar">
+        <div class="filter-row">
+          <input type="number" id="search-id" class="search-input" placeholder="Search log ID...">
+          <select id="filter-table" class="filter-select">
+            <option value="all">All Tables</option>
+            <option value="employee">employee</option>
+            <option value="department">department</option>
+            <option value="project">project</option>
+            <option value="works_on">works_on</option>
+            <option value="dependent">dependent</option>
+            <option value="dept_locations">dept_locations</option>
+          </select>
+          <select id="filter-time" class="filter-select">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+          <button class="clear-btn" id="btn-clear-filters">Clear</button>
+          
+          <span class="showing-text" id="showing-text">Showing 0 of 0 entries</span>
+        </div>
+        <div class="filter-pills-row">
+          <span class="filter-pills-label">Operation</span>
+          <div class="pill active" data-op="all">All</div>
+          <div class="pill" data-op="INSERT">INSERT</div>
+          <div class="pill" data-op="UPDATE">UPDATE</div>
+          <div class="pill" data-op="DELETE">DELETE</div>
+        </div>
+      </div>
+
+      <table class="data-table" id="audit-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">LOG ID</th>
+            <th style="width: 130px;">TABLE</th>
+            <th style="width: 110px;">OPERATION</th>
+            <th style="width: 160px;">CHANGED AT</th>
+            <th>SUMMARY</th>
+            <th style="width: 100px; text-align: center;">DETAILS</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+
+      <div class="pagination" id="pagination">
+        <div class="page-info" id="page-info">Page 1 of 1</div>
+        <div class="page-buttons">
+          <button class="page-btn" id="prev-page" disabled>&larr; Prev</button>
+          <div id="page-numbers" style="display:flex; gap:4px;"></div>
+          <button class="page-btn" id="next-page" disabled>Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: ACTIVITY STATS -->
+    <div id="tab2-content" style="display: none;">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Changes Today</div>
+          <div class="stat-value" id="stat-today">0</div>
+          <div class="stat-sub">since midnight</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Week</div>
+          <div class="stat-value" id="stat-week">0</div>
+          <div class="stat-sub">past 7 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="stat-month">0</div>
+          <div class="stat-sub">past 30 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Most Active Table</div>
+          <div class="stat-value" id="stat-active-table" style="font-size:20px; font-family:monospace;">—</div>
+          <div class="stat-sub" id="stat-active-count">0 changes total</div>
+        </div>
+      </div>
+
+      <div class="ops-breakdown">
+        <div class="op-stat-card">
+          <div class="op-badge insert">INSERT</div>
+          <div class="op-value" style="color: #86efac;" id="stat-op-ins">0</div>
+          <div class="stat-sub">new records created</div>
+          <div class="op-prop-track"><div class="op-prop-bar" id="bar-op-ins" style="background:#22c55e; width:0;"></div></div>
+        </div>
+        <div class="op-stat-card">
+          <div class="op-badge update">UPDATE</div>
+          <div class="op-value" style="color: #fcd34d;" id="stat-op-upd">0</div>
+          <div class="stat-sub">records modified</div>
+          <div class="op-prop-track"><div class="op-prop-bar" id="bar-op-upd" style="background:#f59e0b; width:0;"></div></div>
+        </div>
+        <div class="op-stat-card">
+          <div class="op-badge delete">DELETE</div>
+          <div class="op-value" style="color: #fca5a5;" id="stat-op-del">0</div>
+          <div class="stat-sub">records removed</div>
+          <div class="op-prop-track"><div class="op-prop-bar" id="bar-op-del" style="background:#ef4444; width:0;"></div></div>
+        </div>
+      </div>
+
+      <div class="table-breakdown">
+        <div class="breakdown-title">Per-Table Activity</div>
+        <div id="table-bars-container">
+          <!-- Built by JS -->
+        </div>
+      </div>
+
+      <div class="sparkline-section">
+        <div class="sparkline-title">System Activity Trend</div>
+        <div class="sparkline-sub">Total changes per day for the last 7 days</div>
+        <div id="sparkline-container">
+          <!-- SVG sparkline built by JS -->
+        </div>
+        <div class="sparkline-labels" id="sparkline-labels">
+          <!-- Labels built by JS -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- DIFF MODAL -->
+  <div class="modal-overlay" id="diff-modal">
+    <div class="diff-modal-box">
+      <div class="diff-header">
+        <div>
+          <div id="modal-op-badge" class="op-badge"></div>
+          <div class="diff-title" id="modal-table-name">employee</div>
+          <div class="diff-meta" id="modal-log-meta">#47 · 07 Mar 2026, 14:32</div>
+        </div>
+        <button class="panel-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="diff-body" id="modal-diff-body">
+        <!-- Diff content rendered by JS -->
+      </div>
+      <div class="diff-summary-line" id="modal-diff-summary">
+        No changes detected.
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK DATA
+    // ══════════════════════════════════════════════════════════════════
+
+    const MOCK_AUDIT_LOG = [
+      {
+        log_id: 47,
+        table_name: 'employee',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        old_data: { eno: 109, ename: 'John Smith', salary: 28000, dno: 5 },
+        new_data: { eno: 109, ename: 'John Smith', salary: 30000, dno: 5 },
+      },
+      {
+        log_id: 46,
+        table_name: 'works_on',
+        operation: 'INSERT',
+        changed_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
+        old_data: null,
+        new_data: { eno: 106, pno: 3, hours: 40.0 },
+      },
+      {
+        log_id: 45,
+        table_name: 'department',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        old_data: { dno: 5, dname: 'Research', mgr_eno: 102 },
+        new_data: { dno: 5, dname: 'Research', mgr_eno: 103 },
+      },
+      {
+        log_id: 44,
+        table_name: 'employee',
+        operation: 'INSERT',
+        changed_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        old_data: null,
+        new_data: { eno: 110, ename: 'Tanish Sanghavi', salary: 60000, dno: 1 },
+      },
+      {
+        log_id: 43,
+        table_name: 'project',
+        operation: 'INSERT',
+        changed_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        old_data: null,
+        new_data: { pno: 30, pname: 'Newbenefits', plocation: 'Stafford', dno: 4 },
+      },
+      {
+        log_id: 42,
+        table_name: 'dependent',
+        operation: 'INSERT',
+        changed_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        old_data: null,
+        new_data: { eno: 109, dependent_name: 'Alice Smith', gender: 'F', relationship: 'Daughter' },
+      },
+      {
+        log_id: 41,
+        table_name: 'employee',
+        operation: 'DELETE',
+        changed_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+        old_data: { eno: 108, ename: 'Alicia Zelaya', salary: 25000, dno: 4 },
+        new_data: null,
+      },
+      {
+        log_id: 40,
+        table_name: 'dept_locations',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
+        old_data: { dno: 5, dlocation: 'Dallas' },
+        new_data: { dno: 5, dlocation: 'Houston' },
+      },
+      {
+        log_id: 39,
+        table_name: 'employee',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        old_data: { eno: 103, ename: 'Franklin Wong', salary: 38000, dno: 5 },
+        new_data: { eno: 103, ename: 'Franklin Wong', salary: 40000, dno: 5 },
+      },
+      {
+        log_id: 38,
+        table_name: 'works_on',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(),
+        old_data: { eno: 103, pno: 1, hours: 28.0 },
+        new_data: { eno: 103, pno: 1, hours: 32.5 },
+      },
+      {
+        log_id: 37,
+        table_name: 'project',
+        operation: 'UPDATE',
+        changed_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        old_data: { pno: 10, pname: 'Computerize', plocation: 'Houston', dno: 4 },
+        new_data: { pno: 10, pname: 'Computerize', plocation: 'Stafford', dno: 4 },
+      },
+      {
+        log_id: 36,
+        table_name: 'department',
+        operation: 'INSERT',
+        changed_at: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString(),
+        old_data: null,
+        new_data: { dno: 6, dname: 'Finance', mgr_eno: 108 },
+      },
+    ];
+
+    const MOCK_AUDIT_STATS = {
+      total_today: 23,
+      total_week: 89,
+      total_month: 234,
+      by_operation: { INSERT: 42, UPDATE: 61, DELETE: 8 },
+      by_table: {
+        employee:      { INSERT: 18, UPDATE: 31, DELETE: 5  },
+        department:    { INSERT: 4,  UPDATE: 12, DELETE: 1  },
+        project:       { INSERT: 8,  UPDATE: 9,  DELETE: 2  },
+        works_on:      { INSERT: 7,  UPDATE: 6,  DELETE: 0  },
+        dependent:     { INSERT: 4,  UPDATE: 2,  DELETE: 0  },
+        dept_locations:{ INSERT: 1,  UPDATE: 1,  DELETE: 0  },
+      },
+      daily_counts: [
+        { date: '2026-03-01', count: 28 },
+        { date: '2026-03-02', count: 15 },
+        { date: '2026-03-03', count: 42 },
+        { date: '2026-03-04', count: 9  },
+        { date: '2026-03-05', count: 31 },
+        { date: '2026-03-06', count: 89 },
+        { date: '2026-03-07', count: 23 },
+      ],
+    };
+
+    // ── STATE ──
+    let currentTab = 'log';
+    let filterTable = 'all';
+    let filterOp = 'all';
+    let filterTime = 'all';
+    let searchId = '';
+    let currentPage = 1;
+    const pageSize = 20;
+    let refreshInterval = null;
+
+    // ── DOM ELEMENTS ──
+    const tableBody = document.getElementById('table-body');
+    const showingText = document.getElementById('showing-text');
+    const refreshToggle = document.getElementById('refresh-toggle');
+    const liveDot = document.getElementById('live-dot');
+
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', () => {
+      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
+      document.getElementById('sidebar-company-name').textContent = storedCompany;
+      
+      renderAll();
+    });
+
+    // ── HELPERS ──
+    function relativeTime(isoString) {
+      const diff = Date.now() - new Date(isoString).getTime();
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours   = Math.floor(minutes / 60);
+      const days    = Math.floor(hours / 24);
+      if (seconds < 60) return 'just now';
+      if (minutes < 60) return `${minutes} min ago`;
+      if (hours < 24)   return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      if (days === 1)   return 'Yesterday';
+      return `${days} days ago`;
+    }
+
+    function absoluteTime(isoString) {
+      return new Date(isoString).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function generateSummary(entry) {
+      const { table_name, operation, old_data, new_data } = entry;
+      if (operation === 'INSERT') {
+        const id = new_data?.eno || new_data?.dno || new_data?.pno || Object.values(new_data || {})[0];
+        return `New ${table_name} record created (ID: ${id})`;
+      }
+      if (operation === 'DELETE') {
+        const id = old_data?.eno || old_data?.dno || old_data?.pno || Object.values(old_data || {})[0];
+        return `${table_name} record deleted (ID: ${id})`;
+      }
+      if (operation === 'UPDATE') {
+        const changedFields = getChangedFields(old_data, new_data);
+        if (changedFields.length === 0) return `${table_name} record updated`;
+        return `${table_name}: ${changedFields.join(', ')} changed`;
+      }
+      return `${table_name} ${operation}`;
+    }
+
+    function getChangedFields(oldData, newData) {
+      if (!oldData || !newData) return [];
+      return Object.keys(newData).filter(k => JSON.stringify(oldData[k]) !== JSON.stringify(newData[k]));
+    }
+
+    // ── TAB SWITCHING ──
+    document.getElementById('tab-log').onclick = () => switchTab('log');
+    document.getElementById('tab-stats').onclick = () => switchTab('stats');
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-log').classList.toggle('active', tab === 'log');
+      document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
+      document.getElementById('tab1-content').style.display = tab === 'log' ? 'block' : 'none';
+      document.getElementById('tab2-content').style.display = tab === 'stats' ? 'block' : 'none';
+      renderAll();
+      if (tab === 'stats') {
+        startStatsAnimations();
+      }
+    }
+
+    // ── FILTERS ──
+    document.getElementById('search-id').oninput = (e) => { searchId = e.target.value; currentPage = 1; renderAll(); };
+    document.getElementById('filter-table').onchange = (e) => { filterTable = e.target.value; currentPage = 1; renderAll(); };
+    document.getElementById('filter-time').onchange = (e) => { filterTime = e.target.value; currentPage = 1; renderAll(); };
+    
+    document.querySelectorAll('.pill').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        filterOp = btn.dataset.op;
+        currentPage = 1;
+        renderAll();
+      };
+    });
+
+    document.getElementById('btn-clear-filters').onclick = () => {
+      searchId = ''; filterTable = 'all'; filterTime = 'all'; filterOp = 'all';
+      document.getElementById('search-id').value = '';
+      document.getElementById('filter-table').value = 'all';
+      document.getElementById('filter-time').value = 'all';
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-op="all"]').classList.add('active');
+      renderAll();
+    };
+
+    // ── AUTO REFRESH ──
+    refreshToggle.onchange = () => {
+      if (refreshToggle.checked) {
+        liveDot.style.display = 'inline-block';
+        refreshInterval = setInterval(() => renderAll(), 15000);
+      } else {
+        liveDot.style.display = 'none';
+        clearInterval(refreshInterval);
+      }
+    };
+
+    // ── RENDERING ──
+    // // FUTURE BUG F9: API format - backend must return {log_id,table_name,operation,old_data,new_data,changed_at}
+    // These match tenant_template.sql audit_log columns exactly.
+    // Endpoint: GET /audit?table=X&op=Y&page=N&limit=20  Response: {entries:[...],total:N}
+    function renderAll() {
+      if (currentTab === 'log') {
+        renderLog();
+      } else {
+        renderStats();
+      }
+    }
+
+    function renderLog() {
+      const filtered = MOCK_AUDIT_LOG.filter(log => {
+        const matchId = !searchId || log.log_id.toString() === searchId;
+        const matchTable = filterTable === 'all' || log.table_name === filterTable;
+        const matchOp = filterOp === 'all' || log.operation === filterOp;
+        
+        let matchTime = true;
+        if (filterTime !== 'all') {
+          const hoursDiff = (Date.now() - new Date(log.changed_at).getTime()) / (1000 * 60 * 60);
+          if (filterTime === 'today') matchTime = hoursDiff < 24;
+          else if (filterTime === 'week') matchTime = hoursDiff < 168;
+          else if (filterTime === 'month') matchTime = hoursDiff < 720;
+        }
+        
+        return matchId && matchTable && matchOp && matchTime;
+      });
+
+      showingText.textContent = `Showing ${filtered.length} of ${MOCK_AUDIT_LOG.length} entries`;
+
+      const start = (currentPage - 1) * pageSize;
+      const paginated = filtered.slice(start, start + pageSize);
+      
+      tableBody.innerHTML = '';
+      paginated.forEach((log, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.animationDelay = `${idx * 35}ms`;
+        tr.innerHTML = `
+          <td class="log-id-cell">#${log.log_id}</td>
+          <td><span class="table-name-tag">${log.table_name}</span></td>
+          <td><span class="op-badge ${log.operation.toLowerCase()}">${log.operation}</span></td>
+          <td class="timestamp-cell">
+            <span class="timestamp-relative">${relativeTime(log.changed_at)}</span>
+            <span class="timestamp-absolute">${absoluteTime(log.changed_at)}</span>
+          </td>
+          <td class="summary-cell" title="${generateSummary(log)}">${generateSummary(log)}</td>
+          <td style="text-align:center">
+            <button class="details-btn" onclick="openDiffModal(${log.log_id})">View diff →</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      updatePagination(filtered.length);
+    }
+
+    // ── PAGINATION ──
+    function updatePagination(totalFiltered) {
+      const totalPages = Math.ceil(totalFiltered / pageSize) || 1;
+      document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prev-page').disabled = currentPage === 1;
+      document.getElementById('next-page').disabled = currentPage === totalPages;
+
+      const pageNumbers = document.getElementById('page-numbers');
+      pageNumbers.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 5 && i > 3 && i < totalPages) {
+          if (i === 4) pageNumbers.innerHTML += `<span style="padding:0 4px; color:var(--text-muted)">...</span>`;
+          continue;
+        }
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.textContent = i;
+        btn.onclick = () => { currentPage = i; renderAll(); };
+        pageNumbers.appendChild(btn);
+      }
+    }
+
+    document.getElementById('prev-page').onclick = () => { if(currentPage > 1) { currentPage--; renderAll(); } };
+    document.getElementById('next-page').onclick = () => { 
+      const totalFiltered = MOCK_AUDIT_LOG.length; // Simplified
+      if(currentPage < Math.ceil(totalFiltered/pageSize)) { currentPage++; renderAll(); } 
+    };
+
+    // ── DIFF MODAL ──
+    const diffModal = document.getElementById('diff-modal');
+    window.openDiffModal = (logId) => {
+      const log = MOCK_AUDIT_LOG.find(l => l.log_id === logId);
+      if (!log) return;
+
+      document.getElementById('modal-op-badge').className = `op-badge ${log.operation.toLowerCase()}`;
+      document.getElementById('modal-op-badge').textContent = log.operation;
+      document.getElementById('modal-table-name').textContent = log.table_name;
+      document.getElementById('modal-log-meta').textContent = `#${log.log_id} · ${absoluteTime(log.changed_at)}`;
+
+      const body = document.getElementById('modal-diff-body');
+      body.innerHTML = '';
+
+      if (log.operation === 'INSERT') {
+        renderInsertDiff(log.new_data, body);
+        document.getElementById('modal-diff-summary').textContent = `New record created with ${Object.keys(log.new_data).length} fields.`;
+      } else if (log.operation === 'DELETE') {
+        renderDeleteDiff(log.old_data, body);
+        document.getElementById('modal-diff-summary').textContent = `Record deleted. Previewed ${Object.keys(log.old_data).length} fields.`;
+      } else {
+        const changed = getChangedFields(log.old_data, log.new_data);
+        renderUpdateDiff(log.old_data, log.new_data, changed, body);
+        document.getElementById('modal-diff-summary').innerHTML = `<strong>${changed.length} field(s) changed:</strong> ${changed.join(', ')}`;
+      }
+
+      diffModal.classList.add('open');
+    };
+
+    function renderInsertDiff(data, container) {
+      container.innerHTML = `
+        <div class="diff-block diff-insert">
+          <div class="diff-label" style="color:#86efac">New Record</div>
+          <table class="diff-fields">
+            ${Object.entries(data).map(([k, v]) => `
+              <tr class="diff-row">
+                <td class="diff-key">${k}</td>
+                <td class="diff-val val-ins">${v}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      `;
+    }
+
+    function renderDeleteDiff(data, container) {
+      container.innerHTML = `
+        <div class="diff-block diff-delete">
+          <div class="diff-label" style="color:#fca5a5">Deleted Record</div>
+          <table class="diff-fields">
+            ${Object.entries(data).map(([k, v]) => `
+              <tr class="diff-row">
+                <td class="diff-key">${k}</td>
+                <td class="diff-val val-del">${v}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      `;
+    }
+
+    function renderUpdateDiff(oldData, newData, changedFields, container) {
+      const keys = Object.keys(newData);
+      container.innerHTML = `
+        <div class="diff-columns">
+          <div class="diff-col before">
+            <div class="diff-col-label">Before</div>
+            <table class="diff-fields">
+              ${keys.map(k => `
+                <tr class="diff-row ${changedFields.includes(k) ? 'changed-field' : ''}">
+                  <td class="diff-key">${k}</td>
+                  <td class="diff-val ${changedFields.includes(k) ? 'val-old' : ''}">${oldData[k]}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+          <div class="diff-col after">
+            <div class="diff-col-label">After</div>
+            <table class="diff-fields">
+              ${keys.map(k => `
+                <tr class="diff-row ${changedFields.includes(k) ? 'changed-field' : ''}">
+                  <td class="diff-key">${k}</td>
+                  <td class="diff-val ${changedFields.includes(k) ? 'val-new' : ''}">${newData[k]}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('modal-close-btn').onclick = () => diffModal.classList.remove('open');
+    diffModal.onclick = (e) => { if(e.target === diffModal) diffModal.classList.remove('open'); };
+
+    // ── ACTIVITY STATS (TAB 2) ──
+    function renderStats() {
+      // Basic counts
+      document.getElementById('stat-today').dataset.target = MOCK_AUDIT_STATS.total_today;
+      document.getElementById('stat-week').dataset.target = MOCK_AUDIT_STATS.total_week;
+      document.getElementById('stat-month').dataset.target = MOCK_AUDIT_STATS.total_month;
+      
+      // Most active table
+      const entries = Object.entries(MOCK_AUDIT_STATS.by_table);
+      const activeTable = entries.sort((a,b) => (b[1].INSERT + b[1].UPDATE + b[1].DELETE) - (a[1].INSERT + a[1].UPDATE + a[1].DELETE))[0];
+      document.getElementById('stat-active-table').textContent = activeTable[0];
+      document.getElementById('stat-active-count').textContent = `${activeTable[1].INSERT + activeTable[1].UPDATE + activeTable[1].DELETE} changes total`;
+
+      // Op breakdown
+      document.getElementById('stat-op-ins').dataset.target = MOCK_AUDIT_STATS.by_operation.INSERT;
+      document.getElementById('stat-op-upd').dataset.target = MOCK_AUDIT_STATS.by_operation.UPDATE;
+      document.getElementById('stat-op-del').dataset.target = MOCK_AUDIT_STATS.by_operation.DELETE;
+
+      // Table bars
+      const barsContainer = document.getElementById('table-bars-container');
+      barsContainer.innerHTML = '';
+      const totalChanges = Object.values(MOCK_AUDIT_STATS.by_table).reduce((acc, curr) => acc + curr.INSERT + curr.UPDATE + curr.DELETE, 0);
+      
+      entries.forEach((entry, idx) => {
+        const [name, data] = entry;
+        const sum = data.INSERT + data.UPDATE + data.DELETE;
+        const iW = (data.INSERT / totalChanges) * 100;
+        const uW = (data.UPDATE / totalChanges) * 100;
+        const dW = (data.DELETE / totalChanges) * 100;
+
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.style.animation = `sectionFadeIn 400ms ease both ${idx * 80}ms`;
+        row.innerHTML = `
+          <div class="breakdown-table-name">${name}</div>
+          <div class="breakdown-bar-track">
+            <div class="bar-seg ins" style="width:0; left:0" data-width="${iW}"></div>
+            <div class="bar-seg upd" style="width:0; left:${iW}%" data-width="${uW}"></div>
+            <div class="bar-seg del" style="width:0; left:${iW + uW}%" data-width="${dW}"></div>
+          </div>
+          <div class="breakdown-count">${sum}</div>
+        `;
+        barsContainer.appendChild(row);
+      });
+
+      // Sparkline
+      document.getElementById('sparkline-container').innerHTML = buildSparklineSVG(MOCK_AUDIT_STATS.daily_counts);
+      document.getElementById('sparkline-labels').innerHTML = MOCK_AUDIT_STATS.daily_counts.map(d => `
+        <div class="spark-day">
+          <span class="spark-day-label">${new Date(d.date).toLocaleDateString('en-US', {weekday: 'short'})}</span>
+          <span class="spark-day-count">${d.count}</span>
+        </div>
+      `).join('');
+    }
+
+    function startStatsAnimations() {
+      // Counter animations
+      const counters = document.querySelectorAll('.stat-value, .op-value');
+      counters.forEach(c => {
+        const target = parseInt(c.dataset.target || 0);
+        let current = 0;
+        const speed = Math.max(10, 500 / (target || 1));
+        const itv = setInterval(() => {
+          if (current >= target) { c.textContent = target; clearInterval(itv); }
+          else { current += Math.ceil(target / 50); if(current > target) current = target; c.textContent = current; }
+        }, 20);
+      });
+
+      // Proportion bars
+      const opTotal = MOCK_AUDIT_STATS.by_operation.INSERT + MOCK_AUDIT_STATS.by_operation.UPDATE + MOCK_AUDIT_STATS.by_operation.DELETE;
+      document.getElementById('bar-op-ins').style.width = (MOCK_AUDIT_STATS.by_operation.INSERT / opTotal * 100) + '%';
+      document.getElementById('bar-op-upd').style.width = (MOCK_AUDIT_STATS.by_operation.UPDATE / opTotal * 100) + '%';
+      document.getElementById('bar-op-del').style.width = (MOCK_AUDIT_STATS.by_operation.DELETE / opTotal * 100) + '%';
+
+      // Table bars
+      setTimeout(() => {
+        document.querySelectorAll('.bar-seg').forEach(s => {
+          s.style.width = s.dataset.width + '%';
+        });
+      }, 100);
+    }
+
+    function buildSparklineSVG(data) {
+      const counts = data.map(d => d.count);
+      const max = Math.max(...counts);
+      const min = Math.min(...counts);
+      const w = 600; const h = 80; const pad = 10;
+      const points = counts.map((c, i) => {
+        const x = pad + (i / (counts.length - 1)) * (w - 2 * pad);
+        const y = h - pad - ((c - min) / (max - min || 1)) * (h - 2 * pad);
+        return `${x},${y}`;
+      }).join(' ');
+
+      return `
+        <svg viewBox="0 0 600 80" preserveAspectRatio="none" style="width:100%; height:80px;">
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(41,82,204,0.25)" />
+              <stop offset="100%" stop-color="rgba(41,82,204,0)" />
+            </linearGradient>
+          </defs>
+          <polygon points="${points} 590,80 10,80" fill="url(#sparkGrad)" />
+          <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+          ${counts.map((c, i) => {
+            const x = pad + (i / (counts.length - 1)) * (w - 2 * pad);
+            const y = h - pad - ((c - min) / (max - min || 1)) * (h - 2 * pad);
+            return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent-text)" stroke="var(--bg-surface)" stroke-width="2"/>`;
+          }).join('')}
+        </svg>
+      `;
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast`;
+      if (type === 'success') toast.style.borderLeftColor = 'var(--success)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = '300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Sidebar Mobile
+    const _menuBtn = document.getElementById('hamburger-btn');
+    const _sidebar = document.getElementById('sidebar');
+    const _overlay = document.getElementById('sidebar-overlay');
+
+    if (_menuBtn) {
+      _menuBtn.onclick = () => {
+        _sidebar.classList.add('open');
+        _overlay.classList.add('open');
+      };
+    }
+    if (_overlay) {
+      _overlay.onclick = () => {
+        _sidebar.classList.remove('open');
+        _overlay.classList.remove('open');
+      };
+    }
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+  </script>
+
+</body>
+</html>

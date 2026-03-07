@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; border: none; cursor: pointer; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 0; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 240px; height: 100vh;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100; overflow-y: auto; overflow-x: hidden;
+      transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .sidebar-company {
+      padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .company-label {
+      font-size: 10px; color: var(--text-muted);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px;
+    }
+    .company-name-display {
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 16px; font-size: 13px; font-weight: 400;
+      color: var(--text-secondary); text-decoration: none;
+      cursor: pointer; transition: background 120ms ease, color 120ms ease;
+      border-radius: 0; position: relative;
+    }
+    .nav-item:hover {
+      background: var(--bg-overlay); outline: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+    .nav-item.active {
+      background: var(--accent-subtle); color: var(--text-primary); font-weight: 500;
+    }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 2px; background: var(--accent);
+    }
+    .nav-icon {
+      width: 16px; height: 16px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    .nav-item:hover .nav-icon { color: var(--text-secondary); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    .sidebar-footer {
+      padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; font-size: 13px; font-family: inherit;
+      color: var(--text-muted); background: transparent; border: none;
+      cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-btn:hover { color: var(--danger); }
+    .logout-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+    /* ── MAIN ── */
+    .main-content {
+      margin-left: 240px; min-height: 100vh; padding: 40px 48px;
+      background: var(--bg-base);
+    }
+    .page-header { margin-bottom: 48px; animation: fadeUp 400ms ease both; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTIONS ── */
+    .about-section {
+      margin-bottom: 56px;
+      animation: fadeUp 400ms ease both;
+    }
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .prose {
+      font-size: 14px; line-height: 1.75; color: var(--text-secondary); max-width: 720px;
+    }
+    .prose + .prose { margin-top: 14px; }
+    .prose strong { color: var(--text-primary); font-weight: 600; }
+    .prose a {
+      color: var(--accent-text); border-bottom: 1px solid rgba(168,191,255,0.3);
+      transition: border-color 200ms;
+    }
+    .prose a:hover { border-color: var(--accent-text); }
+
+    /* ── FEATURE CARDS ── */
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: var(--border); margin-top: 28px;
+    }
+    .feature-card {
+      background: var(--bg-surface); padding: 24px;
+      border-left: 3px solid var(--accent);
+      transition: background 120ms;
+    }
+    .feature-card:hover { background: var(--bg-overlay); }
+    .feature-icon { font-size: 22px; margin-bottom: 10px; }
+    .feature-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+    .feature-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* ── SCHEMA TABLE ── */
+    .schema-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 1px; background: var(--border); margin-top: 28px;
+    }
+    .schema-card {
+      background: var(--bg-surface); padding: 20px 24px;
+      transition: background 120ms;
+    }
+    .schema-card:hover { background: var(--bg-overlay); }
+    .schema-table-name {
+      font-size: 11px; font-weight: 700; font-family: 'SF Mono','Fira Code',monospace;
+      color: var(--accent-text); letter-spacing: 0.06em;
+      text-transform: lowercase; margin-bottom: 10px;
+    }
+    .schema-fields { display: flex; flex-wrap: wrap; gap: 4px; }
+    .field-tag {
+      font-size: 10px; font-family: monospace;
+      padding: 2px 7px; border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .field-tag.pk { border-color: rgba(245,158,11,0.4); color: #fbbf24; }
+    .field-tag.fk { border-color: rgba(41,82,204,0.4); color: var(--accent-text); }
+
+    /* ── TECH STACK ── */
+    .stack-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 24px; margin-top: 28px;
+    }
+    .stack-col { background: var(--bg-surface); padding: 24px; border: 1px solid var(--border); }
+    .stack-col-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px;
+    }
+    .stack-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .stack-item:last-child { border-bottom: none; }
+    .stack-dot {
+      width: 6px; height: 6px; background: var(--accent); flex-shrink: 0;
+    }
+    .stack-label { font-weight: 500; color: var(--text-primary); margin-right: 4px; }
+
+    /* ── DEVELOPER CARD ── */
+    .dev-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      display: grid; grid-template-columns: auto 1fr;
+      gap: 40px; padding: 40px; margin-top: 28px;
+      position: relative; overflow: hidden;
+    }
+    .dev-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: linear-gradient(180deg, var(--accent), transparent);
+    }
+    .dev-photo-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .dev-photo {
+      width: 160px; height: 160px;
+      object-fit: cover; object-position: center 15%;
+      border: 2px solid rgba(41,82,204,0.35);
+      box-shadow: 0 0 28px rgba(41,82,204,0.2), 0 0 60px rgba(41,82,204,0.08);
+      display: block;
+    }
+    .dev-photo-caption {
+      font-size: 10px; color: var(--text-muted);
+      text-align: center; letter-spacing: 0.05em;
+    }
+    .dev-info { display: flex; flex-direction: column; justify-content: center; gap: 0; }
+    .dev-name { font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 4px; }
+    .dev-role { font-size: 13px; color: var(--accent-text); margin-bottom: 20px; }
+    .dev-bio {
+      font-size: 14px; line-height: 1.75; color: var(--text-secondary);
+      max-width: 560px; margin-bottom: 24px;
+    }
+    .dev-links { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+    .dev-link {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-secondary);
+      text-decoration: none; transition: color 120ms;
+    }
+    .dev-link:hover { color: var(--accent-text); }
+    .dev-link-icon {
+      width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0;
+    }
+    .dev-link:hover .dev-link-icon { color: var(--accent-text); }
+    .skills-section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+    }
+    .skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+    .skill-tag {
+      font-size: 11px; font-weight: 500;
+      padding: 4px 10px;
+      background: transparent; border: 1px solid var(--accent);
+      color: var(--accent-text); border-radius: 2px;
+      transition: box-shadow 200ms;
+    }
+    .skill-tag:hover {
+      box-shadow: 0 0 8px rgba(41,82,204,0.35);
+    }
+    .future-section {
+      background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2);
+      padding: 16px 20px;
+    }
+    .future-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent-text); margin-bottom: 6px;
+    }
+    .future-text { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+
+    /* ── BUILT WITH FOOTER STRIP ── */
+    .built-strip {
+      margin-top: 56px; padding: 24px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .built-left { display: flex; align-items: center; gap: 12px; }
+    .built-version { font-size: 11px; color: var(--text-muted); }
+    .built-right { display: flex; gap: 16px; flex-wrap: wrap; }
+    .built-link {
+      font-size: 12px; color: var(--text-muted);
+      text-decoration: none; transition: color 120ms;
+    }
+    .built-link:hover { color: var(--accent-text); }
+
+
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">About</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <div class="page-header">
+      <h1 class="page-title">About</h1>
+      <p class="page-subtitle">The project, the stack, and the person behind it</p>
+    </div>
+
+    <!-- ─────────────────────────────────────────── -->
+    <!-- SECTION 1: ABOUT THE PROJECT                -->
+    <!-- ─────────────────────────────────────────── -->
+    <div class="about-section" style="animation-delay:40ms;">
+      <div class="section-title">About the Project</div>
+
+      <p class="prose">
+        <strong>Employee Management System (EMS)</strong> is a full-stack, multi-tenant HR platform 
+        built from scratch — every table, every query, every API endpoint written by hand.
+        No ORMs. No magic. Just Python, SQL, and a browser.
+      </p>
+      <p class="prose" style="margin-top:12px;">
+        The system is built around <strong>schema-per-tenant isolation</strong> — the same architecture 
+        used by real SaaS companies like Notion, Linear, and Supabase itself. When a company 
+        signs up, they get their own private PostgreSQL schema. Their data is completely invisible 
+        to every other workspace on the system.
+      </p>
+      <p class="prose" style="margin-top:12px;">
+        The schema is based on the classic <strong>Elmasri &amp; Navathe company database</strong> 
+        from <em>Fundamentals of Database Systems</em> — the canonical textbook used in 
+        database courses worldwide. Every table you see here maps directly to a real 
+        concept taught in that book, extended with production-grade features: audit triggers, 
+        bcrypt passwords, email delivery, and CSV/JSON/Excel export.
+      </p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🏛</div>
+          <div class="feature-title">Multi-Tenant Architecture</div>
+          <div class="feature-desc">Each company gets a private PostgreSQL schema. Your data is invisible to every other workspace — enforced at the database level, not just in code.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <div class="feature-title">Automatic Audit Trail</div>
+          <div class="feature-desc">Every INSERT, UPDATE and DELETE is captured by PostgreSQL triggers automatically. No developer has to remember to log anything — the database does it for you.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🐍</div>
+          <div class="feature-title">Pure Python Backend</div>
+          <div class="feature-desc">FastAPI for the REST layer, psycopg2 for direct SQL, bcrypt for passwords, smtplib for email delivery. Every operation is explicit and readable.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────── -->
+    <!-- SECTION 2: DATABASE SCHEMA                  -->
+    <!-- ─────────────────────────────────────────── -->
+    <div class="about-section" style="animation-delay:80ms;">
+      <div class="section-title">Database Schema</div>
+      <p class="prose">Six tables. Every relationship is deliberate. The schema stays true to the Elmasri &amp; Navathe original while adding <code style="font-family:monospace;font-size:12px;color:var(--accent-text);background:var(--bg-overlay);padding:1px 5px;">audit_log</code> for change tracking and composite keys where entity integrity demands them.</p>
+
+      <div class="schema-grid">
+        <div class="schema-card">
+          <div class="schema-table-name">employee</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">eno PK</span>
+            <span class="field-tag">ename</span>
+            <span class="field-tag">dob</span>
+            <span class="field-tag">gender</span>
+            <span class="field-tag">salary</span>
+            <span class="field-tag fk">super_eno FK→employee</span>
+            <span class="field-tag fk">dno FK→department</span>
+          </div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-table-name">department</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">dno PK</span>
+            <span class="field-tag">dname</span>
+            <span class="field-tag fk">mgr_eno FK→employee</span>
+            <span class="field-tag">mgrstartdate</span>
+          </div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-table-name">project</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">pno PK</span>
+            <span class="field-tag">pname</span>
+            <span class="field-tag">plocation</span>
+            <span class="field-tag fk">dno FK→department</span>
+          </div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-table-name">works_on</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">eno PK (composite)</span>
+            <span class="field-tag pk">pno PK (composite)</span>
+            <span class="field-tag">hours</span>
+            <span class="field-tag fk">eno FK→employee</span>
+            <span class="field-tag fk">pno FK→project</span>
+          </div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-table-name">dependent</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">eno PK (composite)</span>
+            <span class="field-tag pk">dependent_name PK</span>
+            <span class="field-tag">gender</span>
+            <span class="field-tag">dob</span>
+            <span class="field-tag">relationship</span>
+            <span class="field-tag fk">eno FK→employee</span>
+          </div>
+        </div>
+        <div class="schema-card">
+          <div class="schema-table-name">dept_locations</div>
+          <div class="schema-fields">
+            <span class="field-tag pk">dno PK (composite)</span>
+            <span class="field-tag pk">dlocation PK</span>
+            <span class="field-tag fk">dno FK→department</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────── -->
+    <!-- SECTION 3: TECH STACK                       -->
+    <!-- ─────────────────────────────────────────── -->
+    <div class="about-section" style="animation-delay:120ms;">
+      <div class="section-title">Tech Stack</div>
+      <div class="stack-grid">
+        <div class="stack-col">
+          <div class="stack-col-title">Backend</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">Python 3.11+</span>Application language</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">FastAPI</span>REST API framework</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">psycopg2</span>Direct PostgreSQL driver — no ORM</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">bcrypt</span>Password hashing</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">smtplib</span>Email export delivery</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">openpyxl</span>Excel file generation</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">Supabase</span>Managed PostgreSQL host</div>
+        </div>
+        <div class="stack-col">
+          <div class="stack-col-title">Frontend</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">HTML5 / CSS3</span>Zero frameworks</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">Vanilla JS</span>No bundler, no build step</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">Inter</span>Google Fonts typeface</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">CSS Custom Properties</span>Design token system</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">SVG</span>All icons inline — zero dependencies</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">Intl.NumberFormat</span>Indian Rupee formatting</div>
+          <div class="stack-item"><span class="stack-dot"></span><span class="stack-label">sessionStorage</span>Auth state management</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ─────────────────────────────────────────── -->
+    <!-- SECTION 5: ACKNOWLEDGEMENTS                 -->
+    <!-- ─────────────────────────────────────────── -->
+    <div class="about-section" style="animation-delay:300ms;">
+      <div class="section-title">Acknowledgements</div>
+      <p class="prose">
+        The database schema is modeled on the classic company database from 
+        <strong>Fundamentals of Database Systems</strong> by Ramez Elmasri and Shamkant B. Navathe — 
+        the book that defined how database courses are taught. If you've studied DBMS anywhere 
+        in the world, you've probably met James Borg and his employees.
+      </p>
+      <p class="prose" style="margin-top:12px;">
+        The multi-tenant architecture is inspired by how Supabase organizes tenant schemas in 
+        PostgreSQL — one schema per tenant, connection routing by schema name. The audit trigger 
+        pattern is a standard PostgreSQL technique that captures row-level changes as JSONB 
+        before and after each operation.
+      </p>
+      <p class="prose" style="margin-top:12px;">
+        This project was built as part of the <strong>Database Management Systems</strong> course 
+        at <strong>DAIICT, Gandhinagar</strong>.
+      </p>
+    </div>
+
+    <!-- FOOTER STRIP -->
+    <div class="built-strip">
+      <div class="built-left">
+        <svg width="20" height="20" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+        <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">EMS — Employee Management System</span>
+        <span class="built-version">v1.0</span>
+      </div>
+      <div class="built-right">
+        <a href="dashboard.html" class="built-link">Dashboard</a>
+        <a href="employees.html" class="built-link">Employees</a>
+        <a href="departments.html" class="built-link">Departments</a>
+        <a href="audit.html" class="built-link">Audit Trail</a>
+        <a href="https://github.com/Tanish-30-08-2006" target="_blank" class="built-link">GitHub ↗</a>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- LOGOUT CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── AUTH GUARD ──
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+
+    // ── COMPANY NAME ──
+    const _company = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = _company;
+
+    // ── SECTION ANIMATIONS ──
+    document.querySelectorAll('.about-section').forEach((el, i) => {
+      el.style.animationDelay = (60 + i * 80) + 'ms';
+    });
+
+
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+
+</body>
+</html>

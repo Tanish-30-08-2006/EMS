@@ -1,0 +1,4 @@
+eno,ename,dob,gender,salary,super_eno,dno
+102,Tanish,2006-08-30,M,40000.0,,1
+103,Orange,2006-08-30,M,80000.0,102,1
+104,Maroon,2006-08-30,M,60000.0,103,1

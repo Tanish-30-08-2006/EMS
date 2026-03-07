@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EMS — Employee Management System</title>
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg-base: #0f0f0f;
+        --bg-surface: #1a1a1a;
+        --bg-overlay: #222222;
+        --border: #2a2a2a;
+        --border-focus: #1d4ed8;
+        --accent: #1e3a9e;
+        --accent-hover: #2d52d4;
+        --accent-subtle: rgba(30, 58, 158, 0.08);
+        --accent-subtle2: rgba(30, 58, 158, 0.18);
+        --accent-glow: rgba(30, 58, 158, 0.35);
+        --accent-text: #a0b4f8;
+        --text-primary: #f1f1f1;
+        --text-secondary: #a1a1a1;
+        --text-muted: #555555;
+        --success: #22c55e;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+
+        --text-xs: 11px;
+        --text-sm: 12px;
+        --text-base: 14px;
+        --text-md: 15px;
+        --text-lg: 16px;
+        --text-xl: 20px;
+        --text-2xl: 24px;
+        --text-3xl: 32px;
+        --text-4xl: 48px;
+        --text-hero: 64px;
+
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --space-6: 24px;
+        --space-8: 32px;
+        --space-10: 40px;
+        --space-12: 48px;
+        --space-16: 64px;
+        --space-20: 80px;
+      }
+
+      /* Reset */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Global */
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      button {
+        font-family: inherit;
+        border: none;
+        cursor: pointer;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg-base);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 0;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #444;
+      }
+
+      /* The Supabase Hover Rectangle Rule */
+      .hover-rect {
+        background: transparent;
+        outline: 1px solid transparent;
+        border-radius: 0;
+        transition:
+          background 120ms ease,
+          outline 120ms ease;
+      }
+      .hover-rect:hover {
+        background: var(--bg-overlay);
+        outline: 1px solid var(--border);
+      }
+
+      /* Buttons */
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: 'Inter', sans-serif;
+        cursor: pointer;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: border-color 200ms ease,
+                    color 200ms ease,
+                    box-shadow 200ms ease,
+                    text-shadow 200ms ease;
+
+        background: transparent;
+        color: var(--accent-text);
+        border: 1px solid var(--accent);
+        box-shadow: 0 0 0 0 transparent;
+      }
+      .btn-primary:hover {
+        color: #c4d4ff;
+        border-color: var(--accent-hover);
+        box-shadow:
+          0 0 8px rgba(30, 58, 158, 0.4),
+          0 0 20px rgba(30, 58, 158, 0.15);
+        text-shadow:
+          0 0 12px rgba(160, 180, 248, 0.6),
+          0 0 24px rgba(30, 58, 158, 0.3);
+      }
+      .btn-primary:active {
+        box-shadow: 0 0 4px rgba(30, 58, 158, 0.3);
+        transform: translateY(1px);
+      }
+
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        font-size: 14px;
+        font-weight: 400;
+        font-family: 'Inter', sans-serif;
+        cursor: pointer;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: border-color 200ms ease,
+                    color 200ms ease,
+                    box-shadow 200ms ease;
+
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        box-shadow: none;
+      }
+      .btn-secondary:hover {
+        color: var(--text-primary);
+        border-color: #444444;
+        box-shadow: none;
+      }
+      .btn-secondary:active {
+        transform: translateY(1px);
+      }
+
+      /* Navbar */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+      }
+      .nav-left {
+        display: flex;
+        align-items: center;
+      }
+      .nav-logo {
+        width: 28px;
+        height: 28px;
+        margin-right: 8px;
+      }
+      .nav-title {
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--text-primary);
+      }
+      .nav-divider {
+        border-left: 1px solid var(--border);
+        height: 16px;
+        margin: 0 12px;
+      }
+      .nav-subtitle {
+        color: var(--text-muted);
+        font-size: var(--text-sm);
+      }
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn-nav-signin {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 400;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: border-color 150ms, color 150ms;
+      }
+      .btn-nav-signin:hover {
+        color: var(--text-primary);
+        border-color: #444;
+      }
+      .btn-nav-getstarted {
+        background: transparent;
+        color: var(--accent-text);
+        border: 1px solid var(--accent);
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: border-color 150ms, color 150ms, box-shadow 150ms, text-shadow 150ms;
+      }
+      .btn-nav-getstarted:hover {
+        color: #c4d4ff;
+        border-color: var(--accent-hover);
+        box-shadow: 0 0 6px rgba(30,58,158,0.35), 0 0 14px rgba(30,58,158,0.12);
+        text-shadow: 0 0 10px rgba(160,180,248,0.5), 0 0 20px rgba(30,58,158,0.25);
+      }
+      .hamburger {
+        display: none;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 5px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+      }
+      .hamburger-line {
+        width: 20px;
+        height: 2px;
+        background: var(--text-secondary);
+      }
+
+      /* Mobile Nav Overlay */
+      #mobile-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg-base);
+        z-index: 999;
+        transform: translateY(-100%);
+        transition: transform 200ms ease;
+        display: flex;
+        flex-direction: column;
+        padding: 80px 24px 24px 24px;
+        gap: 16px;
+      }
+      #mobile-nav.open {
+        transform: translateY(0);
+      }
+      .mobile-nav-close {
+        position: absolute;
+        top: 10px;
+        right: 24px;
+        width: 40px;
+        height: 40px;
+        font-size: 28px;
+        color: var(--text-secondary);
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Base Section Styles */
+      section {
+        padding: 80px 0;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-left: 24px;
+        padding-right: 24px;
+        position: relative;
+      }
+      section + section {
+        border-top: 1px solid var(--border);
+      }
+
+      /* Hero */
+      #hero {
+        padding-top: 160px;
+        padding-bottom: 100px;
+        text-align: center;
+        max-width: 800px;
+        border-top: none;
+      }
+      .hero-glow {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(30,58,158,0.10) 0%,
+          transparent 65%
+        );
+        z-index: 0;
+        pointer-events: none;
+      }
+      .hero-content {
+        position: relative;
+        z-index: 1;
+      }
+      .hero-eyebrow {
+        background: rgba(30, 58, 158, 0.10);
+        border: 1px solid rgba(30, 58, 158, 0.28);
+        color: var(--accent-text);
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-radius: 100px;
+        display: inline-block;
+        margin-bottom: 24px;
+      }
+      .hero-headline {
+        font-size: 64px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        margin-bottom: 24px;
+      }
+      .headline-highlight {
+        background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+      .hero-sub {
+        font-size: 18px;
+        font-weight: 400;
+        color: var(--text-secondary);
+        line-height: 1.65;
+        max-width: 560px;
+        margin: 0 auto 40px auto;
+      }
+      .hero-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .hero-stats {
+        margin-top: 60px;
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      .hero-stats span {
+        display: inline-block;
+      }
+      .hero-stats-divider {
+        color: var(--border);
+      }
+
+      /* Reusable Section Headers */
+      .section-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--accent);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        text-align: center;
+      }
+      .section-heading {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        text-align: center;
+      }
+      .section-subheading {
+        font-size: 15px;
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin: 0 auto 56px auto;
+        text-align: center;
+      }
+
+      /* Features */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        margin-top: 40px;
+        background: var(--border); /* Creates the 1px divider effect */
+      }
+      .feature-card {
+        background: var(--bg-surface);
+        padding: 32px;
+        position: relative;
+        overflow: hidden;
+        /* uses hover-rect via HTML class */
+      }
+      .feature-icon {
+        color: var(--accent-text);
+        width: 24px;
+        height: 24px;
+        margin-bottom: 16px;
+      }
+      .feature-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+      .feature-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* How it works */
+      .steps-wrapper {
+        position: relative;
+      }
+      .steps-line {
+        position: absolute;
+        top: 18px;
+        left: calc(16.66% + 18px);
+        right: calc(16.66% + 18px); /* connects the circles */
+        height: 1px;
+        background: var(--border);
+        z-index: 0;
+      }
+      .steps-container {
+        display: flex;
+        flex-direction: row;
+        position: relative;
+        z-index: 1;
+      }
+      .step-item {
+        flex: 1;
+        text-align: center;
+        padding: 0 24px;
+      }
+      .step-circle {
+        width: 36px;
+        height: 36px;
+        background: rgba(30, 58, 158, 0.12);
+        border: 1px solid rgba(30, 58, 158, 0.30);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-text);
+        margin: 0 auto 20px auto;
+      }
+      .step-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+      .step-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* Tech Stack */
+      .tech-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 40px;
+        margin-bottom: 24px;
+      }
+      .tech-badge {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        border-radius: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition:
+          border-color 120ms ease,
+          color 120ms ease;
+      }
+      .tech-badge:hover {
+        border-color: var(--accent-text);
+        color: var(--text-primary);
+        box-shadow: 0 0 8px rgba(30, 58, 158, 0.15);
+      }
+      .tech-badge-icon {
+        /* Empty for emojis */
+      }
+      .tech-caption {
+        color: var(--text-muted);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      /* Footer */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 40px 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .footer-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .footer-logo {
+        width: 20px;
+        height: 20px;
+      }
+      .footer-text {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .footer-center {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .footer-right a {
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        border-radius: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition:
+          border-color 120ms ease,
+          color 120ms ease;
+      }
+      .footer-right a:hover {
+        border-color: var(--accent-text);
+        color: var(--text-primary);
+        box-shadow: 0 0 6px rgba(30, 58, 158, 0.2);
+      }
+      .github-icon {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+
+      /* SVG Definitions Cache */
+      .svg-defs {
+        width: 0;
+        height: 0;
+        position: absolute;
+      }
+
+      /* Animations */
+      @keyframes heroEntrance {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .hero-eyebrow {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 0ms;
+      }
+      .hero-headline {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 100ms;
+      }
+      .hero-sub {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 200ms;
+      }
+      .hero-buttons {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 300ms;
+      }
+      .hero-stats {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 450ms;
+      }
+      .hero-stat-1 {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 450ms;
+      }
+      .hero-stat-2 {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 600ms;
+      }
+      .hero-stat-3 {
+        animation: heroEntrance 600ms ease both;
+        animation-delay: 750ms;
+      }
+
+      .animate-in {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 500ms ease,
+          transform 500ms ease;
+      }
+      .animate-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Mobile breakpoints */
+      @media (max-width: 768px) {
+        .nav-subtitle,
+        .nav-divider,
+        .nav-right {
+          display: none;
+        }
+        .hamburger {
+          display: flex;
+        }
+        section {
+          padding: 60px 16px;
+        }
+        #hero {
+          padding-top: 140px; /* Adjusting for navbar + breathing room */
+          padding-bottom: 60px;
+        }
+        .hero-headline {
+          font-size: 40px;
+        }
+        .hero-sub {
+          font-size: 16px;
+        }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+        .steps-container {
+          flex-direction: column;
+          gap: 32px;
+        }
+        .steps-line {
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          height: auto;
+          transform: translateX(-50%);
+        }
+        .hero-stats {
+          flex-direction: column;
+          gap: 8px;
+        }
+        .hero-stats-divider {
+          display: none;
+        }
+        footer {
+          flex-direction: column;
+          text-align: center;
+          padding: 40px 16px;
+        }
+      }
+      @media (max-width: 480px) {
+        .hero-headline {
+          font-size: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SVG Sprite/Defs (Shield Logo inside) -->
+    <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="outerRing" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#c0392b" />
+          <stop offset="100%" stop-color="#7b1010" />
+        </radialGradient>
+        <radialGradient id="ring2" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#e8e8e8" />
+          <stop offset="100%" stop-color="#9ca3af" />
+        </radialGradient>
+        <radialGradient id="ring3" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#c0392b" />
+          <stop offset="100%" stop-color="#7b1010" />
+        </radialGradient>
+        <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#2d52d4" />
+          <stop offset="100%" stop-color="#1e3a9e" />
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <filter id="innerGlow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <g id="shield-logo">
+          <circle
+            cx="50"
+            cy="50"
+            r="49"
+            fill="none"
+            stroke="rgba(30,58,158,0.35)"
+            stroke-width="1"
+            filter="url(#glow)"
+          />
+          <circle cx="50" cy="50" r="48" fill="url(#outerRing)" />
+          <circle cx="50" cy="50" r="38" fill="url(#ring2)" />
+          <circle cx="50" cy="50" r="28" fill="url(#ring3)" />
+          <circle
+            cx="50"
+            cy="50"
+            r="18"
+            fill="url(#centerBlue)"
+            filter="url(#innerGlow)"
+          />
+          <polygon
+            points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44"
+            fill="#e8e8e8"
+            filter="url(#glow)"
+          />
+          <path
+            d="M 20 35 Q 50 20 80 35"
+            fill="none"
+            stroke="rgba(255,255,255,0.12)"
+            stroke-width="3"
+          />
+        </g>
+      </defs>
+    </svg>
+
+    <!-- NAVBAR -->
+    <nav>
+      <div class="nav-left">
+        <svg class="nav-logo" viewBox="0 0 100 100">
+          <use href="#shield-logo"></use>
+        </svg>
+        <span class="nav-title">EMS</span>
+        <div class="nav-divider"></div>
+        <span class="nav-subtitle">Employee Management System</span>
+      </div>
+
+      <div class="nav-right">
+        <a href="login.html" class="btn-nav-signin">Sign In</a>
+        <a href="signup.html" class="btn-nav-getstarted">Get Started</a>
+      </div>
+
+      <button class="hamburger" id="hamburger-btn" aria-label="Open Map Menu">
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+      </button>
+    </nav>
+
+    <!-- MOBILE NAV OVERLAY -->
+    <div id="mobile-nav">
+      <button
+        class="mobile-nav-close"
+        id="mobile-nav-close"
+        aria-label="Close menu"
+      >
+        &times;
+      </button>
+      <a
+        href="login.html"
+        class="btn-secondary"
+        style="width: 100%; justify-content: center"
+        >Sign In</a
+      >
+      <a
+        href="signup.html"
+        class="btn-primary"
+        style="width: 100%; justify-content: center"
+        >Get Started</a
+      >
+
+      <div
+        style="
+          margin-top: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        "
+      >
+        <a
+          href="#features"
+          class="hover-rect"
+          style="
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+          "
+          >Features</a
+        >
+        <a
+          href="#how-it-works"
+          class="hover-rect"
+          style="
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+          "
+          >How it Works</a
+        >
+        <a
+          href="#tech-stack"
+          class="hover-rect"
+          style="
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+          "
+          >Tech Stack</a
+        >
+      </div>
+    </div>
+
+    <!-- HERO SECTION -->
+    <section id="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          Multi-Tenant &middot; PostgreSQL &middot; Supabase
+        </div>
+        <h1 class="hero-headline">
+          Employee <span class="headline-highlight">Management</span>,<br />
+          Built for the Modern Stack.
+        </h1>
+        <p class="hero-sub">
+          A full-stack HR system with isolated multi-tenant workspaces,
+          automatic audit trails, salary history tracking, and one-click data
+          exports. Built with Python, FastAPI, and Supabase.
+        </p>
+        <div class="hero-buttons">
+          <a href="signup.html" class="btn-primary">Create Your Workspace</a>
+          <a href="login.html" class="btn-secondary">Sign In</a>
+        </div>
+        <div class="hero-stats">
+          <span class="hero-stat-1">6 Data Tables</span>
+          <span class="hero-stats-divider">|</span>
+          <span class="hero-stat-2">Automatic Audit Trail</span>
+          <span class="hero-stats-divider">|</span>
+          <span class="hero-stat-3">Multi-Company Isolation</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="features">
+      <div class="section-title animate-in">WHAT'S INSIDE</div>
+      <h2 class="section-heading animate-in">Everything your HR team needs</h2>
+      <p class="section-subheading animate-in"></p>
+
+      <div class="features-grid">
+        <!-- Card 1 -->
+        <div
+          class="feature-card hover-rect animate-in"
+          style="transition-delay: 0ms"
+        >
+          <svg
+            class="feature-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <div class="feature-title">Full Employee Registry</div>
+          <div class="feature-desc">
+            Add, search, update and delete employees. Track salary history,
+            department transfers, and reporting structures.
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div
+          class="feature-card hover-rect animate-in"
+          style="transition-delay: 100ms"
+        >
+          <svg
+            class="feature-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+          </svg>
+          <div class="feature-title">Automatic Audit Trail</div>
+          <div class="feature-desc">
+            Every INSERT, UPDATE, and DELETE is logged automatically via
+            PostgreSQL triggers. See exactly what changed, when, and what it
+            looked like before.
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div
+          class="feature-card hover-rect animate-in"
+          style="transition-delay: 200ms"
+        >
+          <svg
+            class="feature-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+            />
+          </svg>
+          <div class="feature-title">Isolated Company Workspaces</div>
+          <div class="feature-desc">
+            Each company gets its own private PostgreSQL schema. Company A can
+            never see Company B's data — guaranteed at the database level.
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div
+          class="feature-card hover-rect animate-in"
+          style="transition-delay: 300ms"
+        >
+          <svg
+            class="feature-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          <div class="feature-title">One-Click Data Exports</div>
+          <div class="feature-desc">
+            Export everything as a CSV bundle, Excel workbook (.xlsx), or JSON
+            snapshot. Optionally email the export directly to your registered
+            company address.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS SECTION -->
+    <section id="how-it-works">
+      <div class="section-title animate-in">HOW IT WORKS</div>
+      <h2 class="section-heading animate-in">Up and running in three steps</h2>
+
+      <div class="steps-wrapper">
+        <div class="steps-line"></div>
+        <div class="steps-container">
+          <!-- Step 1 -->
+          <div class="step-item animate-in" style="transition-delay: 0ms">
+            <div class="step-circle">1</div>
+            <div class="step-title">Create Your Workspace</div>
+            <div class="step-desc">
+              Sign up with your company name and password. Your private database
+              schema is provisioned instantly.
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step-item animate-in" style="transition-delay: 150ms">
+            <div class="step-circle">2</div>
+            <div class="step-title">Add Your People &amp; Projects</div>
+            <div class="step-desc">
+              Populate employees, departments, projects, and reporting
+              structures. Bulk CSV import also available.
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step-item animate-in" style="transition-delay: 300ms">
+            <div class="step-circle">3</div>
+            <div class="step-title">Manage, Audit &amp; Export</div>
+            <div class="step-desc">
+              Every change is tracked automatically. Export your data anytime as
+              CSV, Excel, or JSON — or have it emailed to you.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TECH STACK SECTION -->
+    <section id="tech-stack">
+      <div class="section-title animate-in">BUILT WITH</div>
+      <h2 class="section-heading animate-in">
+        Production-grade tools, properly used
+      </h2>
+
+      <div class="tech-grid">
+        <div class="tech-badge animate-in" style="transition-delay: 0ms">
+          <span class="tech-badge-icon">🐍</span> Python
+        </div>
+        <div class="tech-badge animate-in" style="transition-delay: 50ms">
+          <span class="tech-badge-icon">⚡</span> FastAPI
+        </div>
+        <div class="tech-badge animate-in" style="transition-delay: 100ms">
+          <span class="tech-badge-icon">🐘</span> PostgreSQL
+        </div>
+        <div class="tech-badge animate-in" style="transition-delay: 150ms">
+          <span class="tech-badge-icon">🟢</span> Supabase
+        </div>
+        <div class="tech-badge animate-in" style="transition-delay: 200ms">
+          <span class="tech-badge-icon">🔷</span> Multi-Tenant Architecture
+        </div>
+        <div class="tech-badge animate-in" style="transition-delay: 250ms">
+          <span class="tech-badge-icon">📊</span> psycopg2
+        </div>
+      </div>
+
+      <div class="tech-caption animate-in" style="transition-delay: 300ms">
+        No ORM. Raw SQL with parameterized queries. Schema-per-tenant isolation.
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-left">
+        <a href="#" style="display:flex;"><svg class="footer-logo" viewBox="0 0 100 100">
+          <use href="#shield-logo"></use>
+        </svg></a>
+        <span class="footer-text">EMS — Employee Management System</span>
+      </div>
+
+      <div class="footer-center">Built by Tanish Sanghavi &middot; DAIICT</div>
+
+      <div class="footer-right">
+        <a
+          href="https://github.com/Tanish-30-08-2006/text-csv-json-converter"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg
+            class="github-icon"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+            />
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+      /* 1. Mobile nav toggle */
+      const hamburgerBtn = document.getElementById("hamburger-btn");
+      const mobileNavClose = document.getElementById("mobile-nav-close");
+      const mobileNav = document.getElementById("mobile-nav");
+      const mobileNavLinks = mobileNav.querySelectorAll("a");
+
+      const toggleMobileNav = () => {
+        mobileNav.classList.toggle("open");
+        if (mobileNav.classList.contains("open")) {
+          document.body.style.overflow = "hidden";
+        } else {
+          document.body.style.overflow = "";
+        }
+      };
+
+      hamburgerBtn.addEventListener("click", toggleMobileNav);
+      mobileNavClose.addEventListener("click", toggleMobileNav);
+
+      // Close overlay when clicking a navigation link inside it
+      mobileNavLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+        });
+      });
+
+      /* 2. Intersection Observer for scroll animations */
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target); // animate once only
+            }
+          });
+        },
+        { threshold: 0.15 },
+      );
+
+      document
+        .querySelectorAll(".animate-in")
+        .forEach((el) => observer.observe(el));
+
+      /* 3. Active nav link highlight on scroll (skipped since not explicitly defined, but ready for future) */
+    </script>
+  </body>
+</html>

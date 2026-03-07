@@ -1,0 +1,16 @@
+log_id,table_name,operation,old_data,new_data,changed_at
+1,department,INSERT,,"{'dno': 1, 'dname': 'Research', 'mgr_eno': 101, 'mgrstartdate': '2024-01-01'}",2026-02-27T18:15:13.535159
+2,department,UPDATE,"{'dno': 1, 'dname': 'Research', 'mgr_eno': 101, 'mgrstartdate': '2024-01-01'}","{'dno': 1, 'dname': 'Research', 'mgr_eno': 101, 'mgrstartdate': '2024-01-01'}",2026-02-27T18:15:35.537924
+3,employee,INSERT,,"{'dno': 1, 'dob': '2006-08-30', 'eno': 102, 'ename': 'Tanish', 'gender': 'M', 'salary': 60000.0, 'super_eno': None}",2026-02-27T18:16:02.792597
+4,employee,UPDATE,"{'dno': 1, 'dob': '2006-08-30', 'eno': 102, 'ename': 'Tanish', 'gender': 'M', 'salary': 60000.0, 'super_eno': None}","{'dno': 1, 'dob': '2006-08-30', 'eno': 102, 'ename': 'Tanish', 'gender': 'M', 'salary': 40000.0, 'super_eno': None}",2026-02-27T18:16:24.191006
+5,project,INSERT,,"{'dno': 1, 'pno': 1, 'pname': 'ProductX', 'plocation': 'Ahmedabad'}",2026-02-27T18:32:23.803720
+6,project,UPDATE,"{'dno': 1, 'pno': 1, 'pname': 'ProductX', 'plocation': 'Ahmedabad'}","{'dno': 1, 'pno': 1, 'pname': 'ProductX', 'plocation': 'Meghalaya'}",2026-02-27T18:32:37.421809
+7,dependent,INSERT,,"{'dob': '2015-05-20', 'eno': 102, 'gender': 'F', 'relationship': 'Daughter', 'dependent_name': 'Alice'}",2026-02-27T18:33:21.968555
+8,dept_locations,INSERT,,"{'dno': 1, 'dlocation': 'Ahmedabad'}",2026-02-27T18:33:38.770576
+9,employee,INSERT,,"{'dno': 1, 'dob': '2006-08-30', 'eno': 103, 'ename': 'Orange', 'gender': 'M', 'salary': 80000.0, 'super_eno': 102}",2026-02-27T19:58:23.632453
+10,employee,INSERT,,"{'dno': 1, 'dob': '2006-08-30', 'eno': 104, 'ename': 'Maroon', 'gender': 'M', 'salary': 60000.0, 'super_eno': 103}",2026-02-27T19:58:50.360645
+11,department,INSERT,,"{'dno': 2, 'dname': 'Maths', 'mgr_eno': 102, 'mgrstartdate': '2024-01-01'}",2026-02-27T19:59:17.392631
+12,department,INSERT,,"{'dno': 3, 'dname': 'PHY', 'mgr_eno': 103, 'mgrstartdate': '2024-01-01'}",2026-02-27T19:59:35.728483
+13,works_on,INSERT,,"{'eno': 102, 'pno': 1, 'hours': 32.5}",2026-02-27T19:59:58.666556
+14,project,INSERT,,"{'dno': 2, 'pno': 2, 'pname': 'ProductY', 'plocation': 'Ahmedabad'}",2026-02-27T20:00:33.121076
+15,works_on,INSERT,,"{'eno': 104, 'pno': 2, 'hours': 32.5}",2026-02-27T20:00:58.469151

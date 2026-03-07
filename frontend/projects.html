@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projects — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-subtle2: rgba(41, 82, 204, 0.20);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    .svg-defs { width: 0; height: 0; position: absolute; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      overflow-y: auto; overflow-x: hidden; transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .sidebar-close-btn { display: none; margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+    .sidebar-company { padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .company-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+    .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 16px;
+      font-size: 13px; font-weight: 400; color: var(--text-secondary);
+      text-decoration: none; cursor: pointer; transition: background 120ms ease, color 120ms ease;
+      position: relative; border-radius: 0;
+    }
+    .nav-item:hover { background: var(--bg-overlay); outline: 1px solid var(--border); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); font-weight: 500; }
+    .nav-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+    .nav-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; color: var(--text-muted); flex-shrink: 0; }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; color: var(--text-muted); background: transparent; cursor: pointer; transition: color 120ms; }
+    .logout-btn:hover { color: var(--danger); }
+    .logout-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar { display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px; background: var(--bg-surface); border-bottom: 1px solid var(--border); z-index: 90; align-items: center; padding: 0 16px; }
+    .hamburger-btn { width: 44px; height: 44px; background: none; color: var(--text-primary); font-size: 24px; display: flex; align-items: center; justify-content: flex-start; margin-left: -8px; }
+    .mobile-page-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-left: 8px; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 95; backdrop-filter: blur(2px); }
+
+    /* ── MAIN CONTENT ── */
+    .main-content { margin-left: 240px; min-height: 100vh; padding: 32px 36px; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; }
+    .page-title-wrap { display: flex; align-items: center; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; }
+    .count-badge { font-size: 11px; font-weight: 500; color: var(--accent-text); background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2); padding: 2px 8px; margin-left: 10px; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500;
+      color: var(--accent-text); border: 1px solid var(--accent); border-radius: 4px; background: transparent; transition: all 200ms;
+    }
+    .btn-primary:hover {
+      border-color: var(--accent-hover); color: #c4d4ff;
+      box-shadow: 0 0 8px rgba(41,82,204,0.4), 0 0 20px rgba(41,82,204,0.15);
+      text-shadow: 0 0 12px rgba(168,191,255,0.6);
+    }
+
+    /* ── TAB CONTROLS ── */
+    .page-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; animation: sectionFadeIn 350ms ease both; animation-delay: 60ms; }
+    .page-tab {
+      padding: 12px 4px; font-size: 13px; font-weight: 500; color: var(--text-muted);
+      background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: all 200ms;
+    }
+    .page-tab:hover { color: var(--text-secondary); }
+    .page-tab.active { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+    /* ── FILTER BAR ── */
+    .filter-bar { display: flex; align-items: center; gap: 8px; padding: 12px 0; margin-bottom: 16px; flex-wrap: wrap; animation: sectionFadeIn 350ms ease both; animation-delay: 100ms; }
+    .search-input {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);
+      font-size: 13px; padding: 7px 12px; border-radius: 0; outline: none; transition: border-color 150ms;
+    }
+    .search-input:focus { border-color: var(--border-focus); }
+    .filter-select {
+      background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary);
+      font-size: 13px; padding: 7px 32px 7px 12px; border-radius: 0; outline: none; cursor: pointer;
+      appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="none" stroke="%23a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+      background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
+    }
+    .filter-select:focus { border-color: var(--border-focus); }
+    .clear-btn { padding: 7px 12px; font-size: 12px; color: var(--text-muted); background: transparent; transition: color 120ms; }
+    .clear-btn:hover { color: var(--text-secondary); }
+
+    .table-controls { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .showing-text { font-size: 12px; color: var(--text-muted); }
+    .view-toggle { display: flex; gap: 0; }
+    .view-btn {
+      padding: 5px 10px; font-size: 12px; background: var(--bg-surface); color: var(--text-muted);
+      border: 1px solid var(--border); cursor: pointer; transition: all 120ms;
+    }
+    .view-btn:first-child { border-right: none; }
+    .view-btn.active { background: var(--accent-subtle); color: var(--accent-text); border-color: rgba(41,82,204,0.3); }
+
+    /* ── DATA TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none; transition: color 120ms;
+    }
+    .data-table th:hover { color: var(--text-secondary); }
+    .data-table th.sorted { color: var(--accent-text); }
+    .sort-arrow { display: inline-block; margin-left: 4px; font-size: 10px; }
+
+    .data-table td { font-size: 13px; color: var(--text-secondary); padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tbody tr { transition: background 80ms; cursor: pointer; animation: rowFadeIn 350ms ease both; }
+    .data-table tbody tr:hover td { background: var(--bg-overlay); }
+    .data-table tbody tr:hover { outline: 1px solid var(--border); outline-offset: -1px; }
+
+    .cell-id { font-size: 12px; font-weight: 600; color: var(--accent-text); font-family: 'SF Mono', 'Fira Code', monospace; }
+    .cell-name { font-weight: 500; color: var(--text-primary); }
+
+    /* Inline Edit styles */
+    .location-cell { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+    .location-text { font-size: 13px; color: var(--text-secondary); }
+    .location-edit-btn {
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+      background: transparent; color: var(--text-muted); opacity: 0; transition: opacity 120ms, color 120ms;
+    }
+    tr:hover .location-edit-btn { opacity: 1; }
+    .location-edit-btn:hover { color: var(--accent-text); }
+
+    .location-inline-form { display: flex; align-items: center; gap: 6px; width: 100%; }
+    .location-inline-input {
+      background: var(--bg-base); border: 1px solid var(--border-focus); color: var(--text-primary);
+      font-size: 13px; padding: 4px 8px; border-radius: 0; outline: none; width: 140px;
+    }
+    .location-save-btn { padding: 4px 10px; font-size: 11px; font-weight: 500; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 3px; background: transparent; }
+    .location-save-btn:hover { border-color: var(--accent-hover); box-shadow: 0 0 6px rgba(41,82,204,0.3); }
+    .location-cancel-btn { padding: 4px 8px; font-size: 11px; color: var(--text-muted); background: transparent; border: 1px solid transparent; }
+    .location-cancel-btn:hover { color: var(--text-secondary); border-color: var(--border); }
+
+    .dept-pill { font-size: 11px; font-weight: 500; color: var(--text-secondary); background: var(--bg-overlay); border: 1px solid var(--border); padding: 2px 8px; }
+
+    .action-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text-muted); transition: all 120ms; }
+    .action-btn:hover { background: var(--bg-overlay); border: 1px solid var(--border); color: var(--text-primary); }
+    .action-btn.delete:hover { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+
+    /* ── CARDS VIEW ── */
+    .project-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1px; background: var(--bg-base); border: 1px solid var(--border); }
+    .project-card { background: var(--bg-surface); padding: 20px; transition: background 120ms; position: relative; cursor: pointer; }
+    .project-card:hover { background: var(--bg-overlay); outline: 1px solid var(--border); z-index: 2; }
+
+    .card-id-badge { font-size: 10px; font-weight: 700; color: var(--accent-text); background: var(--accent-subtle); border: 1px solid rgba(41,82,204,0.2); padding: 1px 6px; }
+    .card-name { font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 8px 0 2px; }
+    .card-dept { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+
+    .card-location-section { margin: 14px 0; padding: 12px; background: var(--bg-base); border: 1px solid var(--border); }
+    .card-location-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .card-location-value { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; }
+    
+    .card-footer { display: flex; align-items: center; justify-content: flex-end; }
+    .btn-danger { padding: 6px 14px; font-size: 11px; font-weight: 500; color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; background: transparent; transition: all 150ms; }
+    .btn-danger:hover { border-color: var(--danger); box-shadow: 0 0 8px rgba(239,68,68,0.25); }
+
+    /* ── WORKLOAD REPORT ── */
+    .workload-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .workload-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+    .workload-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    
+    .workload-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .workload-stat-pill { padding: 6px 14px; background: var(--bg-surface); border: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+    .workload-stat-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    .load-badge { padding: 2px 8px; font-size: 11px; font-weight: 600; border: 1px solid; }
+    .load-badge.none   { color: #fca5a5; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); }
+    .load-badge.light  { color: #fcd34d; background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); }
+    .load-badge.active { color: #86efac; background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.25); }
+
+    .load-bar-track { width: 100px; height: 6px; background: var(--border); overflow: hidden; }
+    .load-bar-fill { height: 100%; transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1); width: 0%; }
+    .load-bar-fill.none   { background: #ef4444; }
+    .load-bar-fill.light  { background: #f59e0b; }
+    .load-bar-fill.active { background: #22c55e; }
+
+    .workload-note { margin-top: 16px; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-left: 3px solid var(--warning); font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .workload-note a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── PANELS & MODALS ── */
+    .slide-panel { position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: var(--bg-surface); border-left: 1px solid var(--border); z-index: 200; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 250ms ease; }
+    .slide-panel.open { transform: translateX(0); }
+    .panel-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; opacity: 0; pointer-events: none; transition: opacity 250ms ease; }
+    .panel-backdrop.open { opacity: 1; pointer-events: all; }
+    
+    .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .panel-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 16px; }
+    .panel-close:hover { color: var(--text-primary); }
+    .panel-body { padding: 24px; flex: 1; overflow-y: auto; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+
+    .input-group { margin-bottom: 20px; }
+    .input-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+    .input-field { width: 100%; background: var(--bg-base); border: 1px solid var(--border); color: var(--text-primary); font-size: 14px; padding: 10px 12px; outline: none; transition: border-color 150ms; }
+    .input-field:focus { border-color: var(--border-focus); }
+    .input-field::placeholder { color: var(--text-muted); font-size: 13px; }
+    .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+    .field-hint.error { color: var(--danger); display: none; }
+
+    .btn-submit { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 4px; background: transparent; cursor: pointer; transition: all 200ms; }
+    .btn-submit:hover { border-color: var(--accent-hover); box-shadow: 0 0 8px rgba(41,82,204,0.4); }
+    .btn-ghost { padding: 8px 16px; font-size: 13px; color: var(--text-muted); background: transparent; cursor: pointer; transition: color 120ms; }
+    .btn-ghost:hover { color: var(--text-primary); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box { background: var(--bg-surface); border: 1px solid var(--border); width: 360px; padding: 28px; transform: translateY(-12px); transition: transform 200ms ease; }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .warning-icon { font-size: 24px; color: var(--warning); margin-bottom: 12px; }
+    .modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .modal-body-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+    .modal-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+    /* ── TOASTS ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 400; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); min-width: 280px; font-size: 13px; color: var(--text-primary); animation: toastIn 250ms ease both; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rowFadeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes rowFlash { 0% { background: rgba(34,197,94,0.15); } 100% { background: transparent; } }
+    .new-row { animation: rowFlash 1200ms ease forwards; }
+    @keyframes rowFadeOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
+    .deleting-row { animation: rowFadeOut 300ms ease forwards !important; }
+    @keyframes cellFlashBlue { 0% { background: rgba(41,82,204,0.25); } 100% { background: transparent; } }
+    .flash-cell { animation: cellFlashBlue 800ms ease forwards; }
+
+    /* Media Queries */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-close-btn { display: block; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0; padding: 16px; padding-top: 68px; }
+      .slide-panel { width: 100%; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .search-input { width: 100% !important; }
+    }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Sprite/Defs (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Projects</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-title-wrap">
+        <h2 class="page-title">Projects</h2>
+        <span class="count-badge" id="total-badge">0 projects</span>
+      </div>
+      <button class="btn-primary" id="btn-add-project">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Add Project
+      </button>
+    </div>
+
+    <!-- TABS -->
+    <div class="page-tabs">
+      <button class="page-tab active" id="tab-projects">Projects</button>
+      <button class="page-tab" id="tab-workload">Workload Report</button>
+    </div>
+
+    <!-- TAB 1: PROJECTS CONTENT -->
+    <div id="tab1-content">
+      <div class="filter-bar">
+        <input type="number" id="filter-id" class="search-input" placeholder="Search by ID..." style="width: 140px;">
+        <input type="text" id="filter-name" class="search-input" placeholder="Search by name..." style="width: 200px;">
+        
+        <select id="filter-dept" class="filter-select">
+          <option value="all">All Departments</option>
+          <!-- Injected via JS -->
+        </select>
+
+        <button class="clear-btn" id="btn-clear">Clear</button>
+      </div>
+
+      <div class="table-controls">
+        <div class="showing-text" id="showing-text">Showing 0 of 0 projects</div>
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-table">≡ Table</button>
+          <button class="view-btn" id="view-cards">⊞ Cards</button>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div id="table-view">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-sort="pno" style="width: 80px;">ID <span class="sort-arrow"></span></th>
+              <th data-sort="pname">PROJECT NAME <span class="sort-arrow"></span></th>
+              <th data-sort="plocation">LOCATION <span class="sort-arrow"></span></th>
+              <th data-sort="dname">DEPARTMENT <span class="sort-arrow"></span></th>
+              <th style="width: 80px;">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards View -->
+      <div id="cards-view" style="display:none;">
+        <div class="project-cards-grid" id="cards-grid">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: WORKLOAD REPORT CONTENT -->
+    <div id="tab2-content" style="display:none;">
+      <div class="workload-header">
+        <div>
+          <h3 class="workload-title">Project Workload Report</h3>
+          <p class="workload-subtitle">Distribution of project assignments across all employees</p>
+        </div>
+        <div class="workload-stats" id="workload-stats-container">
+          <!-- Stats pills injected via JS -->
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="workload-table">
+          <thead>
+            <tr>
+              <th data-sort="eno" style="width: 80px;">EMP ID <span class="sort-arrow"></span></th>
+              <th data-sort="ename">NAME <span class="sort-arrow"></span></th>
+              <th data-sort="dept">DEPARTMENT <span class="sort-arrow"></span></th>
+              <th data-sort="project_count">PROJECTS <span class="sort-arrow">▼</span></th>
+              <th data-sort="total_hours">TOTAL HOURS <span class="sort-arrow"></span></th>
+              <th style="width: 120px;">LOAD BAR</th>
+            </tr>
+          </thead>
+          <tbody id="workload-body">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="workload-note">
+        ⚠ Employees with 0 projects assigned may be underutilised. Consider assigning them via the <a href="works-on.html">Works On</a> module.
+      </div>
+    </div>
+
+  </main>
+
+  <!-- PANELS -->
+  <div class="panel-backdrop" id="panel-backdrop"></div>
+  
+  <div class="slide-panel" id="add-project-panel">
+    <div class="panel-header">
+      <div class="panel-title">Add Project</div>
+      <button class="panel-close" id="close-add-panel">&times;</button>
+    </div>
+    <div class="panel-body">
+      <form id="add-project-form">
+        <div class="input-group">
+          <label class="input-label">Project ID</label>
+          <input type="number" id="add-pno" class="input-field" placeholder="10" required>
+          <div class="field-hint">Must be unique. Used as the primary identifier.</div>
+          <div class="field-hint error" id="error-pno">Project ID is required and must be unique.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Project Name</label>
+          <input type="text" id="add-pname" class="input-field" placeholder="Computerize" required>
+          <div class="field-hint error" id="error-pname">Project name is required.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Location</label>
+          <input type="text" id="add-plocation" class="input-field" placeholder="Houston" required>
+          <div class="field-hint">City or office where this project is based.</div>
+          <div class="field-hint error" id="error-plocation">Location is required.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Department</label>
+          <select id="add-dno" class="filter-select" style="width: 100%;" required>
+            <option value="">Select department...</option>
+            <!-- Injected via JS -->
+          </select>
+          <div class="field-hint error" id="error-dno">Department is required.</div>
+        </div>
+      </form>
+    </div>
+    <div class="panel-footer">
+      <button type="submit" form="add-project-form" class="btn-submit">Create Project</button>
+      <button type="button" class="btn-ghost" id="cancel-add-panel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="warning-icon">⚠</div>
+      <div class="modal-title">Delete Project</div>
+      <div class="modal-body-text" id="delete-modal-text">Are you sure you want to permanently delete this project? All work assignments on this project will also be removed.</div>
+      <div class="modal-row">
+        <button class="btn-ghost" id="cancel-delete-btn">Cancel</button>
+        <button class="btn-danger" id="confirm-delete-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ══════════════════════════════════════════════════════════════════
+    // MOCK DATA — Replace with real API calls when FastAPI is ready
+    // ══════════════════════════════════════════════════════════════════
+
+    let MOCK_PROJECTS = [
+      { pno: 1,  pname: 'ProductX',    plocation: 'Bellaire',   dno: 5 },
+      { pno: 2,  pname: 'ProductY',    plocation: 'Sugarland',  dno: 5 },
+      { pno: 3,  pname: 'ProductZ',    plocation: 'Houston',    dno: 5 },
+      { pno: 10, pname: 'Computerize', plocation: 'Stafford',   dno: 4 },
+      { pno: 20, pname: 'Reorganize',  plocation: 'Houston',    dno: 1 },
+      { pno: 30, pname: 'Newbenefits', plocation: 'Stafford',   dno: 4 },
+    ];
+
+    const MOCK_DEPARTMENTS = [
+      { dno: 1, dname: 'Headquarters'   },
+      { dno: 4, dname: 'Administration' },
+      { dno: 5, dname: 'Research'       },
+      { dno: 6, dname: 'Finance'        },
+    ];
+
+    const MOCK_WORKLOAD = [
+      { eno: 101, ename: 'James Borg',       dept: 'Headquarters',   project_count: 1, total_hours: 20  },
+      { eno: 102, ename: 'Michael Wallace',  dept: 'Administration', project_count: 2, total_hours: 35  },
+      { eno: 103, ename: 'Franklin Wong',    dept: 'Research',       project_count: 3, total_hours: 42  },
+      { eno: 104, ename: 'Jennifer Wallace', dept: 'Administration', project_count: 0, total_hours: 0   },
+      { eno: 105, ename: 'Ramesh Narayan',   dept: 'Research',       project_count: 2, total_hours: 30  },
+      { eno: 106, ename: 'Joyce English',    dept: 'Research',       project_count: 1, total_hours: 20  },
+      { eno: 107, ename: 'Ahmad Jabbar',     dept: 'Administration', project_count: 2, total_hours: 35  },
+      { eno: 108, ename: 'Alicia Zelaya',    dept: 'Administration', project_count: 0, total_hours: 0   },
+      { eno: 109, ename: 'John Smith',       dept: 'Research',       project_count: 1, total_hours: 20  },
+      { eno: 110, ename: 'Tanish Sanghavi',  dept: 'Headquarters',   project_count: 0, total_hours: 0   },
+    ];
+
+    // ── STATE ──
+    let currentTab = 'projects';
+    let currentView = 'table';
+    let filterID = '';
+    let filterName = '';
+    let filterDept = 'all';
+    let sortColumn = 'pno';
+    let sortDirection = 'asc';
+    let activeProjectForDelete = null;
+    let inlineEditPno = null;
+
+    // ── DOM ELEMENTS ──
+    const tabProjects = document.getElementById('tab-projects');
+    const tabWorkload = document.getElementById('tab-workload');
+    const tab1Content = document.getElementById('tab1-content');
+    const tab2Content = document.getElementById('tab2-content');
+
+    const tableView = document.getElementById('table-view');
+    const cardsView = document.getElementById('cards-view');
+    const viewTableBtn = document.getElementById('view-table');
+    const viewCardsBtn = document.getElementById('view-cards');
+
+    const tableBody = document.getElementById('table-body');
+    const cardsGrid = document.getElementById('cards-grid');
+    const workloadBody = document.getElementById('workload-body');
+
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', () => {
+      // Company name from session
+      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
+      document.getElementById('sidebar-company-name').textContent = storedCompany;
+
+      populateDeptDropdowns();
+      renderActiveView();
+
+      
+
+      // Logout
+      
+    });
+
+    function populateDeptDropdowns() {
+      const filters = ['filter-dept', 'add-dno'];
+      filters.forEach(id => {
+        const select = document.getElementById(id);
+        MOCK_DEPARTMENTS.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.dno;
+          opt.textContent = d.dname;
+          select.appendChild(opt);
+        });
+      });
+    }
+
+    // ── TAB SWITCHING ──
+    tabProjects.addEventListener('click', () => switchTab('projects'));
+    tabWorkload.addEventListener('click', () => switchTab('workload'));
+
+    function switchTab(tab) {
+      currentTab = tab;
+      if (tab === 'projects') {
+        tabProjects.classList.add('active');
+        tabWorkload.classList.remove('active');
+        tab1Content.style.display = 'block';
+        tab2Content.style.display = 'none';
+        renderActiveView();
+      } else {
+        tabWorkload.classList.add('active');
+        tabProjects.classList.remove('active');
+        tab2Content.style.display = 'block';
+        tab1Content.style.display = 'none';
+        renderWorkloadReport();
+      }
+    }
+
+    // ── FILTERING & SEARCH ──
+    document.getElementById('filter-id').addEventListener('input', (e) => { filterID = e.target.value; renderActiveView(); });
+    
+    // Debounce for Name Search
+    let searchDebounce = null;
+    document.getElementById('filter-name').addEventListener('input', (e) => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        filterName = e.target.value.toLowerCase();
+        renderActiveView();
+      }, 300);
+    });
+
+    document.getElementById('filter-dept').addEventListener('change', (e) => { filterDept = e.target.value; renderActiveView(); });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      document.getElementById('filter-id').value = ''; filterID = '';
+      document.getElementById('filter-name').value = ''; filterName = '';
+      document.getElementById('filter-dept').value = 'all'; filterDept = 'all';
+      renderActiveView();
+    });
+
+    // ── VIEW TOGGLES ──
+    viewTableBtn.addEventListener('click', () => { currentView = 'table'; viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active'); tableView.style.display = 'block'; cardsView.style.display = 'none'; renderActiveView(); });
+    viewCardsBtn.addEventListener('click', () => { currentView = 'cards'; viewCardsBtn.classList.add('active'); viewTableBtn.classList.remove('active'); cardsView.style.display = 'block'; tableView.style.display = 'none'; renderActiveView(); });
+
+    // ── RENDERING LOGIC ──
+    function getFilteredProjects() {
+      return MOCK_PROJECTS.filter(p => {
+        const matchesID = filterID ? p.pno.toString().includes(filterID) : true;
+        const matchesName = p.pname.toLowerCase().includes(filterName);
+        const matchesDept = filterDept === 'all' ? true : p.dno === parseInt(filterDept);
+        return matchesID && matchesName && matchesDept;
+      }).sort((a, b) => {
+        let valA = a[sortColumn];
+        let valB = b[sortColumn];
+        if (sortColumn === 'dname') {
+          valA = getDeptName(a.dno);
+          valB = getDeptName(b.dno);
+        }
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function getDeptName(dno) {
+      const dept = MOCK_DEPARTMENTS.find(d => d.dno === dno);
+      return dept ? dept.dname : 'Unknown';
+    }
+
+    function renderActiveView() {
+      if (currentTab !== 'projects') return;
+      
+      const filtered = getFilteredProjects();
+      document.getElementById('total-badge').textContent = `${MOCK_PROJECTS.length} projects`;
+      document.getElementById('showing-text').textContent = `Showing ${filtered.length} of ${MOCK_PROJECTS.length} projects`;
+
+      if (currentView === 'table') renderTable(filtered);
+      else renderCards(filtered);
+    }
+
+    function renderTable(projects) {
+      tableBody.innerHTML = '';
+      projects.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${p.pno}`;
+        tr.style.animationDelay = `${idx * 40}ms`;
+        
+        const isEditing = inlineEditPno === p.pno;
+
+        tr.innerHTML = `
+          <td class="cell-id">#${p.pno}</td>
+          <td class="cell-name">${p.pname}</td>
+          <td id="cell-location-${p.pno}">
+            ${isEditing ? renderInlineEdit(p) : renderLocationCell(p)}
+          </td>
+          <td><span class="dept-pill">${getDeptName(p.dno)}</span></td>
+          <td>
+            <div style="display: flex; gap: 4px;">
+              <button class="action-btn delete" onclick="event.stopPropagation(); openDeleteModal(${p.pno})" title="Delete">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              </button>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function renderLocationCell(p) {
+      return `
+        <div class="location-cell">
+          <span class="location-text">${p.plocation}</span>
+          <button class="location-edit-btn" onclick="startInlineEdit(${p.pno}, event)" title="Edit Location">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderInlineEdit(p) {
+      return `
+        <div class="location-inline-form" onclick="event.stopPropagation()">
+          <input type="text" class="location-inline-input" id="input-loc-${p.pno}" value="${p.plocation}" onkeydown="handleInlineKey(event, ${p.pno})">
+          <button class="location-save-btn" onclick="saveInlineEdit(${p.pno})">Save</button>
+          <button class="location-cancel-btn" onclick="cancelInlineEdit()">Cancel</button>
+        </div>
+      `;
+    }
+
+    function renderCards(projects) {
+      cardsGrid.innerHTML = '';
+      projects.forEach((p, idx) => {
+        const div = document.createElement('div');
+        div.className = 'project-card';
+        div.style.animation = `rowFadeIn 350ms ease both ${idx * 40}ms`;
+        
+        const isEditing = inlineEditPno === p.pno;
+
+        div.innerHTML = `
+          <div class="card-id-badge">#${p.pno}</div>
+          <div class="card-name">${p.pname}</div>
+          <div class="card-dept">${getDeptName(p.dno)}</div>
+          
+          <div class="card-location-section">
+            <div class="card-location-label">📍 Location</div>
+            <div class="card-location-value" id="card-loc-${p.pno}">
+              ${isEditing ? `
+                <input type="text" class="location-inline-input" id="input-loc-${p.pno}" value="${p.plocation}" style="width: 100%; border-radius: 4px;" onkeydown="handleInlineKey(event, ${p.pno})">
+              ` : `
+                <span>${p.plocation}</span>
+                <button class="btn-ghost" style="padding: 2px 6px; font-size: 11px;" onclick="startInlineEdit(${p.pno}, event)">✎ Edit</button>
+              `}
+            </div>
+            ${isEditing ? `
+              <div style="display: flex; gap: 4px; margin-top: 8px;">
+                <button class="location-save-btn" onclick="saveInlineEdit(${p.pno})">Save</button>
+                <button class="location-cancel-btn" onclick="cancelInlineEdit()">Cancel</button>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="card-footer">
+            <button class="btn-danger" onclick="event.stopPropagation(); openDeleteModal(${p.pno})">Delete</button>
+          </div>
+        `;
+        cardsGrid.appendChild(div);
+      });
+    }
+
+    // ── INLINE EDIT LOGIC ──
+    window.startInlineEdit = (pno, e) => {
+      e.stopPropagation();
+      inlineEditPno = pno;
+      renderActiveView();
+      setTimeout(() => {
+        const input = document.getElementById(`input-loc-${pno}`);
+        if(input) { input.focus(); input.select(); }
+      }, 50);
+    };
+
+    window.cancelInlineEdit = () => {
+      inlineEditPno = null;
+      renderActiveView();
+    };
+
+    window.saveInlineEdit = (pno) => {
+      const input = document.getElementById(`input-loc-${pno}`);
+      const newVal = input.value.trim();
+      if (!newVal) { showToast('Location cannot be empty', 'error'); return; }
+      
+      const project = MOCK_PROJECTS.find(p => p.pno === pno);
+      project.plocation = newVal;
+      
+      showToast(`Location updated for ${project.pname}`, 'success');
+      inlineEditPno = null;
+      renderActiveView();
+
+      // Flash effect
+      const cell = document.getElementById(currentView === 'table' ? `cell-location-${pno}` : `card-loc-${pno}`);
+      if(cell) cell.classList.add('flash-cell');
+    };
+
+    window.handleInlineKey = (e, pno) => {
+      if (e.key === 'Enter') saveInlineEdit(pno);
+      if (e.key === 'Escape') cancelInlineEdit();
+    };
+
+    // ── SORTING ──
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (currentTab === 'projects') {
+          if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+          else { sortColumn = col; sortDirection = 'asc'; }
+          
+          document.querySelectorAll('th').forEach(t => {
+            t.classList.remove('sorted');
+            const arrow = t.querySelector('.sort-arrow');
+            if(arrow) arrow.textContent = '';
+          });
+          th.classList.add('sorted');
+          th.querySelector('.sort-arrow').textContent = sortDirection === 'asc' ? '▲' : '▼';
+          renderActiveView();
+        } else {
+          // Workload sorting
+          handleWorkloadSort(col, th);
+        }
+      });
+    });
+
+    // ── WORKLOAD REPORT ──
+    let workloadSortCol = 'project_count';
+    let workloadSortDir = 'desc';
+
+    function renderWorkloadReport() {
+      const stats = { unassigned: 0, light: 0, active: 0 };
+      MOCK_WORKLOAD.forEach(e => {
+        if (e.project_count === 0) stats.unassigned++;
+        else if (e.project_count === 1) stats.light++;
+        else stats.active++;
+      });
+
+      const container = document.getElementById('workload-stats-container');
+      container.innerHTML = `
+        <div class="workload-stat-pill"><div class="dot" style="background:#ef4444;"></div> ${stats.unassigned} unassigned</div>
+        <div class="workload-stat-pill"><div class="dot" style="background:#f59e0b;"></div> ${stats.light} light load</div>
+        <div class="workload-stat-pill"><div class="dot" style="background:#22c55e;"></div> ${stats.active} active</div>
+      `;
+
+      sortWorkload();
+      renderWorkloadTable();
+    }
+
+    function sortWorkload() {
+      MOCK_WORKLOAD.sort((a, b) => {
+        const valA = a[workloadSortCol];
+        const valB = b[workloadSortCol];
+        if (valA < valB) return workloadSortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return workloadSortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function handleWorkloadSort(col, th) {
+      if (workloadSortCol === col) workloadSortDir = workloadSortDir === 'asc' ? 'desc' : 'asc';
+      else { workloadSortCol = col; workloadSortDir = 'asc'; }
+      
+      document.querySelectorAll('#workload-table th').forEach(t => {
+        t.classList.remove('sorted');
+        const arrow = t.querySelector('.sort-arrow');
+        if(arrow) arrow.textContent = '';
+      });
+      th.classList.add('sorted');
+      th.querySelector('.sort-arrow').textContent = workloadSortDir === 'asc' ? '▲' : '▼';
+      
+      sortWorkload();
+      renderWorkloadTable();
+    }
+
+    function renderWorkloadTable() {
+      workloadBody.innerHTML = '';
+      const maxHours = Math.max(...MOCK_WORKLOAD.map(e => e.total_hours), 1);
+
+      MOCK_WORKLOAD.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.animation = `rowFadeIn 350ms ease both ${idx * 40}ms`;
+
+        let loadClass = 'active';
+        let badgeText = `${e.project_count} projects`;
+        if (e.project_count === 0) { loadClass = 'none'; badgeText = 'None'; }
+        else if (e.project_count === 1) { loadClass = 'light'; badgeText = '1 project'; }
+
+        const barWidth = (e.total_hours / maxHours) * 100;
+
+        tr.innerHTML = `
+          <td class="cell-id">#${e.eno}</td>
+          <td class="cell-name"><a href="employees.html" style="color:inherit; text-decoration:none;">${e.ename}</a></td>
+          <td><span class="dept-pill">${e.dept}</span></td>
+          <td><span class="load-badge ${loadClass}">${badgeText}</span></td>
+          <td>${e.total_hours > 0 ? e.total_hours : '<span style="color:var(--text-muted)">—</span>'}</td>
+          <td>
+            <div class="load-bar-track">
+              <div class="load-bar-fill ${loadClass}" style="width: 0%" id="load-bar-${e.eno}"></div>
+            </div>
+          </td>
+        `;
+        workloadBody.appendChild(tr);
+
+        // Animate bars
+        setTimeout(() => {
+          const bar = document.getElementById(`load-bar-${e.eno}`);
+          if(bar) bar.style.width = `${barWidth}%`;
+        }, 100 + (idx * 50));
+      });
+    }
+
+    // ── ADD PANEL ──
+    const addPanel = document.getElementById('add-project-panel');
+    const backdrop = document.getElementById('panel-backdrop');
+
+    function openAddPanel() { addPanel.classList.add('open'); backdrop.classList.add('open'); }
+    function closeAddPanel() { addPanel.classList.remove('open'); backdrop.classList.remove('open'); resetAddForm(); }
+
+    document.getElementById('btn-add-project').addEventListener('click', openAddPanel);
+    document.getElementById('close-add-panel').addEventListener('click', closeAddPanel);
+    document.getElementById('cancel-add-panel').addEventListener('click', closeAddPanel);
+    backdrop.addEventListener('click', closeAddPanel);
+
+    function resetAddForm() {
+      document.getElementById('add-project-form').reset();
+      document.querySelectorAll('.field-hint.error').forEach(h => h.style.display = 'none');
+    }
+
+    document.getElementById('add-project-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pno = parseInt(document.getElementById('add-pno').value);
+      const pname = document.getElementById('add-pname').value.trim();
+      const plocation = document.getElementById('add-plocation').value.trim();
+      const dno = parseInt(document.getElementById('add-dno').value);
+
+      let valid = true;
+      if (MOCK_PROJECTS.some(p => p.pno === pno)) { document.getElementById('error-pno').style.display = 'block'; valid = false; }
+      else { document.getElementById('error-pno').style.display = 'none'; }
+
+      if (!pname) { document.getElementById('error-pname').style.display = 'block'; valid = false; }
+      if (!plocation) { document.getElementById('error-plocation').style.display = 'block'; valid = false; }
+      if (!dno) { document.getElementById('error-dno').style.display = 'block'; valid = false; }
+
+      if (!valid) return;
+
+      const newProj = { pno, pname, plocation, dno };
+      MOCK_PROJECTS.unshift(newProj);
+      
+      closeAddPanel();
+      showToast('Project created successfully', 'success');
+      
+      // If not in projects tab, switch to it
+      if (currentTab !== 'projects') switchTab('projects');
+      else renderActiveView();
+
+      // Flash the new row
+      setTimeout(() => {
+        const row = document.getElementById(`row-${pno}`);
+        if(row) row.classList.add('new-row');
+      }, 100);
+    });
+
+    // ── DELETE MODAL ──
+    const deleteModal = document.getElementById('delete-modal');
+    window.openDeleteModal = (pno) => {
+      activeProjectForDelete = MOCK_PROJECTS.find(p => p.pno === pno);
+      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete ${activeProjectForDelete.pname} (ID: ${pno})? All work assignments on this project will also be removed.`;
+      deleteModal.classList.add('open');
+    };
+
+    document.getElementById('cancel-delete-btn').addEventListener('click', () => deleteModal.classList.remove('open'));
+    document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+      const pno = activeProjectForDelete.pno;
+      
+      // Animation pre-removal
+      const el = currentView === 'table' ? document.getElementById(`row-${pno}`) : document.querySelector(`.project-card:has(div:contains("#${pno}"))`);
+      // Simpler selector for card since IDs are inside badge tags
+      const cardEl = Array.from(document.querySelectorAll('.project-card')).find(c => c.textContent.includes(`#${pno}`));
+      const target = currentView === 'table' ? el : cardEl;
+
+      if(target) target.classList.add('deleting-row');
+
+      setTimeout(() => {
+        MOCK_PROJECTS = MOCK_PROJECTS.filter(p => p.pno !== pno);
+        deleteModal.classList.remove('open');
+        showToast('Project deleted', 'info');
+        renderActiveView();
+      }, 300);
+    });
+
+    // ── TOAST SYSTEM ──
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'all 300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+
+</body>
+</html>

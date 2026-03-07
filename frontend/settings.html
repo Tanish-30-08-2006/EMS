@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — EMS</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base:        #0f0f0f;
+      --bg-surface:     #1a1a1a;
+      --bg-overlay:     #222222;
+      --border:         #2a2a2a;
+      --border-focus:   #3b5fd4;
+      --accent:         #2952cc;
+      --accent-hover:   #3b6aee;
+      --accent-subtle:  rgba(41, 82, 204, 0.10);
+      --accent-glow:    rgba(41, 82, 204, 0.40);
+      --accent-text:    #a8bfff;
+      --text-primary:   #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted:     #555555;
+      --success:        #22c55e;
+      --danger:         #ef4444;
+      --warning:        #f59e0b;
+      
+      /* Dynamic properties */
+      --cell-padding: 12px 16px;
+      --base-font-size: 13px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-size: var(--base-font-size);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+      background: var(--bg-surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 100;
+      transition: transform 220ms ease;
+    }
+    .sidebar-header {
+      height: 60px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo { width: 26px; height: 26px; }
+    .sidebar-title { font-size: 14px; font-weight: 600; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px 4px 16px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 120ms;
+    }
+    .nav-item:hover { background: var(--bg-overlay); color: var(--text-primary); outline: 1px solid var(--border); }
+    .nav-item.active { background: var(--accent-subtle); color: var(--text-primary); border-left: 2px solid var(--accent); }
+    .nav-icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; color: var(--text-muted); }
+    .nav-item.active .nav-icon { color: var(--accent-text); }
+    
+    .sidebar-company { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .company-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+    .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── MAIN CONTENT ── */
+    .main-content { margin-left: 240px; padding: 32px 36px; min-height: 100vh; }
+    .page-header { margin-bottom: 32px; animation: sectionFadeIn 350ms ease both; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── SETTINGS LAYOUT ── */
+    .settings-layout { display: flex; gap: 0; align-items: flex-start; animation: sectionFadeIn 350ms ease both; animation-delay: 60ms; }
+    .settings-inner-nav { width: 180px; flex-shrink: 0; position: sticky; top: 32px; margin-right: 48px; }
+    .settings-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 32px; padding-bottom: 100px; }
+
+    .inner-nav-title { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 0 0 10px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .inner-nav-item {
+      display: block; padding: 7px 10px; font-size: 13px; font-weight: 400; color: var(--text-muted);
+      text-decoration: none; cursor: pointer; background: transparent; border: none; width: 100%;
+      text-align: left; font-family: 'Inter', sans-serif; border-radius: 0; transition: all 120ms;
+    }
+    .inner-nav-item:hover { color: var(--text-secondary); background: var(--bg-overlay); outline: 1px solid var(--border); }
+    .inner-nav-item.active { color: var(--accent-text); background: var(--accent-subtle); border-left: 2px solid var(--accent); padding-left: 8px; font-weight: 500; }
+
+    /* ── PANELS ── */
+    .settings-panel { background: var(--bg-surface); border: 1px solid var(--border); scroll-margin-top: 24px; animation: sectionFadeIn 400ms ease both; }
+    .settings-panel-header { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--border); }
+    .panel-header-icon { width: 32px; height: 32px; background: var(--bg-overlay); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .panel-header-icon svg { width: 16px; height: 16px; color: var(--accent-text); }
+    .panel-header-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .panel-header-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .settings-panel-body { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+    .setting-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .setting-meta { flex: 1; min-width: 200px; }
+    .setting-label { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+    .setting-description { font-size: 12px; color: var(--text-muted); line-height: 1.6; max-width: 360px; }
+    .setting-control { flex-shrink: 0; min-width: 280px; }
+
+    /* ── CONTROLS ── */
+    .readonly-value { background: var(--bg-base); border: 1px solid var(--border); padding: 9px 14px; font-size: 13px; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
+    .readonly-badge { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); background: var(--bg-overlay); border: 1px solid var(--border); padding: 2px 6px; margin-left: 12px; }
+
+    .copy-field { display: flex; align-items: stretch; gap: 0; background: var(--bg-base); border: 1px solid var(--border); }
+    .copy-value { flex: 1; padding: 9px 14px; font-size: 13px; font-family: monospace; color: var(--accent-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy-btn { padding: 0 14px; background: var(--bg-overlay); border: none; border-left: 1px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: 11px; font-family: 'Inter', sans-serif; transition: all 120ms; }
+    .copy-btn:hover { color: var(--text-primary); background: #2a2a2a; }
+    .copy-btn.copied { color: var(--success); }
+
+    .input-group { position: relative; display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
+    .settings-input { background: var(--bg-base); border: 1px solid var(--border); color: var(--text-primary); font-size: 13px; font-family: 'Inter', sans-serif; padding: 9px 14px; border-radius: 0; outline: none; transition: border-color 150ms; width: 100%; }
+    .settings-input:focus { border-color: var(--border-focus); }
+    
+    .save-btn { padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 4px; transition: all 200ms; }
+    .save-btn:hover:not(:disabled) { border-color: var(--accent-hover); box-shadow: 0 0 8px var(--accent-glow); text-shadow: 0 0 12px rgba(168,191,255,0.6); }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .secondary-btn { padding: 8px 16px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--text-muted); border: 1px solid var(--border); transition: all 150ms; }
+    .secondary-btn:hover { color: var(--text-secondary); border-color: #444; }
+
+    /* ── PASSWORD STRENGTH ── */
+    .strength-meter { height: 4px; display: flex; gap: 4px; margin-top: 6px; }
+    .strength-bar { flex: 1; height: 100%; background: var(--bg-overlay); transition: background 300ms; }
+    .strength-text { font-size: 11px; margin-top: 4px; font-weight: 500; }
+
+    /* ── APPEARANCE ── */
+    .color-swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-swatch { width: 32px; height: 32px; cursor: pointer; border: 2px solid transparent; transition: all 150ms; position: relative; outline: 1px solid var(--border); }
+    .color-swatch.active { border-color: var(--text-primary); transform: scale(1.15); z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .color-swatch:hover { transform: scale(1.1); }
+    
+    /* Toggle switch */
+    .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--bg-overlay); border: 1px solid var(--border); transition: .2s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .2s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-subtle); border-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(14px); background-color: var(--accent-text); box-shadow: 0 0 8px var(--accent-glow); }
+
+    /* ── DANGER ZONE ── */
+    .danger-panel { background: var(--bg-surface); border: 1px solid rgba(239,68,68,0.3); animation: sectionFadeIn 400ms ease both; animation-delay: 320ms; }
+    .danger-panel-header { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid rgba(239,68,68,0.2); background: rgba(239, 68, 68, 0.05); }
+    .danger-header-icon { width: 32px; height: 32px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .danger-header-icon svg { width: 16px; height: 16px; color: #fca5a5; }
+    .danger-title { font-size: 14px; font-weight: 600; color: #fca5a5; }
+
+    .btn-delete-action {
+      padding: 9px 22px; font-size: 13px; font-weight: 600; cursor: pointer;
+      background: transparent; color: #fca5a5; border: 1px solid rgba(239,68,68,0.4);
+      border-radius: 4px; transition: all 200ms;
+    }
+    .btn-delete-action:hover { border-color: var(--danger); box-shadow: 0 0 10px rgba(239,68,68,0.25), 0 0 24px rgba(239,68,68,0.1); }
+
+    /* ── MODALS ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: 200ms ease; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box { background: var(--bg-surface); border: 1px solid var(--border); width: 440px; padding: 32px; transform: translateY(20px); transition: 300ms cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    
+    .delete-warning-block { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); padding: 16px; margin: 16px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .delete-list { margin: 12px 0 0 0; list-style: none; }
+    .delete-list li { padding: 4px 0; font-size: 12px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+    .delete-list li::before { content: '×'; color: var(--danger); font-weight: 800; }
+
+    .confirm-name-display { background: var(--bg-base); border: 1px solid var(--border); padding: 12px; text-align: center; font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: monospace; margin: 16px 0; letter-spacing: 0.05em; }
+
+    .field-hint { font-size: 11px; margin-top: 4px; }
+    .field-hint.error { color: var(--danger); }
+    .field-hint.success { color: var(--success); }
+
+    /* ── TOASTS ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 2000; }
+    .toast { background: var(--bg-overlay); border-left: 3px solid var(--success); color: var(--text-primary); padding: 14px 24px; font-size: 13px; min-width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: toastIn 300ms cubic-bezier(0.18, 0.89, 0.32, 1.28) both; }
+    @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── ANIMATIONS ── */
+    @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 768px) {
+      .settings-inner-nav { display: none; }
+      .main-content { margin-left: 0; padding: 20px; }
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .setting-row { flex-direction: column; gap: 16px; }
+      .setting-control { min-width: 100%; }
+    }
+  
+    /* ── LOGOUT MODAL OVERLAY ── */
+    #logout-confirm-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+      backdrop-filter: blur(3px);
+    }
+    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
+
+    /* ── MOBILE TOPBAR ── */
+    .mobile-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .hamburger-btn {
+      background: none; border: none;
+      color: var(--text-primary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-page-title {
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-240px);
+        transition: transform 220ms ease;
+      }
+      .sidebar.open { transform: translateX(0); z-index: 100; }
+      .mobile-topbar { display: flex; }
+      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
+      .slide-panel { width: 100% !important; right: 0 !important; }
+      .sidebar-close-btn { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/><circle cx="50" cy="50" r="38" fill="url(#ring2)"/><circle cx="50" cy="50" r="28" fill="url(#ring3)"/><circle cx="50" cy="50" r="18" fill="url(#centerBlue)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8"/>
+      </g>
+    </defs>
+  </svg>
+
+  
+  <!-- SVG DEFS (Shield Logo) -->
+<!-- SIDEBAR -->
+  
+  <!-- SVG DEFS (Shield Logo) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
+      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
+      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
+      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+      <g id="shield-logo">
+        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
+        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
+        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
+        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+      <span class="sidebar-title">EMS</span>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div class="sidebar-company">
+      <div class="company-label">Workspace</div>
+      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Dashboard
+      </a>
+      <div class="nav-section-label">DATA</div>
+      <a href="employees.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Employees
+      </a>
+      <a href="departments.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+        Departments
+      </a>
+      <a href="projects.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Projects
+      </a>
+      <a href="works-on.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Works On
+      </a>
+      <a href="dependents.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Dependents
+      </a>
+      <a href="dept-locations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Dept Locations
+      </a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="audit.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Audit Trail
+      </a>
+      <a href="export.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Data Export
+      </a>
+      <div class="nav-section-label">ACCOUNT</div>
+      <a href="settings.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        About
+      </a>
+      <a href="developer.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Developer
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar" id="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-page-title">Settings</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="mobile-topbar" id="mobile-topbar" style="display:none;">
+    <button id="hamburger-btn" style="background:none; border:none; color:var(--text-primary); cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <span style="margin-left:16px; font-weight:600; font-size:14px;">Settings</span>
+  </div>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h2 class="page-title">Settings</h2>
+      <p class="page-subtitle">Configure your workspace and security preferences</p>
+    </div>
+
+    <div class="settings-layout">
+      <!-- LEFT INNER NAV -->
+      <nav class="settings-inner-nav">
+        <div class="inner-nav-title">Sections</div>
+        <button class="inner-nav-item active" data-section="section-workspace">Workspace</button>
+        <button class="inner-nav-item" data-section="section-contact">Contact</button>
+        <button class="inner-nav-item" data-section="section-security">Security</button>
+        <button class="inner-nav-item" data-section="section-appearance">Appearance</button>
+        <button class="inner-nav-item" data-section="section-danger">Danger Zone</button>
+      </nav>
+
+      <!-- RIGHT CONTENT -->
+      <div class="settings-content">
+        
+        <!-- SECTION 1: WORKSPACE -->
+        <div class="settings-panel" id="section-workspace">
+          <div class="settings-panel-header">
+            <div class="panel-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v1h18V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2zM5 21V8M19 21V8M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/></svg></div>
+            <div>
+              <div class="panel-header-title">Workspace</div>
+              <div class="panel-header-desc">Your company's private database schema and identifier.</div>
+            </div>
+          </div>
+          <div class="settings-panel-body">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Company Name</div>
+                <div class="setting-description">The name you used when creating this workspace. Cannot be changed.</div>
+              </div>
+              <div class="setting-control">
+                <div class="readonly-value">
+                  <span id="display-company-name">tanish</span>
+                  <span class="readonly-badge">READ-ONLY</span>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Workspace ID</div>
+                <div class="setting-description">Your private database schema identifier. Used internally for all data isolation.</div>
+              </div>
+              <div class="setting-control">
+                <div class="copy-field">
+                  <div class="copy-value" id="workspace-id-text">comp_tanish</div>
+                  <button class="copy-btn" id="btn-copy-id">Copy ID</button>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Created</div>
+                <div class="setting-description">When this workspace was provisioned.</div>
+              </div>
+              <div class="setting-control">
+                <div class="readonly-value">
+                  <span>30 Aug 2024</span>
+                  <span class="readonly-badge">READ-ONLY</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: CONTACT -->
+        <div class="settings-panel" id="section-contact">
+          <div class="settings-panel-header">
+            <div class="panel-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div>
+              <div class="panel-header-title">Contact</div>
+              <div class="panel-header-desc">Email address for export delivery and system notifications.</div>
+            </div>
+          </div>
+          <div class="settings-panel-body">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Contact Email</div>
+                <div class="setting-description">Export files sent by email are delivered here. Must be a valid email address.</div>
+              </div>
+              <div class="setting-control">
+                <div class="editable-field-form">
+                  <div class="editable-field-row">
+                    <input type="email" id="contact-email-input" class="settings-input" value="tanish@daiict.ac.in">
+                    <button class="save-btn" id="btn-save-email">Save</button>
+                  </div>
+                  <div id="email-hint" class="field-hint"></div>
+                  <button class="secondary-btn" style="margin-top:4px;" id="btn-test-email">Test Email</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: SECURITY -->
+        <div class="settings-panel" id="section-security">
+          <div class="settings-panel-header">
+            <div class="panel-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div>
+              <div class="panel-header-title">Security</div>
+              <div class="panel-header-desc">Manage your workspace login credentials.</div>
+            </div>
+          </div>
+          <div class="settings-panel-body">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Change Password</div>
+                <div class="setting-description">Your password must be at least 8 characters. We recommend a mix of letters, numbers, and symbols.</div>
+              </div>
+              <div class="setting-control">
+                <div class="password-form">
+                  <div class="input-group">
+                    <label class="field-label">Current Password</label>
+                    <input type="password" id="current-pass" class="settings-input" placeholder="••••••••">
+                  </div>
+                  <div class="input-group">
+                    <label class="field-label">New Password</label>
+                    <input type="password" id="new-pass" class="settings-input" placeholder="••••••••">
+                    <div class="strength-meter" id="strength-meter">
+                      <div class="strength-bar"></div><div class="strength-bar"></div><div class="strength-bar"></div>
+                    </div>
+                    <div class="strength-text" id="strength-text"></div>
+                  </div>
+                  <div class="input-group">
+                    <label class="field-label">Confirm New Password</label>
+                    <input type="password" id="confirm-pass" class="settings-input" placeholder="••••••••">
+                    <div id="match-hint" class="field-hint"></div>
+                  </div>
+                  <button class="save-btn" id="btn-update-pass" style="margin-top:8px;">Update Password</button>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Active Sessions</div>
+                <div class="setting-description">All active login sessions for this workspace.</div>
+              </div>
+              <div class="setting-control">
+                <div class="readonly-value">
+                  <div>
+                    <div style="font-size:13px; color:var(--text-primary)">Chrome — Windows</div>
+                    <div style="font-size:11px; color:var(--text-muted)">Active now</div>
+                  </div>
+                  <span class="readonly-badge" style="color:var(--success); border-color:rgba(34,197,94,0.3); background:rgba(34,197,94,0.05)">CURRENT</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: APPEARANCE -->
+        <div class="settings-panel" id="section-appearance">
+          <div class="settings-panel-header">
+            <div class="panel-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
+            <div>
+              <div class="panel-header-title">Appearance</div>
+              <div class="panel-header-desc">Customize interface preference. Preferences saved to this browser.</div>
+            </div>
+          </div>
+          <div class="settings-panel-body">
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Accent Color</div>
+                <div class="setting-description">Choose the highlight color used throughout. Changes applied globally.</div>
+              </div>
+              <div class="setting-control">
+                <div class="color-swatches" id="color-swatches">
+                  <div class="color-swatch active" style="background:#2952cc" data-hex="#2952cc" title="Royal Blue"></div>
+                  <div class="color-swatch" style="background:#0f766e" data-hex="#0f766e" title="Teal"></div>
+                  <div class="color-swatch" style="background:#7c3aed" data-hex="#7c3aed" title="Purple"></div>
+                  <div class="color-swatch" style="background:#b45309" data-hex="#b45309" title="Amber"></div>
+                  <div class="color-swatch" style="background:#be123c" data-hex="#be123c" title="Rose"></div>
+                  <div class="color-swatch" style="background:#374151" data-hex="#374151" title="Slate"></div>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Compact Mode</div>
+                <div class="setting-description">Reduces padding and font sizes throughout the interface for higher data density.</div>
+              </div>
+              <div class="setting-control">
+                <label class="switch">
+                  <input type="checkbox" id="compact-toggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-meta">
+                <div class="setting-label">Sidebar</div>
+                <div class="setting-description">Sidebar width is fixed at 240px on desktop. Mobile sidebar is full-width.</div>
+              </div>
+              <div class="setting-control">
+                <div class="readonly-value">
+                  <span>240px (default)</span>
+                  <span class="readonly-badge">READ-ONLY</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: DANGER ZONE -->
+        <div class="danger-panel" id="section-danger">
+          <div class="danger-panel-header">
+            <div class="danger-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div>
+              <div class="panel-header-title">Danger Zone</div>
+              <div class="panel-header-desc">These actions are permanent and cannot be undone.</div>
+            </div>
+          </div>
+          <div class="danger-setting-row">
+            <div style="flex:1">
+              <div class="setting-label" style="color:#fca5a5">Delete Workspace</div>
+              <div class="setting-description">Permanently deletes this workspace and all associated data. Action is irreversible.</div>
+            </div>
+            <button class="btn-delete-action" id="btn-open-delete-modal">Delete Workspace...</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- MODALS -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <!-- Step 1 -->
+      <div id="delete-step-1">
+        <div style="text-align:center; font-size:32px; color:var(--danger); margin-bottom:16px;">⚠</div>
+        <div class="modal-title" style="text-align:center; color:#fca5a5">Delete Workspace</div>
+        <div class="delete-warning-block">
+          This will permanently destroy:
+          <ul class="delete-list">
+            <li>All employee records and salary history</li>
+            <li>All department and project data</li>
+            <li>All work assignments and dependents</li>
+            <li>All audit log entries</li>
+            <li>Entire database schema: <span id="schema-name-preview" style="font-family:monospace">comp_tanish</span></li>
+          </ul>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button class="btn-delete-action" style="flex:1" id="btn-continue-delete">Continue</button>
+          <button class="secondary-btn" style="flex:1" id="btn-cancel-delete-1">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="delete-step-2" style="display:none;">
+        <div class="modal-title">Confirm deletion</div>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">To confirm, type your company name exactly as shown below:</p>
+        <div class="confirm-name-display" id="confirm-name-challenge">tanish</div>
+        <input type="text" id="delete-challenge-input" class="settings-input" placeholder="Type company name here...">
+        <div id="delete-match-hint" class="field-hint error">Name doesn't match yet...</div>
+        
+        <div style="display:flex; gap:12px; margin-top:24px;">
+          <button class="btn-delete-action" style="flex:1; opacity:0.4; cursor:not-allowed;" id="btn-final-delete" disabled>Delete Workspace Permanent</button>
+          <button class="secondary-btn" style="flex:1" id="btn-cancel-delete-2">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+
+    // ── AUTH GUARD ──
+    // When backend is live: replace 'ems_company' check with JWT token check:
+    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+    if (!sessionStorage.getItem('ems_company')) {
+      window.location.href = 'login.html';
+    }
+    // ── CONFIG ──
+    const ACCENT_MAP = {
+      '#2952cc': { hover: '#3b6aee', subtle: 'rgba(41,82,204,0.10)', text: '#a8bfff'  },
+      '#0f766e': { hover: '#115e59', subtle: 'rgba(15,118,110,0.10)', text: '#5eead4' },
+      '#7c3aed': { hover: '#8b5cf6', subtle: 'rgba(124,58,237,0.10)', text: '#c4b5fd' },
+      '#b45309': { hover: '#92400e', subtle: 'rgba(180,83,9,0.10)',   text: '#fcd34d' },
+      '#be123c': { hover: '#9f1239', subtle: 'rgba(190,18,60,0.10)',  text: '#fda4af' },
+      '#374151': { hover: '#1f2937', subtle: 'rgba(55,65,81,0.10)',   text: '#9ca3af' },
+    };
+
+    // ── STATE ──
+    const companyName = sessionStorage.getItem('ems_company') || 'tanish';
+    
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('sidebar-company-name').textContent = companyName;
+      document.getElementById('display-company-name').textContent = companyName;
+      document.getElementById('workspace-id-text').textContent = `comp_${companyName}`;
+      document.getElementById('schema-name-preview').textContent = `comp_${companyName}`;
+      document.getElementById('confirm-name-challenge').textContent = companyName;
+
+      // Apply saved preferences
+      const savedAccent = sessionStorage.getItem('ems_accent');
+      if (savedAccent) applyAccentColor(savedAccent);
+      
+      const savedCompact = sessionStorage.getItem('ems_compact') === '1';
+      document.getElementById('compact-toggle').checked = savedCompact;
+      applyCompactMode(savedCompact);
+
+      setupIntersectionObserver();
+    });
+
+    // ── HELPERS ──
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = '300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ── INNER NAV & SCROLLING ──
+    window.scrollToSection = (id) => {
+      const section = document.getElementById(id);
+      section.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const navItems = document.querySelectorAll('.inner-nav-item');
+    navItems.forEach(item => {
+      item.onclick = () => scrollToSection(item.dataset.section);
+    });
+
+    function setupIntersectionObserver() {
+      const options = { threshold: 0.5 };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            navItems.forEach(nav => {
+              nav.classList.toggle('active', nav.dataset.section === entry.target.id);
+            });
+          }
+        });
+      }, options);
+
+      document.querySelectorAll('.settings-panel, .danger-panel').forEach(panel => {
+        observer.observe(panel);
+      });
+    }
+
+    // ── WORKSPACE ID COPY ──
+    document.getElementById('btn-copy-id').onclick = function() {
+      const text = document.getElementById('workspace-id-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = this.textContent;
+        this.textContent = 'Copied ✓';
+        this.classList.add('copied');
+        setTimeout(() => {
+          this.textContent = originalText;
+          this.classList.remove('copied');
+        }, 2000);
+      });
+    };
+
+    // ── CONTACT EMAIL ──
+    document.getElementById('btn-save-email').onclick = function() {
+      const input = document.getElementById('contact-email-input');
+      const hint = document.getElementById('email-hint');
+      const email = input.value.trim();
+      
+      if (!email || !email.includes('@')) {
+        hint.textContent = 'Please enter a valid email address.';
+        hint.className = 'field-hint error';
+        return;
+      }
+      
+      // ══════════════════════════════════════════════════════════
+      // REPLACE WITH REAL API CALL:
+      // POST /settings/contact-email
+      // Body: { email }
+      // ══════════════════════════════════════════════════════════
+      
+      hint.textContent = 'Email address saved ✓';
+      hint.className = 'field-hint success';
+      showToast('Contact email updated', 'success');
+      setTimeout(() => hint.textContent = '', 3000);
+    };
+
+    document.getElementById('btn-test-email').onclick = () => {
+      showToast(`Test email sent to ${document.getElementById('contact-email-input').value} ✓`, 'success');
+    };
+
+    // ── SECURITY (PASSWORDS) ──
+    const newPassInput = document.getElementById('new-pass');
+    const confirmPassInput = document.getElementById('confirm-pass');
+    
+    newPassInput.oninput = () => {
+      const pass = newPassInput.value;
+      const strengthMeter = document.getElementById('strength-meter');
+      const bars = strengthMeter.querySelectorAll('.strength-bar');
+      const strengthText = document.getElementById('strength-text');
+      
+      let strength = 0;
+      if (pass.length > 0) strength = 1;
+      if (pass.length >= 8) strength = 2;
+      if (pass.length >= 10 && /[!@#$%^&*]/.test(pass)) strength = 3;
+
+      bars.forEach(b => b.style.background = 'var(--bg-overlay)');
+      if (strength === 1) { bars[0].style.background = 'var(--danger)'; strengthText.textContent = 'Weak'; strengthText.style.color = 'var(--danger)'; }
+      else if (strength === 2) { bars[0].style.background = 'var(--warning)'; bars[1].style.background = 'var(--warning)'; strengthText.textContent = 'Fair'; strengthText.style.color = 'var(--warning)'; }
+      else if (strength === 3) { bars.forEach(b => b.style.background = 'var(--success)'); strengthText.textContent = 'Strong'; strengthText.style.color = 'var(--success)'; }
+      else strengthText.textContent = '';
+      
+      validatePasswordMatch();
+    };
+
+    confirmPassInput.oninput = validatePasswordMatch;
+
+    function validatePasswordMatch() {
+      const hint = document.getElementById('match-hint');
+      if (!confirmPassInput.value) { hint.textContent = ''; return; }
+      if (newPassInput.value === confirmPassInput.value) {
+        hint.textContent = 'Passwords match ✓';
+        hint.className = 'field-hint success';
+      } else {
+        hint.textContent = 'Passwords do not match';
+        hint.className = 'field-hint error';
+      }
+    }
+
+    document.getElementById('btn-update-pass').onclick = function() {
+      const current = document.getElementById('current-pass').value;
+      const pass = newPassInput.value;
+      const confirm = confirmPassInput.value;
+
+      if (!current || !pass || !confirm) { showToast('Please fill all password fields', 'error'); return; }
+      if (pass.length < 8) { showToast('New password must be at least 8 characters', 'error'); return; }
+      if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
+      if (current !== 'password123') { showToast('Incorrect current password', 'error'); return; }
+
+      // ══════════════════════════════════════════════════════════
+      // REPLACE WITH REAL API CALL:
+      // POST /auth/change-password
+      // Body: { current, pass }
+      // ══════════════════════════════════════════════════════════
+      
+      document.getElementById('current-pass').value = '';
+      newPassInput.value = '';
+      confirmPassInput.value = '';
+      showToast('Password updated successfully', 'success');
+      newPassInput.oninput();
+    };
+
+    // ── APPEARANCE ──
+    document.getElementById('color-swatches').onclick = (e) => {
+      const swatch = e.target.closest('.color-swatch');
+      if (!swatch) return;
+      
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      applyAccentColor(swatch.dataset.hex);
+    };
+
+    function applyAccentColor(hex) {
+      const root = document.documentElement;
+      const data = ACCENT_MAP[hex];
+      if (!data) return;
+
+      root.style.setProperty('--accent', hex);
+      root.style.setProperty('--accent-hover', data.hover);
+      root.style.setProperty('--accent-subtle', data.subtle);
+      root.style.setProperty('--accent-text', data.text);
+      
+      sessionStorage.setItem('ems_accent', hex);
+    }
+
+    document.getElementById('compact-toggle').onchange = (e) => {
+      applyCompactMode(e.target.checked);
+    };
+
+    function applyCompactMode(enabled) {
+      const root = document.documentElement;
+      if (enabled) {
+        root.style.setProperty('--cell-padding', '7px 12px');
+        root.style.setProperty('--base-font-size', '12px');
+      } else {
+        root.style.removeProperty('--cell-padding');
+        root.style.removeProperty('--base-font-size');
+      }
+      sessionStorage.setItem('ems_compact', enabled ? '1' : '0');
+    }
+
+    // ── DANGER ZONE (DELETE) ──
+    const deleteModal = document.getElementById('delete-modal');
+    document.getElementById('btn-open-delete-modal').onclick = () => {
+      document.getElementById('delete-step-1').style.display = 'block';
+      document.getElementById('delete-step-2').style.display = 'none';
+      deleteModal.classList.add('open');
+    };
+
+    document.getElementById('btn-cancel-delete-1').onclick = () => deleteModal.classList.remove('open');
+    document.getElementById('btn-cancel-delete-2').onclick = () => deleteModal.classList.remove('open');
+
+    document.getElementById('btn-continue-delete').onclick = () => {
+      document.getElementById('delete-step-1').style.display = 'none';
+      document.getElementById('delete-step-2').style.display = 'block';
+    };
+
+    const challengeInput = document.getElementById('delete-challenge-input');
+    challengeInput.oninput = function() {
+      const hint = document.getElementById('delete-match-hint');
+      const btn = document.getElementById('btn-final-delete');
+      if (this.value === companyName) {
+        hint.textContent = '✓ Name confirmed. Proceed to delete.';
+        hint.className = 'field-hint success';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      } else {
+        hint.textContent = "Name doesn't match yet...";
+        hint.className = 'field-hint error';
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+      }
+    };
+
+    document.getElementById('btn-final-delete').onclick = () => {
+      // ══════════════════════════════════════════════════════════
+      // REPLACE WITH REAL API CALL:
+      // DELETE /workspace
+      // ══════════════════════════════════════════════════════════
+      sessionStorage.clear();
+      window.location.href = 'index.html';
+    };
+
+  
+    // ── LOGOUT MODAL ──
+    const _logoutModal = document.getElementById('logout-confirm-modal');
+    const _logoutBox   = document.getElementById('logout-modal-box');
+    function _openLogout() {
+      _logoutModal.classList.add('open');
+      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
+    }
+    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-btn').addEventListener('click', _openLogout);
+    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
+      _logoutModal.classList.remove('open');
+      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    });
+    _logoutModal.addEventListener('click', (e) => {
+      if (e.target === _logoutModal) {
+        _logoutModal.classList.remove('open');
+        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
+      }
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
+      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+    });
+    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
+      this.style.boxShadow='none';
+    });
+    // ── MOBILE SIDEBAR ──
+    const _hamburger = document.getElementById('hamburger-btn');
+    const _sidebarEl = document.getElementById('sidebar');
+    const _overlayEl = document.getElementById('sidebar-overlay');
+    if (_hamburger) {
+      _hamburger.addEventListener('click', () => {
+        _sidebarEl.classList.add('open');
+        _overlayEl.classList.add('open');
+      });
+    }
+    if (_overlayEl) {
+      _overlayEl.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
+    if (_closeSidebarBtn) {
+      _closeSidebarBtn.addEventListener('click', () => {
+        _sidebarEl.classList.remove('open');
+        _overlayEl.classList.remove('open');
+      });
+    }
+  </script>
+</body>
+</html>
