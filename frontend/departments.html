@@ -571,10 +571,6 @@
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
         About
       </a>
-      <a href="developer.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        Developer
-      </a>
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" id="logout-btn">
@@ -775,90 +771,36 @@
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
+    if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`http://localhost:8000${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA — Replace with real API calls when FastAPI is ready
-    //
-    // Endpoints needed for this page:
-    //   GET  /departments                  → get_all_departments()
-    //   GET  /departments/{dno}            → get_department_by_id()
-    //   POST /departments                  → add_new_department()
-    //   DELETE /departments/{dno}          → delete_department()
-    //   PUT  /departments/{dno}/manager    → update_department_manager()
-    //   GET  /departments/headcount        → get_department_headcount()
-    //   GET  /departments/payroll-summary  → get_payroll_summary()
-    //   GET  /dept-locations/{dno}         → get_locations_by_dno()
-    //   POST /dept-locations               → add_dept_location()
-    //   DELETE /dept-locations/{dno}/{loc} → delete_dept_location()
-    // ══════════════════════════════════════════════════════════════════
-
-    let MOCK_DEPARTMENTS = [
-      { dno: 1, dname: 'Headquarters',   mgr_eno: 101, mgrstartdate: '2019-06-01' },
-      { dno: 4, dname: 'Administration', mgr_eno: 104, mgrstartdate: '2020-01-15' },
-      { dno: 5, dname: 'Research',       mgr_eno: 103, mgrstartdate: '2021-03-10' },
-      { dno: 6, dname: 'Finance',        mgr_eno: 108, mgrstartdate: '2022-07-01' },
-    ];
-
-    let MOCK_HEADCOUNT = {
-      1: { count: 2,  manager_name: 'James Borg',       total_salary: 115000 },
-      4: { count: 4,  manager_name: 'Jennifer Wallace',  total_salary: 136000 },
-      5: { count: 3,  manager_name: 'Franklin Wong',     total_salary: 103000 },
-      6: { count: 1,  manager_name: 'Alicia Zelaya',     total_salary: 25000  },
-    };
-
-    let MOCK_LOCATIONS = {
-      1: ['Houston'],
-      4: ['Houston', 'Stafford'],
-      5: ['Bellaire', 'Sugarland', 'Houston'],
-      6: ['Houston'],
-    };
-
-    let MOCK_PAYROLL = [
-      { dno: 1, dname: 'Headquarters',   headcount: 2, total: 115000, avg: 57500,  max: 60000, min: 55000 },
-      { dno: 4, dname: 'Administration', headcount: 4, total: 136000, avg: 34000,  max: 43000, min: 25000 },
-      { dno: 5, dname: 'Research',       headcount: 3, total: 103000, avg: 34333,  max: 40000, min: 25000 },
-      { dno: 6, dname: 'Finance',        headcount: 1, total: 25000,  avg: 25000,  max: 25000, min: 25000 },
-    ];
-
-    let MOCK_EMPLOYEES_BRIEF = [
-      { eno: 101, ename: 'James Borg' },
-      { eno: 102, ename: 'Michael Wallace' },
-      { eno: 103, ename: 'Franklin Wong' },
-      { eno: 104, ename: 'Jennifer Wallace' },
-      { eno: 105, ename: 'Ramesh Narayan' },
-      { eno: 106, ename: 'Joyce English' },
-      { eno: 107, ename: 'Ahmad Jabbar' },
-      { eno: 108, ename: 'Alicia Zelaya' },
-      { eno: 109, ename: 'John Smith' },
-      { eno: 110, ename: 'Tanish Sanghavi' },
-    ];
 
     /* ── STATE ── */
+    let ALL_DEPARTMENTS = [];
+    let ALL_EMPLOYEES   = [];   // for manager dropdown
+    let DEPT_LOCATIONS  = {};   // dno → [loc, ...]
+    let PAYROLL_DATA    = [];
     let currentView = 'table';
     let filterID = '';
     let expandedLocs = new Set();
-    
     let activeDeptForManager = null;
-    let activeDeptForDelete = null;
+    let activeDeptForDelete  = null;
 
-    // Formatters
-    const formatINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
-    const formatDate = (ds) => {
-      if(!ds) return '—';
-      const d = new Date(ds);
-      return isNaN(d) ? ds : d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    };
-    const getMgrName = (eno) => {
-      if(!eno) return '—';
-      const emp = MOCK_EMPLOYEES_BRIEF.find(e => e.eno === eno);
-      return emp ? emp.ename : `Unknown (${eno})`;
-    };
+    const formatINR  = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    const formatDate = (ds) => { if (!ds) return '—'; const d = new Date(ds); return isNaN(d) ? ds : d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); };
+    const getMgrName = (eno) => { if (!eno) return '—'; const e = ALL_EMPLOYEES.find(e => e.eno === eno); return e ? e.ename : `(${eno})`; };
 
-    /* ── DOM ELEMENTS & SIDEBAR ── */
+    /* ── DOM ── */
     const tbody = document.getElementById('table-body');
     const cardsGrid = document.getElementById('cards-grid');
     const totalBadge = document.getElementById('total-badge');
@@ -870,8 +812,7 @@
     const tabPayroll = document.getElementById('tab-payroll');
     const deptContent = document.getElementById('dept-content');
     const payrollContent = document.getElementById('payroll-content');
-    
-    // Auth & Sidebar init
+
     const companyName = sessionStorage.getItem('ems_company') || 'My Company';
     document.getElementById('sidebar-company-name').textContent = companyName;
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -886,21 +827,15 @@
     sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
     /* ── TOASTS ── */
-    function showToast(message, type = 'info', duration = 3500) {
+    function showToast(msg, type = 'success') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
+      toast.className = `toast ${type}`; toast.textContent = msg;
       container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = 'opacity 200ms, transform 200ms';
-        setTimeout(() => toast.remove(), 200);
-      }, duration);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='200ms'; setTimeout(()=>toast.remove(),200); }, 3500);
     }
 
-    /* ── TAB & VIEW TOGGLES ── */
+    /* ── TABS ── */
     tabDepts.addEventListener('click', () => {
       tabDepts.classList.add('active'); tabPayroll.classList.remove('active');
       deptContent.style.display = 'block'; payrollContent.style.display = 'none';
@@ -911,61 +846,36 @@
       renderPayroll();
     });
 
-    viewTableBtn.addEventListener('click', () => {
-      currentView = 'table';
-      viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active');
-      tableView.style.display = 'block'; cardsView.style.display = 'none';
-      renderDepartments();
-    });
-    viewCardsBtn.addEventListener('click', () => {
-      currentView = 'cards';
-      viewCardsBtn.classList.add('active'); viewTableBtn.classList.remove('active');
-      cardsView.style.display = 'block'; tableView.style.display = 'none';
-      renderDepartments();
-    });
+    viewTableBtn.addEventListener('click', () => { currentView='table'; viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active'); tableView.style.display='block'; cardsView.style.display='none'; renderDepartments(); });
+    viewCardsBtn.addEventListener('click', () => { currentView='cards'; viewCardsBtn.classList.add('active'); viewTableBtn.classList.remove('active'); cardsView.style.display='block'; tableView.style.display='none'; renderDepartments(); });
+    document.getElementById('filter-id').addEventListener('input', (e) => { filterID = e.target.value; renderDepartments(); });
 
-    document.getElementById('filter-id').addEventListener('input', (e) => {
-      filterID = e.target.value; renderDepartments();
-    });
-
-    /* ── RENDER DEPARTMENTS (TAB 1) ── */
+    /* ── RENDER DEPARTMENTS ── */
     function renderDepartments() {
-      let data = MOCK_DEPARTMENTS;
+      let data = ALL_DEPARTMENTS;
       if (filterID) data = data.filter(d => d.dno.toString().includes(filterID));
       totalBadge.textContent = `${data.length} departments`;
 
       if (currentView === 'table') {
         tbody.innerHTML = '';
         data.forEach(d => {
-          const m = MOCK_HEADCOUNT[d.dno] || { count: 0 };
-          const locs = MOCK_LOCATIONS[d.dno] || [];
-          
+          const headcount = ALL_EMPLOYEES.filter(e => e.dno === d.dno).length;
+          const locs = DEPT_LOCATIONS[d.dno] || [];
           let locHtml = '';
           locs.slice(0, 2).forEach(l => { locHtml += `<span class="location-tag">${l}</span>`; });
-          if (locs.length > 2) locHtml += `<span style="font-size:10px; color:var(--text-muted)">+${locs.length - 2} more</span>`;
+          if (locs.length > 2) locHtml += `<span style="font-size:10px;color:var(--text-muted)">+${locs.length-2}</span>`;
           if (locs.length === 0) locHtml = `<span style="color:var(--text-muted)">—</span>`;
-
-          const mgrName = getMgrName(d.mgr_eno);
-          const mgrHtml = d.mgr_eno ? mgrName : `<span style="color:var(--text-muted)">—</span>`;
-          
+          const mgrHtml = d.mgr_eno ? getMgrName(d.mgr_eno) : `<span style="color:var(--text-muted)">—</span>`;
           const isExpanded = expandedLocs.has(d.dno);
-          
-          // Main Row
           const tr = document.createElement('tr');
-          tr.className = 'main-row';
-          tr.id = `row-${d.dno}`;
-          tr.onclick = (e) => {
-            // Avoid toggling accordion if action buttons clicked
-            if(e.target.closest('.action-btn')) return;
-            toggleLocations(d.dno);
-          };
-          
+          tr.className = 'main-row'; tr.id = `row-${d.dno}`;
+          tr.onclick = (e) => { if(e.target.closest('.action-btn')) return; toggleLocations(d.dno); };
           tr.innerHTML = `
             <td class="cell-id">${d.dno}</td>
             <td class="cell-name">${d.dname}</td>
             <td id="cell-mgr-${d.dno}">${mgrHtml}</td>
-            <td style="font-size:12px; color:var(--text-muted)">${formatDate(d.mgrstartdate)}</td>
-            <td><div class="headcount-badge">${m.count}</div></td>
+            <td style="font-size:12px;color:var(--text-muted)">${formatDate(d.mgrstartdate)}</td>
+            <td><div class="headcount-badge">${headcount}</div></td>
             <td>${locHtml}</td>
             <td>
               <button class="action-btn" onclick="openManagerModal(${d.dno})" title="Update Manager">
@@ -977,23 +887,16 @@
             </td>
           `;
           tbody.appendChild(tr);
-
-          // Accordion Sub-row
           const trSub = document.createElement('tr');
           trSub.className = 'locations-row';
           trSub.innerHTML = `
             <td colspan="7">
               <div class="locations-expanded ${isExpanded ? 'open' : ''}" id="loc-exp-${d.dno}">
-                <div class="loc-header">
-                  OFFICE LOCATIONS — ${d.dname.toUpperCase()}
-                  <div class="loc-header-line"></div>
-                </div>
-                <div id="loc-list-${d.dno}">
-                  ${renderLocationsList(d.dno)}
-                </div>
+                <div class="loc-header">OFFICE LOCATIONS — ${d.dname.toUpperCase()}<div class="loc-header-line"></div></div>
+                <div id="loc-list-${d.dno}">${renderLocationsList(d.dno)}</div>
                 <form class="add-location-form" onsubmit="addLocation(event, ${d.dno})">
-                  <input type="text" class="search-input loc-input" id="new-loc-${d.dno}" placeholder="New location name..." required style="flex:1">
-                  <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 12px">Add</button>
+                  <input type="text" class="search-input loc-input" id="new-loc-${d.dno}" placeholder="Add location...">
+                  <button type="submit" class="btn-primary" style="padding:6px 14px;font-size:12px">Add</button>
                 </form>
               </div>
             </td>
@@ -1003,34 +906,28 @@
       } else {
         cardsGrid.innerHTML = '';
         data.forEach(d => {
-          const m = MOCK_HEADCOUNT[d.dno] || { count: 0, total_salary: 0 };
-          const locs = MOCK_LOCATIONS[d.dno] || [];
+          const headcount = ALL_EMPLOYEES.filter(e => e.dno === d.dno).length;
+          const locs = DEPT_LOCATIONS[d.dno] || [];
           let locHtml = '';
           locs.forEach(l => { locHtml += `<span class="location-tag">${l}</span>`; });
-          if(locs.length === 0) locHtml = `<span style="color:var(--text-muted)">—</span>`;
-
+          if (locs.length === 0) locHtml = `<span style="color:var(--text-muted)">—</span>`;
+          const totalSal = ALL_EMPLOYEES.filter(e => e.dno === d.dno).reduce((s, e) => s + (e.salary||0), 0);
           const card = document.createElement('div');
           card.className = 'dept-card';
           card.innerHTML = `
             <div>
-              <div class="card-title-row">
-                <span class="dept-id-badge">#${d.dno}</span>
-                <span class="card-title-text">${d.dname}</span>
-              </div>
-              <div class="card-subtext">${m.count} employee${m.count !== 1 ? 's' : ''}</div>
+              <div class="card-title-row"><span class="dept-id-badge">#${d.dno}</span><span class="card-title-text">${d.dname}</span></div>
+              <div class="card-subtext">${headcount} employee${headcount !== 1 ? 's' : ''}</div>
             </div>
             <div class="card-details">
               <div class="cd-label">Manager:</div><div class="cd-val">${getMgrName(d.mgr_eno)}</div>
               <div class="cd-label">Since:</div><div class="cd-val" style="font-size:11px">${formatDate(d.mgrstartdate)}</div>
-              <div class="cd-label">Total Salary:</div><div class="cd-val" style="color:#86efac; font-family:monospace">${formatINR(m.total_salary)}</div>
+              <div class="cd-label">Total Salary:</div><div class="cd-val" style="color:#86efac;font-family:monospace;font-size:12px">${formatINR(totalSal)}</div>
             </div>
-            <div class="card-locs">
-              <div class="card-locs-label">Locations:</div>
-              <div class="card-locs-list">${locHtml}</div>
-            </div>
+            <div class="card-locs"><div class="card-locs-label">Locations:</div><div class="card-locs-list">${locHtml}</div></div>
             <div class="card-footer">
-              <button class="btn-ghost" style="font-size:11px; padding:5px 12px" onclick="openManagerModal(${d.dno})">Update Manager</button>
-              <button class="btn-danger" style="font-size:11px; padding:5px 12px" onclick="openDeleteModal(${d.dno})">Delete</button>
+              <button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="openManagerModal(${d.dno})">Update Manager</button>
+              <button class="btn-danger" style="font-size:11px;padding:5px 12px" onclick="openDeleteModal(${d.dno})">Delete</button>
             </div>
           `;
           cardsGrid.appendChild(card);
@@ -1042,26 +939,21 @@
     function toggleLocations(dno) {
       const el = document.getElementById(`loc-exp-${dno}`);
       if (!el) return;
-      if (expandedLocs.has(dno)) {
-        expandedLocs.delete(dno);
-        el.classList.remove('open');
-      } else {
-        expandedLocs.add(dno);
-        el.classList.add('open');
-      }
+      if (expandedLocs.has(dno)) { expandedLocs.delete(dno); el.classList.remove('open'); }
+      else { expandedLocs.add(dno); el.classList.add('open'); }
     }
 
     function renderLocationsList(dno) {
-      const locs = MOCK_LOCATIONS[dno] || [];
-      if (locs.length === 0) return '<div class="location-item"><span style="color:var(--text-muted)">No locations configured.</span></div>';
+      const locs = DEPT_LOCATIONS[dno] || [];
+      if (locs.length === 0) return '<div class="location-item"><span style="color:var(--text-muted)">No locations registered</span></div>';
       let html = '';
       locs.forEach(loc => {
-        const idStr = `loc-item-${dno}-${loc.replace(/\\s+/g, '-')}`;
+        const idStr = `loc-item-${dno}-${loc.replace(/\s+/g,'-')}`;
         html += `
           <div class="location-item" id="${idStr}">
             <span>${loc}</span>
             <div id="${idStr}-action">
-              <button class="location-remove" onclick="reqRemoveLoc('${dno}', '${loc}', '${idStr}')">×</button>
+              <button class="location-remove" onclick="reqRemoveLoc('${dno}', '${loc}', '${idStr}')">× Remove</button>
             </div>
           </div>
         `;
@@ -1069,104 +961,84 @@
       return html;
     }
 
-    window.addLocation = (e, dno) => {
+    window.addLocation = async (e, dno) => {
       e.preventDefault();
       const input = document.getElementById(`new-loc-${dno}`);
       const val = input.value.trim();
       if (!val) return;
-      
-      if (!MOCK_LOCATIONS[dno]) MOCK_LOCATIONS[dno] = [];
-      if (!MOCK_LOCATIONS[dno].includes(val)) {
-        MOCK_LOCATIONS[dno].push(val);
+      try {
+        await apiCall('/dept-locations', 'POST', { dno: parseInt(dno), dlocation: val });
+        if (!DEPT_LOCATIONS[dno]) DEPT_LOCATIONS[dno] = [];
+        if (!DEPT_LOCATIONS[dno].includes(val)) DEPT_LOCATIONS[dno].push(val);
         document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
         showToast(`Location '${val}' added`, 'success');
-      }
-      input.value = '';
+        input.value = '';
+      } catch(err) { showToast(err.message || 'Failed to add location', 'error'); }
     };
 
     window.reqRemoveLoc = (dnoStr, locStr, idStr) => {
-      // Inline confirmation
       const container = document.getElementById(`${idStr}-action`);
       container.innerHTML = `
         <div class="loc-confirm-wrap">
           <span style="font-size:11px">Remove?</span>
           <button class="loc-btn yes" onclick="confRemoveLoc(${dnoStr}, '${locStr}')">Yes</button>
           <button class="loc-btn no" onclick="cancelRemoveLoc(${dnoStr})">No</button>
-        </div>
-      `;
+        </div>`;
     };
 
-    window.cancelRemoveLoc = (dno) => {
-      document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
-    };
+    window.cancelRemoveLoc = (dno) => { document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno); };
 
-    window.confRemoveLoc = (dno, loc) => {
-      if (MOCK_LOCATIONS[dno]) {
-        MOCK_LOCATIONS[dno] = MOCK_LOCATIONS[dno].filter(l => l !== loc);
+    window.confRemoveLoc = async (dno, loc) => {
+      try {
+        await apiCall(`/dept-locations/${dno}/${encodeURIComponent(loc)}`, 'DELETE');
+        if (DEPT_LOCATIONS[dno]) DEPT_LOCATIONS[dno] = DEPT_LOCATIONS[dno].filter(l => l !== loc);
         document.getElementById(`loc-list-${dno}`).innerHTML = renderLocationsList(dno);
         showToast(`Location '${loc}' removed`, 'success');
-      }
+      } catch(err) { showToast(err.message || 'Failed to remove location', 'error'); }
     };
 
-    /* ── RENDER PAYROLL (TAB 2) ── */
-    function renderPayroll() {
+    /* ── PAYROLL TAB ── */
+    async function renderPayroll() {
       const pBody = document.getElementById('payroll-body');
       const pFoot = document.getElementById('payroll-foot');
-      pBody.innerHTML = '';
-      
-      let grandHeadcount = 0;
-      let grandTotal = 0;
-      let maxOfMax = 0;
-      let minOfMin = Infinity;
-
-      let maxDeptTotal = Math.max(...MOCK_PAYROLL.map(p => p.total), 1);
-
-      MOCK_PAYROLL.forEach((p, idx) => {
-        grandHeadcount += p.headcount;
-        grandTotal += p.total;
-        if(p.max > maxOfMax) maxOfMax = p.max;
-        if(p.min !== null && p.min < minOfMin) minOfMin = p.min;
-
-        const perc = (p.total / maxDeptTotal) * 100;
-        
-        pBody.innerHTML += `
-          <tr>
-            <td class="cell-id">${p.dno}</td>
-            <td class="cell-name">${p.dname}</td>
-            <td style="text-align:center"><div class="headcount-badge">${p.headcount}</div></td>
-            <td class="col-money">
-              ${formatINR(p.total)}
-              <div class="salary-bar-track"><div class="salary-bar-fill" id="bar-${p.dno}"></div></div>
-            </td>
-            <td class="col-money">${formatINR(p.avg)}</td>
-            <td class="col-money">${formatINR(p.max)}</td>
-            <td class="col-money">${p.min ? formatINR(p.min) : '—'}</td>
-          </tr>
-        `;
-
-        // Animate bars staggered
-        setTimeout(() => {
-          const bar = document.getElementById(`bar-${p.dno}`);
-          if(bar) bar.style.width = `${perc}%`;
-        }, 80 + (idx * 60));
-      });
-
-      if(minOfMin === Infinity) minOfMin = 0;
-      const weightedAvg = grandHeadcount > 0 ? (grandTotal / grandHeadcount) : 0;
-
-      document.getElementById('grand-total-val').textContent = formatINR(grandTotal);
-
-      pFoot.innerHTML = `
-        <tr class="payroll-total-row">
-          <td>TOTAL</td>
-          <td></td>
-          <td style="text-align:center"><div class="headcount-badge" style="background:var(--accent); color:#fff">${grandHeadcount}</div></td>
-          <td class="col-money">${formatINR(grandTotal)}</td>
-          <td class="col-money">${formatINR(weightedAvg)}</td>
-          <td class="col-money">${formatINR(maxOfMax)}</td>
-          <td class="col-money">${formatINR(minOfMin)}</td>
-        </tr>
-      `;
+      pBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Loading...</td></tr>';
+      try {
+        const rows = await apiCall('/departments-payroll-summary');
+        pBody.innerHTML = '';
+        let grandHeadcount=0, grandTotal=0, maxOfMax=0, minOfMin=Infinity;
+        const maxDeptTotal = Math.max(...rows.map(p => p.total_sal), 1);
+        rows.forEach((p, idx) => {
+          grandHeadcount += p.headcount; grandTotal += p.total_sal;
+          if (p.max_sal > maxOfMax) maxOfMax = p.max_sal;
+          if (p.min_sal < minOfMin) minOfMin = p.min_sal;
+          const perc = (p.total_sal / maxDeptTotal) * 100;
+          pBody.innerHTML += `
+            <tr>
+              <td class="cell-id">${p.dno}</td>
+              <td class="cell-name">${p.dname}</td>
+              <td style="text-align:center"><div class="headcount-badge">${p.headcount}</div></td>
+              <td class="col-money">${formatINR(p.total_sal)}<div class="salary-bar-track"><div class="salary-bar-fill" id="bar-${p.dno}"></div></div></td>
+              <td class="col-money">${formatINR(p.avg_sal)}</td>
+              <td class="col-money">${formatINR(p.max_sal)}</td>
+              <td class="col-money">${p.min_sal ? formatINR(p.min_sal) : '—'}</td>
+            </tr>`;
+          setTimeout(() => { const bar = document.getElementById(`bar-${p.dno}`); if(bar) bar.style.width=`${perc}%`; }, 80 + idx*60);
+        });
+        if (minOfMin === Infinity) minOfMin = 0;
+        const weightedAvg = grandHeadcount > 0 ? grandTotal / grandHeadcount : 0;
+        document.getElementById('grand-total-val').textContent = formatINR(grandTotal);
+        pFoot.innerHTML = `
+          <tr class="payroll-total-row">
+            <td>TOTAL</td><td></td>
+            <td style="text-align:center"><div class="headcount-badge" style="background:var(--accent);color:#fff">${grandHeadcount}</div></td>
+            <td class="col-money">${formatINR(grandTotal)}</td>
+            <td class="col-money">${formatINR(weightedAvg)}</td>
+            <td class="col-money">${formatINR(maxOfMax)}</td>
+            <td class="col-money">${formatINR(minOfMin)}</td>
+          </tr>`;
+      } catch(err) {
+        pBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:20px">${err.message}</td></tr>`;
+      }
     }
 
     /* ── PANELS ── */
@@ -1174,136 +1046,118 @@
     function openPanel(id) { backdrop.classList.add('open'); document.getElementById(id).classList.add('open'); }
     function closePanel(id) { backdrop.classList.remove('open'); document.getElementById(id).classList.remove('open'); }
     backdrop.addEventListener('click', () => closePanel('add-dept-panel'));
-
     document.getElementById('btn-add-dept').addEventListener('click', () => openPanel('add-dept-panel'));
     document.getElementById('close-add-panel').addEventListener('click', () => closePanel('add-dept-panel'));
 
-    document.getElementById('add-dept-form').addEventListener('submit', (e) => {
+    document.getElementById('add-dept-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const dno = parseInt(document.getElementById('add-dno').value);
-      const newDept = {
-        dno: dno,
-        dname: document.getElementById('add-dname').value,
-        mgr_eno: document.getElementById('add-mgr').value ? parseInt(document.getElementById('add-mgr').value) : null,
+      const body = {
+        dno,
+        dname:        document.getElementById('add-dname').value,
+        mgr_eno:      document.getElementById('add-mgr').value ? parseInt(document.getElementById('add-mgr').value) : null,
         mgrstartdate: document.getElementById('add-mgr-date').value || null
       };
-
-      if (MOCK_DEPARTMENTS.find(d => d.dno === dno)) {
-        showToast('Department ID already exists', 'error');
-        return;
-      }
-
-      MOCK_DEPARTMENTS.push(newDept);
-      MOCK_HEADCOUNT[dno] = { count: 0, manager_name: getMgrName(newDept.mgr_eno), total_salary: 0 };
-      MOCK_LOCATIONS[dno] = [];
-      MOCK_PAYROLL.push({ dno: dno, dname: newDept.dname, headcount: 0, total: 0, avg: 0, max: 0, min: 0 });
-
-      closePanel('add-dept-panel');
-      
-      if(tabPayroll.classList.contains('active')) {
-        tabDepts.click();
-      } else {
-        renderDepartments();
-      }
-
-      // Flash
-      setTimeout(() => {
-        if(currentView === 'table') {
-          const row = document.getElementById(`row-${dno}`);
-          if(row) row.classList.add('new-row');
-        }
-      }, 100);
-
-      showToast('Department created successfully', 'success');
-      e.target.reset();
+      if (ALL_DEPARTMENTS.find(d => d.dno === dno)) { showToast('Department ID already exists', 'error'); return; }
+      try {
+        const newDept = await apiCall('/departments', 'POST', body);
+        if (!newDept) return;
+        ALL_DEPARTMENTS.push(newDept);
+        DEPT_LOCATIONS[dno] = [];
+        closePanel('add-dept-panel');
+        if (tabPayroll.classList.contains('active')) tabDepts.click(); else renderDepartments();
+        setTimeout(() => { if(currentView==='table') { const row = document.getElementById(`row-${dno}`); if(row) row.classList.add('new-row'); } }, 100);
+        showToast('Department created successfully', 'success');
+        e.target.reset();
+      } catch(err) { showToast(err.message || 'Failed to create department', 'error'); }
     });
 
     /* ── MODALS ── */
     const modalMgr = document.getElementById('manager-modal');
     const modalDel = document.getElementById('delete-modal');
-
-    // Update Manager Modal
     const selectMgr = document.getElementById('update-mgr-select');
+
     function populateMgrDropdown() {
       selectMgr.innerHTML = '<option value="">Select employee...</option>';
-      MOCK_EMPLOYEES_BRIEF.forEach(e => {
-        selectMgr.innerHTML += `<option value="${e.eno}">${e.ename} (${e.eno})</option>`;
-      });
+      ALL_EMPLOYEES.forEach(e => { selectMgr.innerHTML += `<option value="${e.eno}">${e.ename} (${e.eno})</option>`; });
     }
 
     window.openManagerModal = (dno) => {
-      activeDeptForManager = MOCK_DEPARTMENTS.find(d => d.dno === dno);
-      if(!selectMgr.options.length || selectMgr.options.length === 1) populateMgrDropdown();
-      
+      activeDeptForManager = ALL_DEPARTMENTS.find(d => d.dno === dno);
+      if (!selectMgr.options.length || selectMgr.options.length === 1) populateMgrDropdown();
       document.getElementById('manager-modal-sub').textContent = `Department: ${activeDeptForManager.dname} (ID: ${dno})`;
-      
-      const currMgrName = getMgrName(activeDeptForManager.mgr_eno);
-      const currText = activeDeptForManager.mgr_eno ? `${currMgrName} (${activeDeptForManager.mgr_eno})` : 'None';
+      const currText = activeDeptForManager.mgr_eno ? `${getMgrName(activeDeptForManager.mgr_eno)} (${activeDeptForManager.mgr_eno})` : 'None';
       document.getElementById('manager-modal-current').textContent = `Current: ${currText}`;
-      
-      // Select logic and (current) label logic
-      for(let i=1; i<selectMgr.options.length; i++){
+      for (let i=1; i<selectMgr.options.length; i++) {
         const opt = selectMgr.options[i];
         opt.textContent = opt.textContent.replace(' (current)', '');
-        if(parseInt(opt.value) === activeDeptForManager.mgr_eno) {
-          opt.textContent += ' (current)';
-          opt.selected = true;
-        } else {
-          opt.selected = false;
-        }
+        if (parseInt(opt.value) === activeDeptForManager.mgr_eno) { opt.textContent += ' (current)'; opt.selected = true; } else opt.selected = false;
       }
-      if(!activeDeptForManager.mgr_eno) selectMgr.selectedIndex = 0;
-
+      if (!activeDeptForManager.mgr_eno) selectMgr.selectedIndex = 0;
       modalMgr.classList.add('open');
     };
 
     document.getElementById('btn-cancel-mgr').addEventListener('click', () => modalMgr.classList.remove('open'));
-    document.getElementById('btn-confirm-mgr').addEventListener('click', () => {
+    document.getElementById('btn-confirm-mgr').addEventListener('click', async () => {
       const newMgr = selectMgr.value ? parseInt(selectMgr.value) : null;
       if (newMgr === activeDeptForManager.mgr_eno) { modalMgr.classList.remove('open'); return; }
-      
-      activeDeptForManager.mgr_eno = newMgr;
-      activeDeptForManager.mgrstartdate = new Date().toISOString().split('T')[0];
-      
-      modalMgr.classList.remove('open');
-      showToast(`Manager updated for ${activeDeptForManager.dname}`, 'success');
-      
-      if(currentView === 'table') {
-        const cell = document.getElementById(`cell-mgr-${activeDeptForManager.dno}`);
-        if(cell) {
-          cell.textContent = getMgrName(newMgr);
-          cell.classList.remove('flashing');
-          void cell.offsetWidth;
-          cell.classList.add('flashing');
-        }
-      } else {
-        renderDepartments();
-      }
+      try {
+        await apiCall(`/departments/${activeDeptForManager.dno}/manager`, 'PATCH', { mgr_eno: newMgr });
+        activeDeptForManager.mgr_eno = newMgr;
+        activeDeptForManager.mgrstartdate = new Date().toISOString().split('T')[0];
+        modalMgr.classList.remove('open');
+        showToast(`Manager updated for ${activeDeptForManager.dname}`, 'success');
+        if (currentView === 'table') {
+          const cell = document.getElementById(`cell-mgr-${activeDeptForManager.dno}`);
+          if (cell) { cell.textContent = getMgrName(newMgr); cell.classList.remove('flashing'); void cell.offsetWidth; cell.classList.add('flashing'); }
+        } else renderDepartments();
+      } catch(err) { showToast(err.message || 'Manager update failed', 'error'); }
     });
 
-    // Delete Modal
     window.openDeleteModal = (dno) => {
-      activeDeptForDelete = MOCK_DEPARTMENTS.find(d => d.dno === dno);
-      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete ${activeDeptForDelete.dname} (ID: ${dno})? All employees in this department must be reassigned first.`;
+      activeDeptForDelete = ALL_DEPARTMENTS.find(d => d.dno === dno);
+      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete "${activeDeptForDelete.dname}"? This cannot be undone.`;
       modalDel.classList.add('open');
     };
-
     document.getElementById('btn-cancel-delete').addEventListener('click', () => modalDel.classList.remove('open'));
-    document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+    document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
       modalDel.classList.remove('open');
-      MOCK_DEPARTMENTS = MOCK_DEPARTMENTS.filter(d => d.dno !== activeDeptForDelete.dno);
-      MOCK_PAYROLL = MOCK_PAYROLL.filter(p => p.dno !== activeDeptForDelete.dno);
-      renderDepartments();
-      showToast('Department deleted', 'success');
+      try {
+        await apiCall(`/departments/${activeDeptForDelete.dno}`, 'DELETE');
+        ALL_DEPARTMENTS = ALL_DEPARTMENTS.filter(d => d.dno !== activeDeptForDelete.dno);
+        PAYROLL_DATA    = PAYROLL_DATA.filter(p => p.dno !== activeDeptForDelete.dno);
+        renderDepartments();
+        showToast('Department deleted', 'success');
+      } catch(err) { showToast(err.message || 'Delete failed — dept may have active employees', 'error'); }
     });
+    modalMgr.addEventListener('click', (e) => { if(e.target===modalMgr) modalMgr.classList.remove('open'); });
+    modalDel.addEventListener('click', (e) => { if(e.target===modalDel) modalDel.classList.remove('open'); });
 
-    modalMgr.addEventListener('click', (e) => { if (e.target === modalMgr) modalMgr.classList.remove('open'); });
-    modalDel.addEventListener('click', (e) => { if (e.target === modalDel) modalDel.classList.remove('open'); });
+    /* ── INITIAL LOAD ── */
+    async function loadDepartmentsPage() {
+      try {
+        const [depts, emps, locs] = await Promise.all([
+          apiCall('/departments'),
+          apiCall('/employees'),
+          apiCall('/dept-locations')
+        ]);
+        if (depts) ALL_DEPARTMENTS = depts;
+        if (emps)  ALL_EMPLOYEES   = emps;
+        if (locs) {
+          DEPT_LOCATIONS = {};
+          locs.forEach(l => {
+            if (!DEPT_LOCATIONS[l.dno]) DEPT_LOCATIONS[l.dno] = [];
+            DEPT_LOCATIONS[l.dno].push(l.dlocation);
+          });
+        }
+        populateMgrDropdown();
+        renderDepartments();
+      } catch(err) {
+        showToast(`Failed to load: ${err.message}`, 'error');
+      }
+    }
+    loadDepartmentsPage();
 
-    /* ── INIT ── */
-    renderDepartments();
-
-  
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');

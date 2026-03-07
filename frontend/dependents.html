@@ -610,49 +610,24 @@
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
+    if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`http://localhost:8000${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA
-    // ══════════════════════════════════════════════════════════════════
 
-    let MOCK_DEPENDENTS = [
-      { eno: 101, dependent_name: 'Alice Borg',     gender: 'F', dob: '1940-05-28', relationship: 'Spouse'   },
-      { eno: 101, dependent_name: 'Theodore Borg',  gender: 'M', dob: '1970-11-03', relationship: 'Son'      },
-      { eno: 103, dependent_name: 'Joy Wong',        gender: 'F', dob: '1958-05-05', relationship: 'Spouse'   },
-      { eno: 103, dependent_name: 'Allen Wong',      gender: 'M', dob: '1983-02-28', relationship: 'Son'      },
-      { eno: 103, dependent_name: 'Alma Wong',       gender: 'F', dob: '1986-04-05', relationship: 'Daughter' },
-      { eno: 104, dependent_name: 'Abner Wallace',   gender: 'M', dob: '1942-02-28', relationship: 'Spouse'   },
-      { eno: 105, dependent_name: 'Dinesh Narayan',  gender: 'M', dob: '1988-09-15', relationship: 'Son'      },
-      { eno: 109, dependent_name: 'Mary Smith',      gender: 'F', dob: '1967-05-05', relationship: 'Spouse'   },
-      { eno: 109, dependent_name: 'Michael Smith',   gender: 'M', dob: '1988-01-04', relationship: 'Son'      },
-      { eno: 109, dependent_name: 'Alice Smith',     gender: 'F', dob: '1988-12-30', relationship: 'Daughter' },
-    ];
-
-    const MOCK_EMPLOYEES = [
-      { eno: 101, ename: 'James Borg',       dno: 1 },
-      { eno: 102, ename: 'Michael Wallace',  dno: 4 },
-      { eno: 103, ename: 'Franklin Wong',    dno: 5 },
-      { eno: 104, ename: 'Jennifer Wallace', dno: 4 },
-      { eno: 105, ename: 'Ramesh Narayan',   dno: 5 },
-      { eno: 106, ename: 'Joyce English',    dno: 5 },
-      { eno: 107, ename: 'Ahmad Jabbar',     dno: 4 },
-      { eno: 108, ename: 'Alicia Zelaya',    dno: 4 },
-      { eno: 109, ename: 'John Smith',       dno: 5 },
-      { eno: 110, ename: 'Tanish Sanghavi',  dno: 1 },
-    ];
-
-    const MOCK_DEPARTMENTS = [
-      { dno: 1, dname: 'Headquarters'   },
-      { dno: 4, dname: 'Administration' },
-      { dno: 5, dname: 'Research'       },
-      { dno: 6, dname: 'Finance'        },
-    ];
-
-    // ── STATE ──
+    /* ── STATE ── */
+    let ALL_DEPENDENTS  = [];
+    let ALL_EMPLOYEES   = [];
+    let ALL_DEPARTMENTS = [];
     let currentTab = 'all';
     let currentView = 'table';
     let filterEno = 'all';
@@ -661,10 +636,10 @@
     let filterGender = 'all';
     let sortColumn = 'eno';
     let sortDirection = 'asc';
-    let deleteTarget = null; // {eno, name}
+    let deleteTarget = null;
     let collapsedGroups = new Set();
 
-    // ── DOM ELEMENTS ──
+    /* ── DOM ── */
     const tableBody = document.getElementById('table-body');
     const cardsGrid = document.getElementById('cards-grid');
     const groupsContainer = document.getElementById('groups-container');
@@ -673,413 +648,290 @@
     const addEnoSelect = document.getElementById('add-eno');
     const filterEnoSelect = document.getElementById('filter-employee');
 
-    // ── INITIALIZATION ──
-    document.addEventListener('DOMContentLoaded', () => {
-      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
-      document.getElementById('sidebar-company-name').textContent = storedCompany;
-      
-      populateEmployeeDropdowns();
-      renderAll();
-    });
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+    document.getElementById('hamburger-btn').addEventListener('click', () => toggleSidebar(true));
+    document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
-    function populateEmployeeDropdowns() {
-      MOCK_EMPLOYEES.forEach(e => {
-        const text = `${e.eno} — ${e.ename}`;
-        const opt1 = new Option(text, e.eno);
-        const opt2 = new Option(text, e.eno);
-        filterEnoSelect.add(opt1);
-        addEnoSelect.add(opt2);
-      });
+    /* ── TOASTS ── */
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`; toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='300ms'; setTimeout(()=>toast.remove(),300); }, 3000);
     }
 
-    // ── HELPERS ──
+    /* ── HELPERS ── */
     function calculateAge(dob) {
       if (!dob) return '—';
-      const birth = new Date(dob);
-      const today = new Date();
+      const birth = new Date(dob), today = new Date();
       let age = today.getFullYear() - birth.getFullYear();
       const m = today.getMonth() - birth.getMonth();
       if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
       return age;
     }
+    function formatDate(dateStr) { if (!dateStr) return '—'; return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    const getRelClass = (rel) => rel ? rel.toLowerCase() : 'other';
+    const getEmployee = (eno) => ALL_EMPLOYEES.find(e => e.eno == eno);
+    const getDept     = (dno) => ALL_DEPARTMENTS.find(d => d.dno == dno);
 
-    function formatDate(dateStr) {
-      if (!dateStr) return '—';
-      return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    function populateEmployeeDropdowns() {
+      [filterEnoSelect, addEnoSelect].forEach((sel, idx) => {
+        sel.innerHTML = idx === 0 ? '<option value="all">All Employees</option>' : '<option value="">Select employee...</option>';
+        ALL_EMPLOYEES.forEach(e => { sel.innerHTML += `<option value="${e.eno}">${e.eno} — ${e.ename}</option>`; });
+      });
     }
 
-    function getRelClass(rel) {
-      return rel ? rel.toLowerCase() : 'other';
-    }
-
-    function getEmployee(eno) { return MOCK_EMPLOYEES.find(e => e.eno == eno); }
-    function getDept(dno) { return MOCK_DEPARTMENTS.find(d => d.dno == dno); }
-
-    // ── TAB SWITCHING ──
-    document.getElementById('tab-all').onclick = () => switchTab('all');
+    /* ── TABS ── */
+    document.getElementById('tab-all').onclick     = () => switchTab('all');
     document.getElementById('tab-grouped').onclick = () => switchTab('grouped');
-
     function switchTab(tab) {
       currentTab = tab;
-      document.getElementById('tab-all').classList.toggle('active', tab === 'all');
-      document.getElementById('tab-grouped').classList.toggle('active', tab === 'grouped');
-      document.getElementById('tab1-content').style.display = tab === 'all' ? 'block' : 'none';
-      document.getElementById('tab2-content').style.display = tab === 'grouped' ? 'block' : 'none';
+      document.getElementById('tab-all').classList.toggle('active', tab==='all');
+      document.getElementById('tab-grouped').classList.toggle('active', tab==='grouped');
+      document.getElementById('tab1-content').style.display = tab==='all' ? 'block' : 'none';
+      document.getElementById('tab2-content').style.display = tab==='grouped' ? 'block' : 'none';
       renderAll();
     }
 
-    // ── VIEW TOGGLE ──
-    document.getElementById('view-table').onclick = () => { currentView = 'table'; updateViewToggle(); renderAll(); };
-    document.getElementById('view-cards').onclick = () => { currentView = 'cards'; updateViewToggle(); renderAll(); };
-    
+    /* ── VIEW TOGGLE ── */
+    document.getElementById('view-table').onclick = () => { currentView='table'; updateViewToggle(); renderAll(); };
+    document.getElementById('view-cards').onclick = () => { currentView='cards'; updateViewToggle(); renderAll(); };
     function updateViewToggle() {
-      document.getElementById('view-table').classList.toggle('active', currentView === 'table');
-      document.getElementById('view-cards').classList.toggle('active', currentView === 'cards');
-      document.getElementById('table-view').style.display = currentView === 'table' ? 'block' : 'none';
-      document.getElementById('cards-view').style.display = currentView === 'cards' ? 'block' : 'none';
+      document.getElementById('view-table').classList.toggle('active', currentView==='table');
+      document.getElementById('view-cards').classList.toggle('active', currentView==='cards');
+      document.getElementById('table-view').style.display = currentView==='table' ? 'block' : 'none';
+      document.getElementById('cards-view').style.display = currentView==='cards' ? 'block' : 'none';
     }
 
-    // ── FILTER LOGIC ──
+    /* ── FILTERS ── */
     filterEnoSelect.onchange = (e) => { filterEno = e.target.value; renderAll(); };
-    
     let searchTimeout;
-    document.getElementById('search-name').oninput = (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        searchQuery = e.target.value.toLowerCase();
-        renderAll();
-      }, 300);
-    };
-
+    document.getElementById('search-name').oninput = (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { searchQuery = e.target.value.toLowerCase(); renderAll(); }, 300); };
     document.querySelectorAll('#filter-rel-pills .pill').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('#filter-rel-pills .pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        filterRel = btn.dataset.rel;
-        renderAll();
-      };
+      btn.onclick = () => { document.querySelectorAll('#filter-rel-pills .pill').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filterRel = btn.dataset.rel; renderAll(); };
     });
-
     document.querySelectorAll('#filter-gender-pills .pill').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('#filter-gender-pills .pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        filterGender = btn.dataset.gender;
-        renderAll();
-      };
+      btn.onclick = () => { document.querySelectorAll('#filter-gender-pills .pill').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filterGender = btn.dataset.gender; renderAll(); };
     });
-
     document.getElementById('btn-clear-filters').onclick = () => {
-      filterEno = 'all';
-      searchQuery = '';
-      filterRel = 'all';
-      filterGender = 'all';
-      filterEnoSelect.value = 'all';
-      document.getElementById('search-name').value = '';
+      filterEno='all'; searchQuery=''; filterRel='all'; filterGender='all';
+      filterEnoSelect.value='all'; document.getElementById('search-name').value='';
       document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
       document.querySelector('[data-rel="all"]').classList.add('active');
       document.querySelector('[data-gender="all"]').classList.add('active');
       renderAll();
     };
 
-    // ── RENDERING ──
+    /* ── RENDER ── */
     function renderAll() {
-      const filtered = MOCK_DEPENDENTS.filter(d => {
-        const matchEmp = filterEno === 'all' || d.eno == filterEno;
+      const filtered = ALL_DEPENDENTS.filter(d => {
+        const matchEmp    = filterEno === 'all' || d.eno == filterEno;
         const matchSearch = d.dependent_name.toLowerCase().includes(searchQuery);
-        const matchRel = filterRel === 'all' || d.relationship.toLowerCase() === filterRel;
+        const matchRel    = filterRel === 'all' || d.relationship.toLowerCase() === filterRel;
         const matchGender = filterGender === 'all' || d.gender.toLowerCase() === filterGender;
         return matchEmp && matchSearch && matchRel && matchGender;
       }).sort((a, b) => {
-        let valA = a[sortColumn];
-        let valB = b[sortColumn];
+        let valA = a[sortColumn], valB = b[sortColumn];
         if (sortColumn === 'ename') { valA = getEmployee(a.eno)?.ename || ''; valB = getEmployee(b.eno)?.ename || ''; }
-        if (sortColumn === 'age') { valA = calculateAge(a.dob); valB = calculateAge(b.dob); if(valA === '—') valA = -1; if(valB === '—') valB = -1;}
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        if (sortColumn === 'age')   { valA = calculateAge(a.dob); valB = calculateAge(b.dob); if(valA==='—')valA=0; if(valB==='—')valB=0; }
+        if (valA < valB) return sortDirection==='asc' ? -1 : 1;
+        if (valA > valB) return sortDirection==='asc' ? 1 : -1;
         return 0;
       });
-
-      countBadge.textContent = `${MOCK_DEPENDENTS.length} dependents`;
-      showingText.textContent = `Showing ${filtered.length} of ${MOCK_DEPENDENTS.length} dependents`;
-
-      if (currentTab === 'all') {
-        if (currentView === 'table') renderTable(filtered);
-        else renderCards(filtered);
-      } else {
-        renderGroupedView();
-      }
+      countBadge.textContent  = `${ALL_DEPENDENTS.length} dependents`;
+      showingText.textContent = `Showing ${filtered.length} of ${ALL_DEPENDENTS.length} dependents`;
+      if (currentTab === 'all') { if (currentView==='table') renderTable(filtered); else renderCards(filtered); }
+      else renderGroupedView();
     }
 
     function renderTable(data) {
       tableBody.innerHTML = '';
-      if (data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 48px; color:var(--text-muted)">No dependents match your filters.</td></tr>`;
-        return;
-      }
+      if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted)">No dependents found</td></tr>`; return; }
       data.forEach((d, idx) => {
         const emp = getEmployee(d.eno);
-        const tr = document.createElement('tr');
-        tr.style.animationDelay = `${idx * 40}ms`;
+        const tr = document.createElement('tr'); tr.style.animationDelay = `${idx*40}ms`;
         tr.innerHTML = `
           <td class="cell-id">#${d.eno}</td>
-          <td><a href="employees.html" class="cell-name">${emp?.ename}</a></td>
-          <td style="font-weight:500; color:var(--text-primary)">${d.dependent_name}</td>
+          <td><a href="employees.html" class="cell-name">${emp?.ename || d.eno}</a></td>
+          <td style="font-weight:500;color:var(--text-primary)">${d.dependent_name}</td>
           <td><span class="gender-badge ${d.gender.toLowerCase()}">${d.gender}</span></td>
-          <td style="font-size:13px; color:var(--text-secondary)">${formatDate(d.dob)}</td>
+          <td style="font-size:13px;color:var(--text-secondary)">${formatDate(d.dob)}</td>
           <td>${calculateAge(d.dob)}</td>
           <td><span class="relationship-badge ${getRelClass(d.relationship)}">${d.relationship.toUpperCase()}</span></td>
           <td style="text-align:center">
-            <button class="action-btn" onclick="openDeleteModal(${d.eno}, '${d.dependent_name}')">
+            <button class="action-btn" onclick="openDeleteModal(${d.eno}, '${d.dependent_name.replace(/'/g, "\\'")}')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
-          </td>
-        `;
+          </td>`;
         tableBody.appendChild(tr);
       });
     }
 
     function renderCards(data) {
       cardsGrid.innerHTML = '';
-      if (data.length === 0) {
-        cardsGrid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 80px; color:var(--text-muted)">No dependents found.</div>`;
-        return;
-      }
+      if (data.length === 0) { cardsGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:80px;color:var(--text-muted)">No dependents found</div>`; return; }
       data.forEach((d, idx) => {
         const emp = getEmployee(d.eno);
-        const card = document.createElement('div');
-        card.className = 'dependent-card';
-        card.style.animationDelay = `${idx * 40}ms`;
+        const card = document.createElement('div'); card.className = 'dependent-card'; card.style.animationDelay = `${idx*40}ms`;
         card.innerHTML = `
-          <div class="card-top">
-            <span class="relationship-badge ${getRelClass(d.relationship)}">${d.relationship.toUpperCase()}</span>
-            <span class="gender-badge ${d.gender.toLowerCase()}">${d.gender}</span>
-          </div>
-          <div class="card-name" style="margin-bottom:12px;">${d.dependent_name}</div>
-          
-          <div class="card-employee-section">
-            <span class="card-emp-id">#${d.eno}</span>
-            <a href="employees.html" class="card-emp-name">${emp?.ename}</a>
-          </div>
-
+          <div class="card-top"><span class="relationship-badge ${getRelClass(d.relationship)}">${d.relationship.toUpperCase()}</span><span class="gender-badge ${d.gender.toLowerCase()}">${d.gender}</span></div>
+          <div class="card-name" style="margin-bottom:12px">${d.dependent_name}</div>
+          <div class="card-employee-section"><span class="card-emp-id">#${d.eno}</span><a href="employees.html" class="card-emp-name">${emp?.ename || d.eno}</a></div>
           <div class="card-details-grid">
-            <div>
-              <div class="card-detail-label">DOB</div>
-              <div class="card-detail-value">${formatDate(d.dob)}</div>
-            </div>
-            <div>
-              <div class="card-detail-label">Age</div>
-              <div class="card-detail-value">${calculateAge(d.dob)} years</div>
-            </div>
+            <div><div class="card-detail-label">DOB</div><div class="card-detail-value">${formatDate(d.dob)}</div></div>
+            <div><div class="card-detail-label">Age</div><div class="card-detail-value">${calculateAge(d.dob)} years</div></div>
           </div>
-
-          <div style="display:flex; justify-content:flex-end;">
-            <button class="btn-danger" style="padding:4px 10px; font-size:11px;" onclick="openDeleteModal(${d.eno}, '${d.dependent_name}')">Delete</button>
-          </div>
-        `;
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn-danger" style="padding:4px 10px;font-size:11px" onclick="openDeleteModal(${d.eno}, '${d.dependent_name.replace(/'/g, "\\'")}')">Remove</button>
+          </div>`;
         cardsGrid.appendChild(card);
       });
     }
 
     function renderGroupedView() {
       groupsContainer.innerHTML = '';
-      const employeesWithDependents = MOCK_EMPLOYEES.filter(e => MOCK_DEPENDENTS.some(d => d.eno == e.eno));
-      
-      if (employeesWithDependents.length === 0) {
-        groupsContainer.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">👨‍👩‍👧</div>
-            <h3 class="empty-state-title">No family records yet</h3>
-            <p class="empty-state-sub">Add dependents to employees to track beneficiaries and family information.</p>
-            <button class="btn-primary" onclick="openAddPanel()">Add First Dependent</button>
-          </div>
-        `;
-        return;
+      const empsWithDeps = ALL_EMPLOYEES.filter(e => ALL_DEPENDENTS.some(d => d.eno == e.eno));
+      if (empsWithDeps.length === 0) {
+        groupsContainer.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👨‍👩‍👧</div><h3 class="empty-state-title">No family records yet</h3><p class="empty-state-sub">Add dependents to employees to track beneficiaries.</p><button class="btn-primary" onclick="openAddPanel()">Add First Dependent</button></div>`; return;
       }
-
-      employeesWithDependents.forEach((emp, idx) => {
-        const family = MOCK_DEPENDENTS.filter(d => d.eno == emp.eno);
-        const dept = getDept(emp.dno);
-        const group = document.createElement('div');
+      empsWithDeps.forEach((emp, idx) => {
+        const family = ALL_DEPENDENTS.filter(d => d.eno == emp.eno);
+        const dept   = getDept(emp.dno);
+        const group  = document.createElement('div');
         group.className = `family-group ${collapsedGroups.has(emp.eno) ? 'collapsed' : ''}`;
-        group.style.animation = `sectionFadeIn 350ms ease both ${idx * 80}ms`;
-
-        // Relationship summary
+        group.style.animation = `sectionFadeIn 350ms ease both ${idx*80}ms`;
         const relSummary = {};
         family.forEach(d => relSummary[d.relationship] = (relSummary[d.relationship] || 0) + 1);
-        const summaryHtml = Object.entries(relSummary).map(([rel, count]) => `
-          <span class="rel-summary-tag ${getRelClass(rel)}">${rel}${count > 1 ? ' ×'+count : ''}</span>
-        `).join('');
-
+        const summaryHtml = Object.entries(relSummary).map(([rel, count]) => `<span class="rel-summary-tag ${getRelClass(rel)}">${rel}${count>1 ? ' ×'+count : ''}</span>`).join('');
         group.innerHTML = `
           <div class="family-group-header" onclick="toggleGroup(${emp.eno})">
-            <div class="group-emp-info">
-              <span class="cell-id">#${emp.eno}</span>
-              <span class="group-emp-name">${emp.ename}</span>
-              <span class="group-dept">${dept?.dname}</span>
-            </div>
-            <div class="group-meta">
-              <span class="count-badge">${family.length} dependent${family.length > 1 ? 's' : ''}</span>
-              ${summaryHtml}
-              <span class="chevron">▾</span>
-            </div>
+            <div class="group-emp-info"><span class="cell-id">#${emp.eno}</span><span class="group-emp-name">${emp.ename}</span><span class="group-dept">${dept?.dname || ''}</span></div>
+            <div class="group-meta"><span class="count-badge">${family.length} dependent${family.length>1?'s':''}</span>${summaryHtml}<span class="chevron">▾</span></div>
           </div>
           <div class="family-group-body">
             ${family.map(d => `
               <div class="family-member-card">
-                <div class="member-top">
-                  <span class="relationship-badge ${getRelClass(d.relationship)}">${d.relationship.toUpperCase()}</span>
-                  <span class="gender-badge ${d.gender.toLowerCase()}">${d.gender}</span>
-                </div>
+                <div class="member-top"><span class="relationship-badge ${getRelClass(d.relationship)}">${d.relationship.toUpperCase()}</span><span class="gender-badge ${d.gender.toLowerCase()}">${d.gender}</span></div>
                 <div class="member-name">${d.dependent_name}</div>
-                <div class="mini-detail"><span class="mini-detail-label">Born</span><span class="mini-detail-value">${formatDate(d.dob)}</span></div>
-                <div class="mini-detail"><span class="mini-detail-label">Age</span><span class="mini-detail-value">${calculateAge(d.dob)} years</span></div>
-                <button class="btn-remove-mini" onclick="openDeleteModal(${d.eno}, '${d.dependent_name}')">× Remove</button>
-              </div>
-            `).join('')}
-            <div class="add-member-card" onclick="openAddPanel(${emp.eno})">
-              <span class="add-member-icon">+</span>
-              <span class="add-member-label">Add dependent</span>
-            </div>
-          </div>
-        `;
+                <div class="mini-detail"><span class="mini-detail-label">Born</span><span class="mini-detail-val">${formatDate(d.dob)}</span></div>
+                <div class="mini-detail"><span class="mini-detail-label">Age</span><span class="mini-detail-val">${calculateAge(d.dob)}</span></div>
+                <button class="btn-remove-mini" onclick="openDeleteModal(${d.eno}, '${d.dependent_name.replace(/'/g, "\\'")}')">× Remove</button>
+              </div>`).join('')}
+            <div class="add-member-card" onclick="openAddPanel(${emp.eno})"><span class="add-member-icon">+</span><span class="add-member-label">Add dependent</span></div>
+          </div>`;
         groupsContainer.appendChild(group);
       });
     }
 
-    window.toggleGroup = (eno) => {
-      if (collapsedGroups.has(eno)) collapsedGroups.delete(eno);
-      else collapsedGroups.add(eno);
-      renderGroupedView();
-    };
+    window.toggleGroup = (eno) => { if(collapsedGroups.has(eno)) collapsedGroups.delete(eno); else collapsedGroups.add(eno); renderGroupedView(); };
 
-    // ── ADD PANEL ──
-    const addPanel = document.getElementById('add-panel');
+    /* ── ADD PANEL ── */
+    const addPanel      = document.getElementById('add-panel');
     const panelBackdrop = document.getElementById('panel-overlay');
-    const addForm = document.getElementById('add-form');
-    const dupWarning = document.getElementById('duplicate-warning');
+    const addForm       = document.getElementById('add-form');
+    const dupWarning    = document.getElementById('duplicate-warning');
 
     window.openAddPanel = (preSelectEno = null) => {
-      addForm.reset();
-      dupWarning.style.display = 'none';
+      addForm.reset(); dupWarning.style.display='none';
       document.querySelectorAll('.gender-pill').forEach(p => p.classList.remove('active'));
       document.getElementById('add-gender').value = '';
-      
       if (preSelectEno) addEnoSelect.value = preSelectEno;
-      
-      addPanel.classList.add('open');
-      panelBackdrop.classList.add('open');
+      addPanel.classList.add('open'); panelBackdrop.classList.add('open');
     };
-
-    function closeAddPanel() {
-      addPanel.classList.remove('open');
-      panelBackdrop.classList.remove('open');
-    }
+    function closeAddPanel() { addPanel.classList.remove('open'); panelBackdrop.classList.remove('open'); }
 
     document.getElementById('btn-add-dependent').onclick = () => openAddPanel();
-    document.getElementById('panel-close-btn').onclick = closeAddPanel;
-    document.getElementById('panel-cancel-btn').onclick = closeAddPanel;
+    document.getElementById('panel-close-btn').onclick   = closeAddPanel;
+    document.getElementById('panel-cancel-btn').onclick  = closeAddPanel;
     panelBackdrop.onclick = closeAddPanel;
 
     document.querySelectorAll('.gender-pill').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.gender-pill').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('add-gender').value = btn.dataset.val;
-      };
+      btn.onclick = () => { document.querySelectorAll('.gender-pill').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById('add-gender').value = btn.dataset.val; };
     });
 
-    // Duplicate check
     const checkDuplicate = () => {
-      const eno = addEnoSelect.value;
-      const name = document.getElementById('add-name').value.trim();
+      const eno = addEnoSelect.value, name = document.getElementById('add-name').value.trim();
       if (eno && name) {
-        const exists = MOCK_DEPENDENTS.some(d => d.eno == eno && d.dependent_name.toLowerCase() === name.toLowerCase());
-        if (exists) {
-          dupWarning.textContent = `⚠ A dependent named ${name} already exists for this employee.`;
-          dupWarning.style.display = 'block';
-        } else {
-          dupWarning.style.display = 'none';
-        }
+        const exists = ALL_DEPENDENTS.some(d => d.eno==eno && d.dependent_name.toLowerCase()===name.toLowerCase());
+        dupWarning.textContent = exists ? `⚠ A dependent named ${name} already exists for this employee.` : '';
+        dupWarning.style.display = exists ? 'block' : 'none';
       }
     };
     addEnoSelect.onchange = checkDuplicate;
     document.getElementById('add-name').oninput = checkDuplicate;
 
-    addForm.onsubmit = (e) => {
+    addForm.onsubmit = async (e) => {
       e.preventDefault();
       const eno = parseInt(addEnoSelect.value);
       const name = document.getElementById('add-name').value.trim();
       const gender = document.getElementById('add-gender').value;
       const dob = document.getElementById('add-dob').value;
       const rel = document.getElementById('add-relationship').value;
-
       if (!gender) { showToast('Please select a gender.', 'error'); return; }
-      
-      const exists = MOCK_DEPENDENTS.some(d => d.eno == eno && d.dependent_name.toLowerCase() === name.toLowerCase());
+      const exists = ALL_DEPENDENTS.some(d => d.eno==eno && d.dependent_name.toLowerCase()===name.toLowerCase());
       if (exists) { showToast('Duplicate record key (Eno + Name)', 'error'); return; }
-
-      const newDep = { eno, dependent_name: name, gender, dob, relationship: rel };
-      MOCK_DEPENDENTS.unshift(newDep);
-      
-      closeAddPanel();
-      renderAll();
-      showToast(`Dependent added for ${getEmployee(eno)?.ename}`, 'success');
-
-      // Highlight new entry if in table
-      setTimeout(() => {
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach(r => {
-          if (r.children[2].textContent === name) r.classList.add('flash-new');
-        });
-      }, 50);
+      try {
+        const newDep = await apiCall('/dependents', 'POST', { eno, dependent_name: name, gender, dob, relationship: rel });
+        if (!newDep) return;
+        ALL_DEPENDENTS.unshift(newDep);
+        closeAddPanel(); renderAll();
+        showToast(`Dependent added for ${getEmployee(eno)?.ename}`, 'success');
+      } catch(err) { showToast(err.message || 'Failed to add dependent', 'error'); }
     };
 
-    // ── DELETE MODAL ──
+    /* ── DELETE MODAL ── */
     const deleteModal = document.getElementById('delete-modal');
     window.openDeleteModal = (eno, name) => {
       deleteTarget = { eno, name };
-      const dep = MOCK_DEPENDENTS.find(d => d.eno == eno && d.dependent_name === name);
       const emp = getEmployee(eno);
-      document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to remove <strong>${name}</strong> (${dep.relationship}) as a dependent of <strong>${emp.ename}</strong>?`;
+      document.getElementById('delete-modal-text').innerHTML = `Are you sure you want to remove <strong>${name}</strong> from ${emp?.ename || 'employee #'+eno}?`;
       deleteModal.classList.add('open');
     };
-
     document.getElementById('modal-cancel-btn').onclick = () => deleteModal.classList.remove('open');
-    document.getElementById('modal-confirm-btn').onclick = () => {
-      MOCK_DEPENDENTS = MOCK_DEPENDENTS.filter(d => !(d.eno == deleteTarget.eno && d.dependent_name === deleteTarget.name));
-      deleteModal.classList.remove('open');
-      renderAll();
-      showToast('Dependent record removed', 'info');
+    document.getElementById('modal-confirm-btn').onclick = async () => {
+      try {
+        await apiCall(`/dependents/${deleteTarget.eno}/${encodeURIComponent(deleteTarget.name)}`, 'DELETE');
+        ALL_DEPENDENTS = ALL_DEPENDENTS.filter(d => !(d.eno==deleteTarget.eno && d.dependent_name===deleteTarget.name));
+        deleteModal.classList.remove('open'); renderAll();
+        showToast('Dependent record removed', 'info');
+      } catch(err) { deleteModal.classList.remove('open'); showToast(err.message || 'Delete failed', 'error'); }
     };
 
-    // ── SORTING ──
+    /* ── SORT ── */
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.onclick = () => {
         const col = th.dataset.sort;
-        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        else { sortColumn = col; sortDirection = 'asc'; }
+        if (sortColumn===col) sortDirection = sortDirection==='asc' ? 'desc' : 'asc';
+        else { sortColumn=col; sortDirection='asc'; }
         renderAll();
       };
     });
 
-    // ── TOASTS ──
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    /* ── INITIAL LOAD ── */
+    async function loadDependentsPage() {
+      try {
+        const [deps, emps, depts] = await Promise.all([
+          apiCall('/dependents'), apiCall('/employees'), apiCall('/departments')
+        ]);
+        if (deps)  ALL_DEPENDENTS  = deps;
+        if (emps)  ALL_EMPLOYEES   = emps;
+        if (depts) ALL_DEPARTMENTS = depts;
+        populateEmployeeDropdowns();
+        renderAll();
+      } catch(err) { showToast(`Failed to load: ${err.message}`, 'error'); }
     }
+    loadDependentsPage();
 
-    
-  
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');

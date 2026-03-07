@@ -559,89 +559,91 @@
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
+    if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`http://localhost:8000${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA
-    // ══════════════════════════════════════════════════════════════════
 
-    let MOCK_DEPT_LOCATIONS = [
-      { dno: 1, dname: 'Headquarters',   dlocation: 'Houston'   },
-      { dno: 4, dname: 'Administration', dlocation: 'Houston'   },
-      { dno: 4, dname: 'Administration', dlocation: 'Stafford'  },
-      { dno: 5, dname: 'Research',       dlocation: 'Bellaire'  },
-      { dno: 5, dname: 'Research',       dlocation: 'Houston'   },
-      { dno: 5, dname: 'Research',       dlocation: 'Sugarland' },
-      { dno: 6, dname: 'Finance',        dlocation: 'Houston'   },
-    ];
-
-    const MOCK_DEPARTMENTS = [
-      { dno: 1, dname: 'Headquarters'   },
-      { dno: 4, dname: 'Administration' },
-      { dno: 5, dname: 'Research'       },
-      { dno: 6, dname: 'Finance'        },
-    ];
-
-    // ── STATE ──
+    /* ── STATE ── */
+    let ALL_LOCATIONS   = [];   // flat: [{dno, dlocation, dname}]
+    let ALL_DEPARTMENTS = [];
     let currentTab = 'records';
     let currentView = 'table';
     let filterDno = 'all';
     let searchQuery = '';
     let sortColumn = 'dno';
     let sortDirection = 'asc';
-    let deleteTarget = null; // {dno, loc}
+    let deleteTarget = null;
 
-    // ── DOM ELEMENTS ──
+    /* ── DOM ── */
     const tableBody = document.getElementById('table-body');
     const cardsGrid = document.getElementById('cards-grid');
-    const mapTable = document.getElementById('map-table');
+    const mapTable  = document.getElementById('map-table');
     const presenceSummary = document.getElementById('presence-summary');
     const countBadge = document.querySelector('.count-badge');
     const showingText = document.getElementById('showing-text');
     const filterDeptSelect = document.getElementById('filter-dept');
     const addDnoSelect = document.getElementById('add-dno');
 
-    // ── INITIALIZATION ──
-    document.addEventListener('DOMContentLoaded', () => {
-      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
-      document.getElementById('sidebar-company-name').textContent = storedCompany;
-      
-      populateDropdowns();
-      renderAll();
-    });
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+    document.getElementById('hamburger-btn').addEventListener('click', () => toggleSidebar(true));
+    document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+
+    /* ── TOASTS ── */
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type==='success') toast.style.borderLeftColor='var(--success)';
+      else if (type==='error') toast.style.borderLeftColor='var(--danger)';
+      else toast.style.borderLeftColor='var(--accent)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='300ms'; setTimeout(()=>toast.remove(),300); }, 3000);
+    }
+
+    /* ── HELPERS ── */
+    const getDept = (dno) => ALL_DEPARTMENTS.find(d => d.dno == dno);
+    const getSharedCount = (loc) => ALL_LOCATIONS.filter(r => r.dlocation.toLowerCase() === loc.toLowerCase()).length;
 
     function populateDropdowns() {
-      MOCK_DEPARTMENTS.forEach(d => {
-        const text = d.dname;
-        filterDeptSelect.add(new Option(text, d.dno));
-        addDnoSelect.add(new Option(text, d.dno));
+      filterDeptSelect.innerHTML = '<option value="all">All Departments</option>';
+      addDnoSelect.innerHTML = '<option value="">Select department...</option>';
+      ALL_DEPARTMENTS.forEach(d => {
+        filterDeptSelect.innerHTML += `<option value="${d.dno}">${d.dname}</option>`;
+        addDnoSelect.innerHTML     += `<option value="${d.dno}">${d.dname}</option>`;
       });
     }
 
-    // ── HELPERS ──
-    function getDept(dno) { return MOCK_DEPARTMENTS.find(d => d.dno == dno); }
-    
-    function getSharedCount(loc) {
-      return MOCK_DEPT_LOCATIONS.filter(r => r.dlocation.toLowerCase() === loc.toLowerCase()).length;
-    }
-
     function computeAnalytics() {
-      const total = MOCK_DEPT_LOCATIONS.length;
-      const uniqueLocs = [...new Set(MOCK_DEPT_LOCATIONS.map(r => r.dlocation.toLowerCase()))];
-      
-      // Most locations dept
-      const deptCounts = {};
-      MOCK_DEPT_LOCATIONS.forEach(r => deptCounts[r.dname] = (deptCounts[r.dname] || 0) + 1);
-      const mostLocsDept = Object.entries(deptCounts).sort((a,b) => b[1] - a[1])[0] || ['—', 0];
-
-      // Most shared city
-      const locCounts = {};
-      MOCK_DEPT_LOCATIONS.forEach(r => locCounts[r.dlocation] = (locCounts[r.dlocation] || 0) + 1);
-      const mostSharedCity = Object.entries(locCounts).sort((a,b) => b[1] - a[1])[0] || ['—', 0];
-
+      const total = ALL_LOCATIONS.length;
+      const uniqueLocs = [...new Set(ALL_LOCATIONS.map(r => r.dlocation.toLowerCase()))];
+      const deptCounts = {}, locCounts = {};
+      ALL_LOCATIONS.forEach(r => {
+        const dname = getDept(r.dno)?.dname || `Dept #${r.dno}`;
+        deptCounts[dname] = (deptCounts[dname] || 0) + 1;
+        locCounts[r.dlocation] = (locCounts[r.dlocation] || 0) + 1;
+      });
+      const mostLocsDept  = Object.entries(deptCounts).sort((a,b)=>b[1]-a[1])[0] || ['—', 0];
+      const mostSharedCity = Object.entries(locCounts).sort((a,b)=>b[1]-a[1])[0] || ['—', 0];
       document.getElementById('stat-total').textContent = total;
       document.getElementById('stat-unique').textContent = uniqueLocs.length;
       document.getElementById('stat-most-locs').textContent = mostLocsDept[0];
@@ -650,72 +652,52 @@
       document.getElementById('stat-most-shared-sub').textContent = `present in ${mostSharedCity[1]} departments`;
     }
 
-    // ── TAB SWITCHING ──
+    /* ── TABS ── */
     document.getElementById('tab-records').onclick = () => switchTab('records');
-    document.getElementById('tab-map').onclick = () => switchTab('map');
-
+    document.getElementById('tab-map').onclick     = () => switchTab('map');
     function switchTab(tab) {
       currentTab = tab;
-      document.getElementById('tab-records').classList.toggle('active', tab === 'records');
-      document.getElementById('tab-map').classList.toggle('active', tab === 'map');
-      document.getElementById('tab1-content').style.display = tab === 'records' ? 'block' : 'none';
-      document.getElementById('tab2-content').style.display = tab === 'map' ? 'block' : 'none';
+      document.getElementById('tab-records').classList.toggle('active', tab==='records');
+      document.getElementById('tab-map').classList.toggle('active', tab==='map');
+      document.getElementById('tab1-content').style.display = tab==='records' ? 'block' : 'none';
+      document.getElementById('tab2-content').style.display = tab==='map' ? 'block' : 'none';
       renderAll();
-      if(tab === 'map') startCounterAnimations();
+      if (tab === 'map') startCounterAnimations();
     }
 
-    // ── VIEW TOGGLE ──
-    document.getElementById('view-table').onclick = () => { currentView = 'table'; updateViewToggle(); renderAll(); };
-    document.getElementById('view-cards').onclick = () => { currentView = 'cards'; updateViewToggle(); renderAll(); };
-    
+    /* ── VIEW TOGGLE ── */
+    document.getElementById('view-table').onclick = () => { currentView='table'; updateViewToggle(); renderAll(); };
+    document.getElementById('view-cards').onclick = () => { currentView='cards'; updateViewToggle(); renderAll(); };
     function updateViewToggle() {
-      document.getElementById('view-table').classList.toggle('active', currentView === 'table');
-      document.getElementById('view-cards').classList.toggle('active', currentView === 'cards');
-      document.getElementById('table-view').style.display = currentView === 'table' ? 'block' : 'none';
-      document.getElementById('cards-view').style.display = currentView === 'cards' ? 'block' : 'none';
+      document.getElementById('view-table').classList.toggle('active', currentView==='table');
+      document.getElementById('view-cards').classList.toggle('active', currentView==='cards');
+      document.getElementById('table-view').style.display = currentView==='table' ? 'block' : 'none';
+      document.getElementById('cards-view').style.display = currentView==='cards' ? 'block' : 'none';
     }
 
-    // ── FILTER LOGIC ──
+    /* ── FILTERS ── */
     filterDeptSelect.onchange = (e) => { filterDno = e.target.value; renderAll(); };
-    
     let searchTimeout;
-    document.getElementById('search-loc').oninput = (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        searchQuery = e.target.value.toLowerCase();
-        renderAll();
-      }, 300);
-    };
+    document.getElementById('search-loc').oninput = (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { searchQuery = e.target.value.toLowerCase(); renderAll(); }, 300); };
+    document.getElementById('btn-clear-filters').onclick = () => { filterDno='all'; searchQuery=''; filterDeptSelect.value='all'; document.getElementById('search-loc').value=''; renderAll(); };
 
-    document.getElementById('btn-clear-filters').onclick = () => {
-      filterDno = 'all';
-      searchQuery = '';
-      filterDeptSelect.value = 'all';
-      document.getElementById('search-loc').value = '';
-      renderAll();
-    };
-
-    // ── RENDERING TAB 1 ──
+    /* ── RENDER ── */
     function renderAll() {
       if (currentTab === 'records') {
-        const filtered = MOCK_DEPT_LOCATIONS.filter(r => {
-          const matchDept = filterDno === 'all' || r.dno == filterDno;
+        const filtered = ALL_LOCATIONS.filter(r => {
+          const matchDept   = filterDno === 'all' || r.dno == filterDno;
           const matchSearch = r.dlocation.toLowerCase().includes(searchQuery);
           return matchDept && matchSearch;
-        }).sort((a,b) => {
-          let valA = a[sortColumn];
-          let valB = b[sortColumn];
-          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        }).sort((a, b) => {
+          let valA = a[sortColumn], valB = b[sortColumn];
+          if (valA < valB) return sortDirection==='asc' ? -1 : 1;
+          if (valA > valB) return sortDirection==='asc' ? 1 : -1;
           return 0;
         });
-
-        countBadge.textContent = `${MOCK_DEPT_LOCATIONS.length} records`;
-        showingText.textContent = `Showing ${filtered.length} of ${MOCK_DEPT_LOCATIONS.length} locations`;
-
-        if (currentView === 'table') renderTable(filtered);
+        countBadge.textContent  = `${ALL_LOCATIONS.length} records`;
+        showingText.textContent = `Showing ${filtered.length} of ${ALL_LOCATIONS.length} locations`;
+        if (currentView==='table') renderTable(filtered);
         else renderCards(filtered);
-        
         computeAnalytics();
       } else {
         renderMatrix();
@@ -726,279 +708,201 @@
       tableBody.innerHTML = '';
       data.forEach((r, idx) => {
         const tr = document.createElement('tr');
-        tr.id = `row-${r.dno}-${r.dlocation.replace(/\s+/g, '-')}`;
-        tr.style.animationDelay = `${idx * 40}ms`;
+        tr.id = `row-${r.dno}-${r.dlocation.replace(/\s+/g,'-')}`; tr.style.animationDelay = `${idx*40}ms`;
         const shared = getSharedCount(r.dlocation);
-        
+        const dname = getDept(r.dno)?.dname || `Dept #${r.dno}`;
+        const locCount = ALL_LOCATIONS.filter(x => x.dno === r.dno).length;
         tr.innerHTML = `
           <td class="cell-id">#${r.dno}</td>
+          <td><span style="font-weight:500;color:var(--text-primary)">${dname}</span><span class="dept-loc-count">(${locCount} locations)</span></td>
           <td>
-            <span style="font-weight:500; color:var(--text-primary)">${r.dname}</span>
-            <span class="dept-loc-count">(${MOCK_DEPT_LOCATIONS.filter(x => x.dno === r.dno).length} locations)</span>
-          </td>
-          <td>
-            <div class="location-display-tag">
-              <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${r.dlocation}
-            </div>
+            <div class="location-display-tag"><svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${r.dlocation}</div>
             ${shared > 1 ? `<span class="shared-indicator">shared across ${shared} depts</span>` : ''}
           </td>
           <td style="text-align:center">
-            <button class="action-btn" onclick="openDeleteModal(${r.dno}, '${r.dlocation}')">
+            <button class="action-btn" onclick="openDeleteModal(${r.dno}, '${r.dlocation.replace(/'/g, "\\'")}')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
-          </td>
-        `;
+          </td>`;
         tableBody.appendChild(tr);
       });
-
-      // Quick Add Row
-      const qaTr = document.createElement('tr');
-      qaTr.className = 'quick-add-row';
+      // Quick-add row
+      const qaTr = document.createElement('tr'); qaTr.className = 'quick-add-row';
       qaTr.innerHTML = `
         <td></td>
-        <td>
-          <select id="qa-dno" class="quick-add-select">
-            <option value="">Select dept...</option>
-            ${MOCK_DEPARTMENTS.map(d => `<option value="${d.dno}">${d.dname}</option>`).join('')}
-          </select>
-        </td>
-        <td>
-          <input type="text" id="qa-loc" class="quick-add-input" placeholder="New location..." onkeydown="handleQuickKey(event)">
-          <div id="qa-error" class="quick-error">Already exists for this dept.</div>
-        </td>
-        <td style="text-align:center">
-          <button class="btn-quick-add" onclick="handleQuickAdd()">+ Add</button>
-        </td>
-      `;
+        <td><select id="qa-dno" class="quick-add-select"><option value="">Select dept...</option>${ALL_DEPARTMENTS.map(d=>`<option value="${d.dno}">${d.dname}</option>`).join('')}</select></td>
+        <td><input type="text" id="qa-loc" class="quick-add-input" placeholder="New location..." onkeydown="handleQuickKey(event)"><div id="qa-error" class="quick-error">Already exists for this dept.</div></td>
+        <td style="text-align:center"><button class="btn-quick-add" onclick="handleQuickAdd()">+ Add</button></td>`;
       tableBody.appendChild(qaTr);
     }
 
     function renderCards(data) {
       cardsGrid.innerHTML = '';
       data.forEach((r, idx) => {
-        const card = document.createElement('div');
-        card.className = 'location-card';
-        card.style.animationDelay = `${idx * 40}ms`;
+        const card = document.createElement('div'); card.className = 'location-card'; card.style.animationDelay = `${idx*40}ms`;
         const shared = getSharedCount(r.dlocation);
-        
+        const dname  = getDept(r.dno)?.dname || `Dept #${r.dno}`;
         card.innerHTML = `
-          <svg class="card-map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <svg class="card-map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           <div class="card-location-name">${r.dlocation}</div>
-          <div class="card-dept-info">
-            <span class="card-dept-id">#${r.dno}</span>
-            <span class="card-dept-name">${r.dname}</span>
-          </div>
-          <div style="flex:1">
-            ${shared > 1 ? `<div class="shared-indicator" style="margin:0">shared across ${shared} depts</div>` : ''}
-          </div>
-          <div style="display:flex; justify-content:flex-end;">
-            <button class="btn-danger" style="padding:4px 10px; font-size:11px;" onclick="openDeleteModal(${r.dno}, '${r.dlocation}')">Delete</button>
-          </div>
-        `;
+          <div class="card-dept-info"><span class="card-dept-id">#${r.dno}</span><span class="card-dept-name">${dname}</span></div>
+          <div style="flex:1">${shared > 1 ? `<div class="shared-indicator" style="margin:0">shared across ${shared} depts</div>` : ''}</div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn-danger" style="padding:4px 10px;font-size:11px" onclick="openDeleteModal(${r.dno}, '${r.dlocation.replace(/'/g, "\\'")}')">Remove</button>
+          </div>`;
         cardsGrid.appendChild(card);
       });
     }
 
-    // ── QUICK ADD LOGIC ──
-    window.handleQuickAdd = () => {
+    /* ── QUICK ADD ── */
+    window.handleQuickAdd = async () => {
       const dno = document.getElementById('qa-dno').value;
       const loc = document.getElementById('qa-loc').value.trim();
       const err = document.getElementById('qa-error');
-      
       if (!dno || !loc) return;
-      
-      const exists = MOCK_DEPT_LOCATIONS.some(r => r.dno == dno && r.dlocation.toLowerCase() === loc.toLowerCase());
-      if (exists) { err.style.display = 'block'; return; }
-      
-      const dept = getDept(dno);
-      const newRec = { dno: parseInt(dno), dname: dept.dname, dlocation: loc };
-      MOCK_DEPT_LOCATIONS.unshift(newRec);
-      
-      renderAll();
-      showToast('Location added', 'success');
-      
-      const row = document.getElementById(`row-${dno}-${loc.replace(/\s+/g, '-')}`);
-      if(row) row.classList.add('flash-new');
+      const exists = ALL_LOCATIONS.some(r => r.dno==dno && r.dlocation.toLowerCase()===loc.toLowerCase());
+      if (exists) { err.style.display='block'; return; }
+      err.style.display = 'none';
+      try {
+        const newRec = await apiCall('/dept-locations', 'POST', { dno: parseInt(dno), dlocation: loc });
+        if (!newRec) return;
+        const dname = getDept(dno)?.dname || `Dept #${dno}`;
+        ALL_LOCATIONS.unshift({ dno: parseInt(dno), dlocation: loc, dname });
+        renderAll();
+        showToast('Location added', 'success');
+        const row = document.getElementById(`row-${dno}-${loc.replace(/\s+/g,'-')}`);
+        if (row) row.classList.add('flash-new');
+      } catch(errObj) { showToast(errObj.message || 'Failed to add location', 'error'); }
     };
+    window.handleQuickKey = (e) => { if(e.key==='Enter') handleQuickAdd(); else document.getElementById('qa-error').style.display='none'; };
 
-    window.handleQuickKey = (e) => {
-      if (e.key === 'Enter') handleQuickAdd();
-      else document.getElementById('qa-error').style.display = 'none';
-    };
-
-    // ── RENDERING TAB 2 (MATRIX) ──
+    /* ── MATRIX TAB ── */
     function renderMatrix() {
-      const locations = [...new Set(MOCK_DEPT_LOCATIONS.map(r => r.dlocation))].sort();
-      const depts = MOCK_DEPARTMENTS;
-      
+      const locations = [...new Set(ALL_LOCATIONS.map(r => r.dlocation))].sort();
       let html = `<thead><tr><th>Location</th>`;
-      depts.forEach(d => html += `<th>${d.dname}</th>`);
+      ALL_DEPARTMENTS.forEach(d => { html += `<th>${d.dname}</th>`; });
       html += `</tr></thead><tbody>`;
-
       locations.forEach((loc, rIdx) => {
-        html += `<tr><td><div class="map-location-name">
-          <svg class="map-loc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          ${loc}</div></td>`;
-        
-        depts.forEach((dept, cIdx) => {
-          const present = MOCK_DEPT_LOCATIONS.some(r => r.dno === dept.dno && r.dlocation === loc);
-          if (present) {
-            html += `<td class="presence-cell-yes"><div class="presence-dot" style="animation-delay: ${rIdx * 40 + cIdx * 20}ms"></div></td>`;
-          } else {
-            html += `<td class="presence-cell-no"><span class="absence-dash">—</span></td>`;
-          }
+        html += `<tr><td><div class="map-location-name"><svg class="map-loc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${loc}</div></td>`;
+        ALL_DEPARTMENTS.forEach((dept, cIdx) => {
+          const present = ALL_LOCATIONS.some(r => r.dno === dept.dno && r.dlocation === loc);
+          html += present
+            ? `<td class="presence-cell-yes"><div class="presence-dot" style="animation-delay:${rIdx*80+cIdx*40}ms"></div></td>`
+            : `<td class="presence-cell-no"><span class="absence-dash">—</span></td>`;
         });
         html += `</tr>`;
       });
       html += `</tbody>`;
       mapTable.innerHTML = html;
-
-      // Summary Cards
       presenceSummary.innerHTML = '';
-      depts.forEach(d => {
-        const count = MOCK_DEPT_LOCATIONS.filter(r => r.dno === d.dno).length;
-        const card = document.createElement('div');
-        card.className = 'presence-summary-card';
-        card.innerHTML = `
-          <div class="presence-dept-name">${d.dname}</div>
-          <div class="presence-loc-count" data-target="${count}">0</div>
-          <div class="presence-loc-label">locations</div>
-        `;
+      ALL_DEPARTMENTS.forEach(d => {
+        const count = ALL_LOCATIONS.filter(r => r.dno === d.dno).length;
+        const card  = document.createElement('div'); card.className = 'presence-dept-card';
+        card.innerHTML = `<div class="presence-dept-name">${d.dname}</div><div class="presence-loc-count" data-target="${count}">0</div><div class="presence-loc-label">locations</div>`;
         presenceSummary.appendChild(card);
       });
     }
 
     function startCounterAnimations() {
-      const counters = document.querySelectorAll('.presence-loc-count');
-      counters.forEach(c => {
-        const target = parseInt(c.dataset.target);
-        let current = 0;
-        const speed = Math.max(10, 300 / (target || 1));
-        const itv = setInterval(() => {
-          if (current >= target) { c.textContent = target; clearInterval(itv); }
-          else { current++; c.textContent = current; }
-        }, speed);
+      document.querySelectorAll('.presence-loc-count').forEach(c => {
+        const target = parseInt(c.dataset.target); let current = 0;
+        const speed = Math.max(10, 300 / (target||1));
+        const itv = setInterval(() => { if(current>=target){c.textContent=target;clearInterval(itv);}else{current++;c.textContent=current;} }, speed);
       });
     }
 
-    // ── ADD PANEL LOGIC ──
-    const addPanel = document.getElementById('add-panel');
+    /* ── ADD PANEL ── */
+    const addPanel      = document.getElementById('add-panel');
     const panelBackdrop = document.getElementById('panel-overlay');
-    const addForm = document.getElementById('add-form');
-    const dupWarning = document.getElementById('duplicate-warning');
+    const addForm       = document.getElementById('add-form');
+    const dupWarning    = document.getElementById('duplicate-warning');
     const hintContainer = document.getElementById('hint-tags-container');
 
-    window.openAddPanel = () => {
-      addForm.reset();
-      dupWarning.style.display = 'none';
-      updateHintTags();
-      addPanel.classList.add('open');
-      panelBackdrop.classList.add('open');
-    };
+    window.openAddPanel = () => { addForm.reset(); dupWarning.style.display='none'; updateHintTags(); addPanel.classList.add('open'); panelBackdrop.classList.add('open'); };
+    function closePanel() { addPanel.classList.remove('open'); panelBackdrop.classList.remove('open'); }
 
     function updateHintTags() {
       const dno = addDnoSelect.value;
-      if (!dno) { hintContainer.textContent = 'Select a department to see its current locations.'; return; }
-      
-      const locs = MOCK_DEPT_LOCATIONS.filter(r => r.dno == dno);
-      if (locs.length === 0) { hintContainer.textContent = 'No locations registered yet.'; return; }
-      
+      if (!dno) { hintContainer.textContent='Select a department to see its current locations.'; return; }
+      const locs = ALL_LOCATIONS.filter(r => r.dno == dno);
+      if (locs.length===0) { hintContainer.textContent='No locations registered yet.'; return; }
       hintContainer.innerHTML = locs.map(l => `<span class="existing-loc-item">${l.dlocation}</span>`).join('');
     }
-
     addDnoSelect.onchange = updateHintTags;
-    
+
     document.getElementById('add-location').oninput = (e) => {
-      const dno = addDnoSelect.value;
-      const loc = e.target.value.trim();
-      if(dno && loc) {
-        const exists = MOCK_DEPT_LOCATIONS.some(r => r.dno == dno && r.dlocation.toLowerCase() === loc.toLowerCase());
-        dupWarning.innerHTML = exists ? `⚠ ${getDept(dno).dname} already has a ${loc} office registered.` : '';
+      const dno = addDnoSelect.value, loc = e.target.value.trim();
+      if (dno && loc) {
+        const exists = ALL_LOCATIONS.some(r => r.dno==dno && r.dlocation.toLowerCase()===loc.toLowerCase());
+        dupWarning.innerHTML = exists ? `⚠ ${getDept(dno)?.dname || `Dept #${dno}`} already has a ${loc} office registered.` : '';
         dupWarning.style.display = exists ? 'block' : 'none';
-      } else {
-        dupWarning.style.display = 'none';
-      }
+      } else dupWarning.style.display = 'none';
     };
 
-    addForm.onsubmit = (e) => {
+    addForm.onsubmit = async (e) => {
       e.preventDefault();
       const dno = addDnoSelect.value;
       const loc = document.getElementById('add-location').value.trim();
-      
-      const exists = MOCK_DEPT_LOCATIONS.some(r => r.dno == dno && r.dlocation.toLowerCase() === loc.toLowerCase());
+      const exists = ALL_LOCATIONS.some(r => r.dno==dno && r.dlocation.toLowerCase()===loc.toLowerCase());
       if (exists) { showToast('Duplicate entry', 'error'); return; }
-
-      const dept = getDept(dno);
-      MOCK_DEPT_LOCATIONS.unshift({ dno: parseInt(dno), dname: dept.dname, dlocation: loc });
-      
-      closePanel();
-      renderAll();
-      showToast(`Location added for ${dept.dname}`, 'success');
-      
-      setTimeout(() => {
-        const row = document.getElementById(`row-${dno}-${loc.replace(/\s+/g, '-')}`);
-        if(row) row.classList.add('flash-new');
-      }, 50);
+      try {
+        const newRec = await apiCall('/dept-locations', 'POST', { dno: parseInt(dno), dlocation: loc });
+        if (!newRec) return;
+        const dname = getDept(dno)?.dname || `Dept #${dno}`;
+        ALL_LOCATIONS.unshift({ dno: parseInt(dno), dlocation: loc, dname });
+        closePanel(); renderAll();
+        showToast(`Location added for ${dname}`, 'success');
+        setTimeout(() => { const row = document.getElementById(`row-${dno}-${loc.replace(/\s+/g,'-')}`); if(row) row.classList.add('flash-new'); }, 50);
+      } catch(errObj) { showToast(errObj.message || 'Failed to add location', 'error'); }
     };
 
-    function closePanel() {
-      addPanel.classList.remove('open');
-      panelBackdrop.classList.remove('open');
-    }
-
     document.getElementById('btn-add-location').onclick = openAddPanel;
-    document.getElementById('panel-close-btn').onclick = closePanel;
+    document.getElementById('panel-close-btn').onclick  = closePanel;
     document.getElementById('panel-cancel-btn').onclick = closePanel;
     panelBackdrop.onclick = closePanel;
 
-    // ── DELETE MODAL ──
+    /* ── DELETE MODAL ── */
     const deleteModal = document.getElementById('delete-modal');
     window.openDeleteModal = (dno, loc) => {
       deleteTarget = { dno, loc };
       const dept = getDept(dno);
-      document.getElementById('delete-modal-text').innerHTML = `Remove <strong>${loc}</strong> from <strong>${dept.dname}</strong>?<br><br>This only removes the location from this department — other departments that share this city are unaffected.`;
+      document.getElementById('delete-modal-text').innerHTML = `Remove <strong>${loc}</strong> from <strong>${dept?.dname || 'Dept #'+dno}</strong>?`;
       deleteModal.classList.add('open');
     };
-
     document.getElementById('modal-cancel-btn').onclick = () => deleteModal.classList.remove('open');
-    document.getElementById('modal-confirm-btn').onclick = () => {
-      MOCK_DEPT_LOCATIONS = MOCK_DEPT_LOCATIONS.filter(r => !(r.dno === deleteTarget.dno && r.dlocation === deleteTarget.loc));
-      deleteModal.classList.remove('open');
-      renderAll();
-      showToast('Location record removed', 'info');
+    document.getElementById('modal-confirm-btn').onclick = async () => {
+      try {
+        await apiCall(`/dept-locations/${deleteTarget.dno}/${encodeURIComponent(deleteTarget.loc)}`, 'DELETE');
+        ALL_LOCATIONS = ALL_LOCATIONS.filter(r => !(r.dno==deleteTarget.dno && r.dlocation===deleteTarget.loc));
+        deleteModal.classList.remove('open'); renderAll();
+        showToast('Location record removed', 'info');
+      } catch(errObj) { deleteModal.classList.remove('open'); showToast(errObj.message || 'Delete failed', 'error'); }
     };
 
-    // ── SORTING ──
+    /* ── SORT ── */
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.onclick = () => {
         const col = th.dataset.sort;
-        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        else { sortColumn = col; sortDirection = 'asc'; }
+        if (sortColumn===col) sortDirection = sortDirection==='asc' ? 'desc' : 'asc';
+        else { sortColumn=col; sortDirection='asc'; }
         renderAll();
       };
     });
 
-    // ── TOASTS ──
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast`;
-      if (type === 'success') toast.style.borderLeftColor = 'var(--success)';
-      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
-      if (type === 'info') toast.style.borderLeftColor = 'var(--accent)';
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    /* ── INITIAL LOAD ── */
+    async function loadDeptLocationsPage() {
+      try {
+        const [locs, depts] = await Promise.all([apiCall('/dept-locations'), apiCall('/departments')]);
+        if (depts) { ALL_DEPARTMENTS = depts; populateDropdowns(); }
+        if (locs)  {
+          // Enrich with dname from departments
+          ALL_LOCATIONS = locs.map(l => ({ ...l, dname: (ALL_DEPARTMENTS.find(d=>d.dno===l.dno)||{}).dname || `Dept #${l.dno}` }));
+        }
+        renderAll();
+      } catch(err) { showToast(`Failed to load: ${err.message}`, 'error'); }
     }
+    loadDeptLocationsPage();
 
-    
-  
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
