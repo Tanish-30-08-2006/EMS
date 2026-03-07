@@ -1003,13 +1003,6 @@
     if (hamburgerBtn) hamburgerBtn.addEventListener("click", toggleMobileNav);
     if (mobileNavClose) mobileNavClose.addEventListener("click", toggleMobileNav);
 
-    // ══════════════════════════════════════════════════════
-    // REPLACE THIS BLOCK WITH REAL API CALL WHEN BACKEND READY
-    // API endpoint: POST /auth/signup
-    // Body: { company_name: string, password: string, contact_email?: string }
-    // Success: { tenant_id: string, company_name: string }
-    // Errors: 409 company name taken / 409 email taken / 422 validation
-    // ══════════════════════════════════════════════════════
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1035,12 +1028,38 @@
 
       setLoading(true);
 
-      // MOCK: simulate API delay
-      await new Promise(r => setTimeout(r, 1000));
+      // REAL API CALL — POST /auth/signup
+      try {
+        const res = await fetch('http://localhost:8000/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company_name: companyName,
+            password: password,
+            email: email || null
+          })
+        });
 
-      // Mock success
-      showSuccess(companyName);
-      setLoading(false);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.detail || 'Signup failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        // Store session immediately after signup
+        sessionStorage.setItem('ems_token', data.token);
+        sessionStorage.setItem('ems_company', data.company_name);
+        sessionStorage.setItem('ems_tenant_id', data.tenant_id);
+
+        showSuccess(data.company_name, data.tenant_id);
+        setLoading(false);
+
+      } catch (err) {
+        showError('Cannot reach the server. Make sure the backend is running on port 8000.');
+        setLoading(false);
+      }
     });
 
     function showError(msg) {
@@ -1057,11 +1076,11 @@
       submitBtn.style.cursor = loading ? 'not-allowed' : 'pointer';
     }
 
-    function showSuccess(companyName) {
+    function showSuccess(companyName, tenantId) {
       document.getElementById('signup-form').style.display = 'none';
       const successState = document.getElementById('success-state');
       successState.style.display = 'block';
-      document.getElementById('tenant-value').textContent = `comp_${companyName}`;
+      document.getElementById('tenant-value').textContent = tenantId || `comp_${companyName}`;
 
       // Start progress bar
       const bar = document.getElementById('redirect-bar');
@@ -1071,7 +1090,7 @@
 
       // Redirect after 2.1s
       setTimeout(() => {
-        sessionStorage.setItem('ems_company', companyName);
+        // sessionStorage already set during API call above
         window.location.href = 'dashboard.html';
       }, 2100);
     }

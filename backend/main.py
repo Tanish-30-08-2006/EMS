@@ -15,8 +15,9 @@
 #   global is safe because each HTTP request is handled sequentially in this setup.
 #   For production multi-user scaling, upgrade to per-request context vars.
 #
-# TO RUN:
-#   pip install fastapi uvicorn python-jose[cryptography] python-multipart
+# TO RUN (from the backend/ directory):
+#   cd Employee-Management-System/backend
+#   pip install -r requirements_web.txt
 #   uvicorn main:app --reload --port 8000
 #
 # CORS is configured to allow your frontend (any origin in dev, lock down in prod).
@@ -400,6 +401,19 @@ def update_email(body: UpdateEmailRequest):
     return {"message": msg}
 
 
+class DeleteWorkspaceRequest(BaseModel):
+    company_name: str
+    password: str
+
+@app.delete("/auth/delete-workspace")
+def delete_workspace(body: DeleteWorkspaceRequest):
+    """Permanently deletes a company workspace. Called from the Settings danger zone."""
+    success, msg = ProvisioningService.delete_company_space(body.company_name, body.password)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"message": msg}
+
+
 @app.get("/auth/me")
 def get_me(tenant: str = Depends(get_current_tenant)):
     """
@@ -560,7 +574,7 @@ def update_manager(dno: int, body: DepartmentManagerUpdate, tenant: str = Depend
     return {"message": f"Manager updated for department {dno}."}
 
 
-@app.get("/departments/payroll-summary")
+@app.get("/departments-payroll-summary")
 def payroll_summary(tenant: str = Depends(get_current_tenant)):
     """Returns per-department headcount + salary stats for the dashboard."""
     rows = get_payroll_summary()

@@ -75,16 +75,15 @@
     .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .logout-btn {
-      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
-      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
-      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
-    }
-    .logout-icon {
-      width: 14px; height: 14px; fill: none; stroke: currentColor;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+        .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; font-size: 13px; font-family: inherit;
+      color: var(--text-muted); background: transparent; border: none;
+      cursor: pointer; border-radius: 0; transition: color 120ms;
     }
     .logout-btn:hover { color: var(--danger); }
+    .logout-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+
 
     /* ── MAIN CONTENT ── */
     .main-content { margin-left: 240px; padding: 32px 36px; min-height: 100vh; }
@@ -664,7 +663,7 @@
     // ── AUTH GUARD ──
     // When backend is live: replace 'ems_company' check with JWT token check:
     // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
+    if (!sessionStorage.getItem('ems_token')) {
       window.location.href = 'login.html';
     }
     // ── CONFIG ──
@@ -679,6 +678,24 @@
 
     // ── STATE ──
     const companyName = sessionStorage.getItem('ems_company') || 'tanish';
+
+    // API helper — adds JWT to every backend request
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`http://localhost:8000${url}`, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
+    }
+
     
     // ── INITIALIZATION ──
     document.addEventListener('DOMContentLoaded', () => {
@@ -769,13 +786,24 @@
         return;
       }
       
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // POST /settings/contact-email
-      // Body: { email }
-      // ══════════════════════════════════════════════════════════
-      
-      hint.textContent = 'Email address saved ✓';
+      // REAL API CALL — POST /auth/update-email
+      try {
+        const password = prompt('Enter your company password to update email:');
+        if (!password) return;
+        await apiCall('/auth/update-email', 'POST', {
+          company_name: companyName,
+          password: password,
+          new_email: email
+        });
+        hint.textContent = 'Email address saved ✓';
+        hint.className = 'field-hint success';
+        showToast('Contact email updated', 'success');
+        setTimeout(() => hint.textContent = '', 3000);
+      } catch (err) {
+        hint.textContent = err.message;
+        hint.className = 'field-hint error';
+        showToast(err.message, 'error');
+      }
       hint.className = 'field-hint success';
       showToast('Contact email updated', 'success');
       setTimeout(() => hint.textContent = '', 3000);
@@ -831,19 +859,21 @@
       if (!current || !pass || !confirm) { showToast('Please fill all password fields', 'error'); return; }
       if (pass.length < 8) { showToast('New password must be at least 8 characters', 'error'); return; }
       if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
-      if (current !== 'password123') { showToast('Incorrect current password', 'error'); return; }
-
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // POST /auth/change-password
-      // Body: { current, pass }
-      // ══════════════════════════════════════════════════════════
-      
-      document.getElementById('current-pass').value = '';
-      newPassInput.value = '';
-      confirmPassInput.value = '';
-      showToast('Password updated successfully', 'success');
-      newPassInput.oninput();
+      // REAL API CALL — POST /auth/change-password
+      try {
+        await apiCall('/auth/change-password', 'POST', {
+          company_name: companyName,
+          current_password: current,
+          new_password: pass
+        });
+        document.getElementById('current-pass').value = '';
+        newPassInput.value = '';
+        confirmPassInput.value = '';
+        showToast('Password updated successfully', 'success');
+        newPassInput.oninput();
+      } catch (err) {
+        showToast(err.message || 'Incorrect current password', 'error');
+      }
     };
 
     // ── APPEARANCE ──
@@ -920,13 +950,19 @@
       }
     };
 
-    document.getElementById('btn-final-delete').onclick = () => {
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // DELETE /workspace
-      // ══════════════════════════════════════════════════════════
-      sessionStorage.clear();
-      window.location.href = 'index.html';
+    document.getElementById('btn-final-delete').onclick = async () => {
+      const password = prompt('Enter your company password to permanently delete this workspace:');
+      if (!password) return;
+      try {
+        await apiCall('/auth/delete-workspace', 'DELETE', {
+          company_name: companyName,
+          password: password
+        });
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+      } catch (err) {
+        showToast(err.message || 'Deletion failed. Check your password.', 'error');
+      }
     };
 
   

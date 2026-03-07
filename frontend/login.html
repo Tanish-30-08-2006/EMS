@@ -643,45 +643,33 @@
 
       setLoading(true);
 
-      // ══════════════════════════════════════════════════════
-      // REPLACE THIS BLOCK WITH REAL API CALL WHEN BACKEND READY
-      // ──────────────────────────────────────────────────────
-      
-    // ══════════════════════════════════════════════════════════════════
-    // FUTURE BUG F4 — MISSING .env ON SERVER
-    // If DB credentials are not set as env vars, every API call fails silently.
-    // FIX: In FastAPI startup event, raise RuntimeError if DB_HOST not set.
-    // On frontend: if fetch() times out after 8s, show specific error message.
-    //
-    // FUTURE BUG F7 — JWT: Login response must include:
-    //   { token, company_name, tenant_id }
-    //   sessionStorage.setItem('ems_token', data.token)
-    //   sessionStorage.setItem('ems_tenant_id', data.tenant_id)
-    // ══════════════════════════════════════════════════════════════════
-    // const res = await fetch('/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ company_name: companyName, password })
-      // });
-      // if (res.ok) {
-      //   const data = await res.json();
-      //   sessionStorage.setItem('ems_token', data.token);
-      //   sessionStorage.setItem('ems_company', data.company_name);
-      //   window.location.href = 'dashboard.html';
-      // } else {
-      //   const err = await res.json();
-      //   showError(err.detail || 'Invalid credentials.');
-      // }
-      // ══════════════════════════════════════════════════════
+      // REAL API CALL — POST /auth/login
+      try {
+        const res = await fetch('http://localhost:8000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name: companyName, password })
+        });
 
-      // MOCK: simulate API delay then redirect
-      await new Promise(r => setTimeout(r, 900));
+        const data = await res.json();
 
-      // Mock success — always passes for now
-      sessionStorage.setItem('ems_company', companyName);
-      window.location.href = 'dashboard.html';
+        if (!res.ok) {
+          showError(data.detail || 'Login failed. Please check your credentials.');
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
+        // Store session — token for API calls, company name for display
+        sessionStorage.setItem('ems_token', data.token);
+        sessionStorage.setItem('ems_company', data.company_name);
+        sessionStorage.setItem('ems_tenant_id', data.tenant_id);
+
+        window.location.href = 'dashboard.html';
+
+      } catch (err) {
+        showError('Cannot reach the server. Make sure the backend is running on port 8000.');
+        setLoading(false);
+      }
     });
 
     function showError(msg) {
