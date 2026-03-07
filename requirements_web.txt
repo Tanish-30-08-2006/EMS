@@ -1,0 +1,17 @@
+# ============================================================
+# EMS Web Server Requirements
+# Install with: pip install -r requirements_web.txt
+# ============================================================
+
+# --- EXISTING (already in your project) ---
+psycopg2-binary       # PostgreSQL adapter
+python-dotenv         # .env file loading
+bcrypt                # Password hashing
+tabulate              # Table formatting (used by CLI)
+
+# --- NEW: FastAPI stack ---
+fastapi               # The web framework
+uvicorn[standard]     # ASGI server to run FastAPI
+python-multipart      # Required for form data support
+python-jose[cryptography]  # JWT token creation and validation
+pydantic              # Request body validation (ships with FastAPI)
