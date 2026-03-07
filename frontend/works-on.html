@@ -71,7 +71,15 @@
     .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-icon {
+      width: 14px; height: 14px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
     .logout-btn:hover { color: var(--danger); }
 
     /* ── MAIN CONTENT ── */
@@ -228,166 +236,56 @@
     }
 
     .svg-defs { position: absolute; width: 0; height: 0; }
-  
-    /* ── LOGOUT MODAL OVERLAY ── */
-    #logout-confirm-modal {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.65);
-      z-index: 9999;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none;
-      transition: opacity 200ms;
-      backdrop-filter: blur(3px);
-    }
-    #logout-confirm-modal.open { opacity: 1; pointer-events: all; }
-
-    /* ── MOBILE TOPBAR ── */
-    .mobile-topbar {
-      display: none;
-      position: fixed; top: 0; left: 0; right: 0;
-      height: 52px;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      z-index: 90;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-    }
-    .hamburger-btn {
-      background: none; border: none;
-      color: var(--text-primary); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; flex-shrink: 0;
-    }
-    .mobile-page-title {
-      font-size: 15px; font-weight: 600; color: var(--text-primary);
-    }
-    .sidebar-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 95;
-      backdrop-filter: blur(2px);
-    }
-    .sidebar-overlay.open { display: block; }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-240px);
-        transition: transform 220ms ease;
-      }
-      .sidebar.open { transform: translateX(0); z-index: 100; }
-      .mobile-topbar { display: flex; }
-      .main-content { margin-left: 0 !important; padding-top: 68px !important; }
-      .slide-panel { width: 100% !important; right: 0 !important; }
-      .sidebar-close-btn { display: block !important; }
-    }
   </style>
 </head>
 <body>
 
-  <!-- SVG DEFS (Shield Logo) -->
-<!-- SIDEBAR -->
-  
-  <!-- SVG DEFS (Shield Logo) -->
-  <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
       <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
       <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
       <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
-      <filter id="shieldGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
       <g id="shield-logo">
-        <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(30,58,158,0.35)" stroke-width="1" filter="url(#shieldGlow)"/>
-        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/>
-        <circle cx="50" cy="50" r="38" fill="url(#ring2)"/>
-        <circle cx="50" cy="50" r="28" fill="url(#ring3)"/>
-        <circle cx="50" cy="50" r="18" fill="url(#centerBlue)" filter="url(#shieldGlow)"/>
-        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8" filter="url(#shieldGlow)"/>
+        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/><circle cx="50" cy="50" r="38" fill="url(#ring2)"/><circle cx="50" cy="50" r="28" fill="url(#ring3)"/><circle cx="50" cy="50" r="18" fill="url(#centerBlue)"/>
+        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8"/>
       </g>
     </defs>
   </svg>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header" id="sidebar-logo-btn" style="cursor:pointer;">
-      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"></use></svg>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <svg class="sidebar-logo" viewBox="0 0 100 100"><use href="#shield-logo"/></svg>
       <span class="sidebar-title">EMS</span>
-      <button class="sidebar-close-btn" id="sidebar-close-btn" style="display:none;margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div class="sidebar-company">
       <div class="company-label">Workspace</div>
-      <div class="company-name-display" id="sidebar-company-name">My Company</div>
+      <div class="company-name-display" id="sidebar-company-name">DataDrop Enterprise</div>
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        Dashboard
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Dashboard
       </a>
       <div class="nav-section-label">DATA</div>
       <a href="employees.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        Employees
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Employees
       </a>
       <a href="departments.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-        Departments
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/></svg> Departments
       </a>
       <a href="projects.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-        Projects
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Projects
       </a>
       <a href="works-on.html" class="nav-item active">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-        Works On
-      </a>
-      <a href="dependents.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        Dependents
-      </a>
-      <a href="dept-locations.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-        Dept Locations
-      </a>
-      <div class="nav-section-label">SYSTEM</div>
-      <a href="audit.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-        Audit Trail
-      </a>
-      <a href="export.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Data Export
-      </a>
-      <div class="nav-section-label">ACCOUNT</div>
-      <a href="settings.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        Settings
-      </a>
-      <a href="about.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        About
-      </a>
-      <a href="developer.html" class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        Developer
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Works On
       </a>
     </nav>
     <div class="sidebar-footer">
-      <button class="logout-btn" id="logout-btn">
-        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-        Sign Out
+      <button class="logout-btn" onclick="location.href='login.html'">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign Out
       </button>
     </div>
   </aside>
-
-  <!-- MOBILE TOP BAR -->
-  <div class="mobile-topbar" id="mobile-topbar">
-    <button class="hamburger-btn" id="hamburger-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-    <span class="mobile-page-title">Works On</span>
-  </div>
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <main class="main-content">
     <div class="page-header">
@@ -532,13 +430,6 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script>
-
-    // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
-    }
     // ══════════════════════════════════════════════════════════════════
     // MOCK DATA
     // ══════════════════════════════════════════════════════════════════
@@ -610,7 +501,7 @@
 
     // ── INITIALIZATION ──
     document.addEventListener('DOMContentLoaded', () => {
-      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
+      const storedCompany = sessionStorage.getItem('ems_company_name') || 'Enterprise Admin';
       document.getElementById('sidebar-company-name').textContent = storedCompany;
       
       populateDropdowns();
@@ -753,11 +644,7 @@
       return `
         <div class="hours-inline-form" onclick="event.stopPropagation()">
           <input type="number" class="hours-inline-input" id="edit-input-${w.eno}-${w.pno}" value="${w.hours}" step="0.5" min="0" max="40" onkeydown="handleKey(event, ${w.eno}, ${w.pno})">
-          <button class="action-btn" style="color:var(--success)" // // FUTURE BUG F1: Backend missing update_works_on_hours
-    // Add to query_engine.py: def update_work_record_hours(eno, pno, new_hours)
-    //   sql = "UPDATE works_on SET hours=%s WHERE eno=%s AND pno=%s"
-    // FastAPI: PATCH /works-on/{eno}/{pno}  Body: {"hours": float}
-    onclick="saveEdit(${w.eno}, ${w.pno})">✓</button>
+          <button class="action-btn" style="color:var(--success)" onclick="saveEdit(${w.eno}, ${w.pno})">✓</button>
           <button class="action-btn" onclick="cancelEdit()">×</button>
         </div>
       `;
@@ -1013,59 +900,6 @@
         toast.style.transition = '300ms';
         setTimeout(() => toast.remove(), 300);
       }, 3000);
-    }
-  
-    // ── LOGOUT MODAL ──
-    const _logoutModal = document.getElementById('logout-confirm-modal');
-    const _logoutBox   = document.getElementById('logout-modal-box');
-    function _openLogout() {
-      _logoutModal.classList.add('open');
-      setTimeout(() => { if(_logoutBox) _logoutBox.style.transform = 'scale(1)'; }, 10);
-    }
-    document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
-    document.getElementById('logout-btn').addEventListener('click', _openLogout);
-    document.getElementById('logout-cancel-btn').addEventListener('click', () => {
-      _logoutModal.classList.remove('open');
-      if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
-    });
-    document.getElementById('logout-confirm-btn').addEventListener('click', () => {
-      sessionStorage.clear();
-      window.location.href = 'login.html';
-    });
-    _logoutModal.addEventListener('click', (e) => {
-      if (e.target === _logoutModal) {
-        _logoutModal.classList.remove('open');
-        if(_logoutBox) _logoutBox.style.transform = 'scale(0.95)';
-      }
-    });
-    document.getElementById('logout-confirm-btn').addEventListener('mouseenter', function(){
-      this.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
-    });
-    document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
-      this.style.boxShadow='none';
-    });
-    // ── MOBILE SIDEBAR ──
-    const _hamburger = document.getElementById('hamburger-btn');
-    const _sidebarEl = document.getElementById('sidebar');
-    const _overlayEl = document.getElementById('sidebar-overlay');
-    if (_hamburger) {
-      _hamburger.addEventListener('click', () => {
-        _sidebarEl.classList.add('open');
-        _overlayEl.classList.add('open');
-      });
-    }
-    if (_overlayEl) {
-      _overlayEl.addEventListener('click', () => {
-        _sidebarEl.classList.remove('open');
-        _overlayEl.classList.remove('open');
-      });
-    }
-    const _closeSidebarBtn = document.getElementById('sidebar-close-btn');
-    if (_closeSidebarBtn) {
-      _closeSidebarBtn.addEventListener('click', () => {
-        _sidebarEl.classList.remove('open');
-        _overlayEl.classList.remove('open');
-      });
     }
   </script>
 

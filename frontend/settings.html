@@ -75,7 +75,15 @@
     .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-icon {
+      width: 14px; height: 14px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
     .logout-btn:hover { color: var(--danger); }
 
     /* ── MAIN CONTENT ── */
