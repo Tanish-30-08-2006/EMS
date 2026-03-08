@@ -381,11 +381,11 @@
       <!-- LEFT INNER NAV -->
       <nav class="settings-inner-nav">
         <div class="inner-nav-title">Sections</div>
-        <button class="inner-nav-item active" data-section="section-workspace">Workspace</button>
-        <button class="inner-nav-item" data-section="section-contact">Contact</button>
-        <button class="inner-nav-item" data-section="section-security">Security</button>
-        <button class="inner-nav-item" data-section="section-appearance">Appearance</button>
-        <button class="inner-nav-item" data-section="section-danger">Danger Zone</button>
+        <button type="button" class="inner-nav-item active" data-section="section-workspace">Workspace</button>
+        <button type="button" class="inner-nav-item" data-section="section-contact">Contact</button>
+        <button type="button" class="inner-nav-item" data-section="section-security">Security</button>
+        <button type="button" class="inner-nav-item" data-section="section-appearance">Appearance</button>
+        <button type="button" class="inner-nav-item" data-section="section-danger">Danger Zone</button>
       </nav>
 
       <!-- RIGHT CONTENT -->
@@ -459,10 +459,10 @@
                 <div class="editable-field-form">
                   <div class="editable-field-row">
                     <input type="email" id="contact-email-input" class="settings-input" value="">
-                    <button class="save-btn" id="btn-save-email">Save</button>
+                    <button type="button" class="save-btn" id="btn-save-email">Save</button>
                   </div>
                   <div id="email-hint" class="field-hint"></div>
-                  <button class="secondary-btn" style="margin-top:4px;" id="btn-test-email">Test Email</button>
+                  <button type="button" class="secondary-btn" style="margin-top:4px;" id="btn-test-email">Test Email</button>
                 </div>
               </div>
             </div>
@@ -722,7 +722,7 @@
     });
 
     function setupIntersectionObserver() {
-      const options = { threshold: 0.5 };
+      const options = { threshold: 0.2, rootMargin: "-10% 0px -60% 0px" };
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -753,38 +753,35 @@
     };
 
     // ── CONTACT EMAIL ──
-    document.getElementById('btn-save-email').onclick = function() {
+    document.getElementById('btn-save-email').onclick = async function() {
       const input = document.getElementById('contact-email-input');
-      const hint = document.getElementById('email-hint');
+      const hint  = document.getElementById('email-hint');
       const email = input.value.trim();
-      
+
       if (!email || !email.includes('@')) {
         hint.textContent = 'Please enter a valid email address.';
         hint.className = 'field-hint error';
         return;
       }
-      
+
       // REAL API CALL — POST /auth/update-email
       try {
         const password = await promptPassword('Enter your company password to update email:');
         if (!password) return;
         await apiCall('/auth/update-email', 'POST', {
           company_name: companyName,
-          password: password,
-          new_email: email
+          password:     password,
+          new_email:    email
         });
         hint.textContent = 'Email address saved ✓';
-        hint.className = 'field-hint success';
+        hint.className   = 'field-hint success';
         showToast('Contact email updated', 'success');
-        setTimeout(() => hint.textContent = '', 3000);
+        setTimeout(() => { hint.textContent = ''; hint.className = 'field-hint'; }, 3000);
       } catch (err) {
-        hint.textContent = err.message;
-        hint.className = 'field-hint error';
-        showToast(err.message, 'error');
+        hint.textContent = err.message || 'Could not update email.';
+        hint.className   = 'field-hint error';
+        showToast(err.message || 'Update failed', 'error');
       }
-      hint.className = 'field-hint success';
-      showToast('Contact email updated', 'success');
-      setTimeout(() => hint.textContent = '', 3000);
     };
 
     document.getElementById('btn-test-email').onclick = () => {
@@ -829,7 +826,7 @@
       }
     }
 
-    document.getElementById('btn-update-pass').onclick = function() {
+    document.getElementById('btn-update-pass').onclick = async function() {
       const current = document.getElementById('current-pass').value;
       const pass = newPassInput.value;
       const confirm = confirmPassInput.value;
