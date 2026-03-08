@@ -1103,12 +1103,23 @@
         TABLE_COUNTS = {};
         Object.entries(LIVE_DATA).forEach(([k, arr]) => { TABLE_COUNTS[k] = arr.length; });
 
-        // Prefill email from settings page if it was saved
+        // Prefill email: check sessionStorage first, then /auth/me
         const savedEmail = sessionStorage.getItem('ems_contact_email');
         if (savedEmail) {
           contactEmail = savedEmail;
           document.getElementById('settings-email').value = savedEmail;
           document.getElementById('confirm-email-text').textContent = savedEmail;
+        } else {
+          // Fall back to the registered company email from the backend
+          try {
+            const me = await apiCall('/auth/me');
+            if (me && me.email) {
+              contactEmail = me.email;
+              sessionStorage.setItem('ems_contact_email', me.email);
+              document.getElementById('settings-email').value = me.email;
+              document.getElementById('confirm-email-text').textContent = me.email;
+            }
+          } catch(e) { /* email column may not exist yet */ }
         }
 
         refreshQuickFormat();

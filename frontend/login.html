@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       /* Backgrounds */
@@ -598,6 +599,40 @@
               Don't have an account? <a href="signup.html" class="form-link">Create your workspace</a>
             </div>
           </form>
+                    <!-- -- EMAIL OTP SECTION --------------------------- -->
+          <div class="form-divider" style="margin-top:24px;"></div>
+ 
+          <div id="otp-send-panel">
+            <div class="form-subheading" style="margin-bottom:16px;">Or sign in with a one-time code</div>
+            <div class="input-group">
+              <label class="input-label">Email Address</label>
+              <input type="email" id="otp-email" class="input-field" placeholder="your@email.com">
+            </div>
+            <div id="otp-error" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px;"></div>
+            <button class="btn-submit" id="otp-send-btn" onclick="sendOtp()" type="button">
+              Send login code
+            </button>
+          </div>
+ 
+          <div id="otp-verify-panel" style="display:none;">
+            <div class="form-subheading" style="margin-bottom:16px;">Enter the 6-digit code sent to your inbox</div>
+            <div class="input-group">
+              <label class="input-label">One-Time Code</label>
+              <input type="text" id="otp-code" class="input-field" placeholder="123456"
+                maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+            </div>
+            <div id="otp-verify-error" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px;"></div>
+            <button class="btn-submit" id="otp-verify-btn" onclick="verifyOtp()" type="button">
+              Verify code
+            </button>
+            <div style="text-align:center;margin-top:12px;">
+              <button onclick="resetOtp()" type="button"
+                style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">
+                Use a different email
+              </button>
+            </div>
+          </div>
+          <!-- -- END OTP SECTION -------------------------------- -->
         </div>
       </div>
     </div>
@@ -689,6 +724,75 @@
     // Hide error banner when user starts typing
     document.getElementById('company-name').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
+    // -- SUPABASE OTP ------------------------------------------------------------
+  const SUPABASE_URL  = 'https://xvajtgcetorlzrnmklao.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YWp0Z2NldG9ybHpybm1rbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODI3MjYsImV4cCI6MjA4Nzc1ODcyNn0.Tf31vlooUkG-K42C3WYhSctANQJyk9u-syDqn9dH70g';  // from Step 3
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+ 
+  async function sendOtp() {
+    const email = document.getElementById('otp-email').value.trim();
+    const errEl = document.getElementById('otp-error');
+    errEl.style.display = 'none';
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Please enter a valid email address.';
+      errEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('otp-send-btn');
+    btn.textContent = 'Sending...'; btn.disabled = true;
+    const { error } = await sb.auth.signInWithOtp({ email });
+    btn.textContent = 'Send login code'; btn.disabled = false;
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    document.getElementById('otp-send-panel').style.display   = 'none';
+    document.getElementById('otp-verify-panel').style.display = 'block';
+  }
+ 
+  async function verifyOtp() {
+    const email = document.getElementById('otp-email').value.trim();
+    const token = document.getElementById('otp-code').value.trim();
+    const errEl = document.getElementById('otp-verify-error');
+    errEl.style.display = 'none';
+    if (token.length !== 6) {
+      errEl.textContent = 'Code must be 6 digits.'; errEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('otp-verify-btn');
+    btn.textContent = 'Verifying...'; btn.disabled = true;
+ 
+    // 1. Verify OTP with Supabase
+    const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) {
+      btn.textContent = 'Verify code'; btn.disabled = false;
+      errEl.textContent = error.message; errEl.style.display = 'block'; return;
+    }
+ 
+    // 2. Exchange Supabase session for EMS token
+    try {
+      const res = await fetch('http://localhost:8000/auth/supabase-exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: data.session.access_token })
+      });
+      const emsData = await res.json();
+      if (!res.ok) {
+        btn.textContent = 'Verify code'; btn.disabled = false;
+        errEl.textContent = emsData.detail || 'Login failed.'; errEl.style.display = 'block'; return;
+      }
+      // 3. Store EMS session exactly like the password login does
+      sessionStorage.setItem('ems_token',     emsData.token);
+      sessionStorage.setItem('ems_company',   emsData.company_name);
+      sessionStorage.setItem('ems_tenant_id', emsData.tenant_id);
+      window.location.href = 'dashboard.html';
+    } catch (e) {
+      btn.textContent = 'Verify code'; btn.disabled = false;
+      errEl.textContent = 'Could not reach the EMS server.'; errEl.style.display = 'block';
+    }
+  }
+ 
+  function resetOtp() {
+    document.getElementById('otp-send-panel').style.display   = 'block';
+    document.getElementById('otp-verify-panel').style.display = 'none';
+    document.getElementById('otp-code').value = '';
+  }
+  
   </script>
 </body>
 </html>

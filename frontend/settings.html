@@ -267,23 +267,6 @@
 </head>
 <body>
 
-  <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
-      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
-      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
-      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
-      <g id="shield-logo">
-        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/><circle cx="50" cy="50" r="38" fill="url(#ring2)"/><circle cx="50" cy="50" r="28" fill="url(#ring3)"/><circle cx="50" cy="50" r="18" fill="url(#centerBlue)"/>
-        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8"/>
-      </g>
-    </defs>
-  </svg>
-
-  
-  <!-- SVG DEFS (Shield Logo) -->
-<!-- SIDEBAR -->
-  
   <!-- SVG DEFS (Shield Logo) -->
   <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -475,7 +458,7 @@
               <div class="setting-control">
                 <div class="editable-field-form">
                   <div class="editable-field-row">
-                    <input type="email" id="contact-email-input" class="settings-input" value="tanish@daiict.ac.in">
+                    <input type="email" id="contact-email-input" class="settings-input" value="">
                     <button class="save-btn" id="btn-save-email">Save</button>
                   </div>
                   <div id="email-hint" class="field-hint"></div>
@@ -701,8 +684,8 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sidebar-company-name').textContent = companyName;
       document.getElementById('display-company-name').textContent = companyName;
-      document.getElementById('workspace-id-text').textContent = `comp_${companyName}`;
-      document.getElementById('schema-name-preview').textContent = `comp_${companyName}`;
+      document.getElementById('workspace-id-text').textContent = sessionStorage.getItem('ems_tenant_id') || `comp_${companyName}`;
+      document.getElementById('schema-name-preview').textContent = sessionStorage.getItem('ems_tenant_id') || `comp_${companyName}`;
       document.getElementById('confirm-name-challenge').textContent = companyName;
 
       // Apply saved preferences
@@ -714,23 +697,18 @@
       applyCompactMode(savedCompact);
 
       setupIntersectionObserver();
-    });
 
-    // ── HELPERS ──
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
+      // Load real email from backend
+      (async () => {
+        try {
+          const me = await apiCall('/auth/me');
+          if (me && me.email) {
+            document.getElementById('contact-email-input').value = me.email;
+          }
+        } catch(e) {
+          // email column may not exist yet — leave blank
+        }
+      })();
 
     // ── INNER NAV & SCROLLING ──
     window.scrollToSection = (id) => {
@@ -788,7 +766,7 @@
       
       // REAL API CALL — POST /auth/update-email
       try {
-        const password = prompt('Enter your company password to update email:');
+        const password = await promptPassword('Enter your company password to update email:');
         if (!password) return;
         await apiCall('/auth/update-email', 'POST', {
           company_name: companyName,
@@ -951,7 +929,7 @@
     };
 
     document.getElementById('btn-final-delete').onclick = async () => {
-      const password = prompt('Enter your company password to permanently delete this workspace:');
+      const password = await promptPassword('Enter your company password to permanently delete this workspace:');
       if (!password) return;
       try {
         await apiCall('/auth/delete-workspace', 'DELETE', {
@@ -1018,6 +996,50 @@
         _overlayEl.classList.remove('open');
       });
     }
+    });
+
+    // ── HELPERS ──
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = '300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ── PASSWORD PROMPT (replaces browser prompt()) ──
+    function promptPassword(message) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:360px;max-width:90vw;">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Confirm Identity</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${message}</div>
+            <input type="password" id="_pwd_input" placeholder="Enter password..." autocomplete="current-password"
+              style="width:100%;box-sizing:border-box;background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text-primary);font-size:14px;outline:none;margin-bottom:16px;">
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button id="_pwd_cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">Cancel</button>
+              <button id="_pwd_ok" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">Confirm</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        const input = overlay.querySelector('#_pwd_input');
+        input.focus();
+        const cleanup = (val) => { document.body.removeChild(overlay); resolve(val); };
+        overlay.querySelector('#_pwd_cancel').onclick = () => cleanup(null);
+        overlay.querySelector('#_pwd_ok').onclick = () => cleanup(input.value);
+        input.addEventListener('keydown', (e) => { if(e.key==='Enter') cleanup(input.value); if(e.key==='Escape') cleanup(null); });
+      });
+    }
+
+
   </script>
 </body>
-</html>
