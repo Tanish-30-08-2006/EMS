@@ -699,261 +699,298 @@
     }
   </script><script>
 
+
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
+    if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts  = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(`http://localhost:8000${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA
-    // ══════════════════════════════════════════════════════════════════
 
-    const MOCK_TABLE_COUNTS = {
-      employee:      10,
-      department:    4,
-      project:       6,
-      works_on:      15,
-      dependent:     10,
-      dept_locations:7,
-    };
-
-    const MOCK_TABLE_COLUMNS = {
-      employee:       ['eno', 'ename', 'salary', 'dno'],
+    /* ── REAL TABLE METADATA (columns for preview) ── */
+    const TABLE_COLUMNS = {
+      employee:       ['eno', 'ename', 'dob', 'gender', 'salary', 'dno'],
       department:     ['dno', 'dname', 'mgr_eno', 'mgrstartdate'],
       project:        ['pno', 'pname', 'plocation', 'dno'],
       works_on:       ['eno', 'pno', 'hours'],
-      dependent:      ['eno', 'dependent_name', 'gender', 'relationship'],
-      dept_locations: ['dno', 'dlocation']
+      dependent:      ['eno', 'dependent_name', 'gender', 'dob', 'relationship'],
+      dept_locations: ['dno', 'dlocation'],
     };
 
-    const MOCK_PREVIEW_DATA = {
-      employee:       [['101', 'Jennifer Wallace', '43000', '4'], ['102', 'Franklin Wong', '40000', '5'], ['103', 'John Smith', '30000', '5']],
-      department:     [['1', 'Headquarters', '101', '1981-06-19'], ['4', 'Administration', '104', '1995-01-01'], ['5', 'Research', '102', '1988-05-22']],
-      project:        [['1', 'ProductX', 'Bellaire', '5'], ['2', 'ProductY', 'Sugarland', '5'], ['10', 'Computerize', 'Stafford', '4']],
-      works_on:       [['101', '1', '20.0'], ['101', '2', '20.0'], ['102', '10', '10.0']],
-      dependent:      [['101', 'Abir', 'F', 'Daughter'], ['101', 'Alice', 'F', 'Daughter'], ['102', 'Joy', 'M', 'Son']],
-      dept_locations: [['1', 'Houston'], ['4', 'Stafford'], ['5', 'Bellaire']]
+    const TABLE_ICONS = {
+      employee:       'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+      department:     'M3 21h18 M3 7v1h18V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z M5 21V8 M19 21V8 M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4',
+      project:        'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
+      works_on:       'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+      dependent:      'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+      dept_locations: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
     };
 
-    let MOCK_EXPORT_HISTORY = [
-      { id: 1, type: 'Full Export',    format: 'XLSX', tables: 6, rows: 52, timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),  size: '48 KB', delivered: 'Download' },
-      { id: 2, type: 'employee',       format: 'CSV',  tables: 1, rows: 10, timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),  size: '3 KB',  delivered: 'Download' },
-      { id: 3, type: 'Full Export',    format: 'XLSX', tables: 6, rows: 50, timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), size: '46 KB', delivered: 'Email' },
-      { id: 4, type: 'works_on',       format: 'JSON', tables: 1, rows: 13, timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), size: '5 KB',  delivered: 'Download' },
-      { id: 5, type: 'department',     format: 'CSV',  tables: 1, rows: 4,  timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(), size: '1 KB',  delivered: 'Download' },
-    ];
+    /* ── STATE ── */
+    let LIVE_DATA       = {};  // {table_name: [records]}
+    let TABLE_COUNTS    = {};  // {table_name: number}
+    let exportHistory   = [];  // in-memory session history
+    let contactEmail    = sessionStorage.getItem('ems_contact_email') || '';
+    let currentTab      = 'export';
+    let quickFormat     = 'JSON';
+    let tableFormats    = {};
+    let exportSettings  = { defaultFormat: 'JSON' };
+    let isExporting     = false;
 
-    let MOCK_CONTACT_EMAIL = 'tanish@daiict.ac.in';
-    let exportSettings = {
-      defaultFormat: 'XLSX',
-      contactEmail: MOCK_CONTACT_EMAIL,
+    /* ── SIDEBAR ── */
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
     };
+    document.getElementById('hamburger-btn').onclick = () => toggleSidebar(true);
+    document.getElementById('sidebar-close-btn') && document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
-    // ── STATE ──
-    let currentTab = 'export';
-    let quickFormat = 'XLSX';
-    let tableFormats = {}; // Stores selected format per table
-    let isExporting = false;
+    /* ── TOASTS ── */
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='300ms'; setTimeout(()=>toast.remove(),300); }, 3000);
+    }
 
-    // ── INITIALIZATION ──
-    document.addEventListener('DOMContentLoaded', () => {
-      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
-      document.getElementById('sidebar-company-name').textContent = storedCompany;
-      
-      document.getElementById('settings-email').value = MOCK_CONTACT_EMAIL;
-      document.getElementById('confirm-email-text').textContent = MOCK_CONTACT_EMAIL;
-      
-      refreshQuickFormat();
-      renderTableExportCards();
-      renderHistoryTable();
-    });
-
-    // ── HELPERS ──
+    /* ── HELPERS ── */
     function relativeTime(iso) {
       const diff = Date.now() - new Date(iso).getTime();
-      const sec = Math.floor(diff / 1000);
-      const min = Math.floor(sec / 60);
-      const hr = Math.floor(min / 60);
-      const dy = Math.floor(hr / 24);
-      if (sec < 60) return 'just now';
-      if (min < 60) return `${min} min ago`;
-      if (hr < 24) return `${hr} hour${hr > 1 ? 's' : ''} ago`;
-      if (dy === 1) return 'Yesterday';
+      const sec = Math.floor(diff/1000), min = Math.floor(sec/60), hr = Math.floor(min/60), dy = Math.floor(hr/24);
+      if (sec < 60)  return 'just now';
+      if (min < 60)  return `${min} min ago`;
+      if (hr  < 24)  return `${hr} hour${hr>1?'s':''} ago`;
+      if (dy  === 1) return 'Yesterday';
       return `${dy} days ago`;
     }
-
     function absoluteTime(iso) {
-      return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     }
 
-    // ── TAB SWITCHING ──
-    document.getElementById('tab-export').onclick = () => switchTab('export');
+    /* ── TABS ── */
+    document.getElementById('tab-export').onclick   = () => switchTab('export');
     document.getElementById('tab-settings').onclick = () => switchTab('settings');
 
     function switchTab(tab) {
       currentTab = tab;
-      document.getElementById('tab-export').classList.toggle('active', tab === 'export');
-      document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
-      document.getElementById('tab1-content').style.display = tab === 'export' ? 'block' : 'none';
-      document.getElementById('tab2-content').style.display = tab === 'settings' ? 'block' : 'none';
-      
+      document.getElementById('tab-export').classList.toggle('active', tab==='export');
+      document.getElementById('tab-settings').classList.toggle('active', tab==='settings');
+      document.getElementById('tab1-content').style.display = tab==='export'   ? 'block' : 'none';
+      document.getElementById('tab2-content').style.display = tab==='settings' ? 'block' : 'none';
       if (tab === 'settings') {
-        const pills = document.querySelectorAll('#settings-format-selector .format-pill');
-        pills.forEach(p => p.classList.toggle('active', p.dataset.format === exportSettings.defaultFormat));
+        document.getElementById('settings-email').value = contactEmail;
+        document.getElementById('confirm-email-text').textContent = contactEmail || '(not set)';
+        document.querySelectorAll('#settings-format-selector .format-pill').forEach(p => p.classList.toggle('active', p.dataset.format === exportSettings.defaultFormat));
       }
     }
 
-    // ── EXPORT ENGINE ──
-    async function simulateExport(format, type, delivery = 'Download') {
+    /* ── FORMAT SELECTOR QUICK ── */
+    document.getElementById('quick-format-selector').onclick = (e) => {
+      const pill = e.target.closest('.format-pill'); if (!pill) return;
+      quickFormat = pill.dataset.format; refreshQuickFormat();
+    };
+    function refreshQuickFormat() {
+      document.querySelectorAll('#quick-format-selector .format-pill').forEach(p => p.classList.toggle('active', p.dataset.format === quickFormat));
+    }
+
+    /* ── REAL EXPORT ENGINE ── */
+    async function runExport(format, type, delivery = 'Download') {
       if (isExporting) return;
       isExporting = true;
-      
+
       const progressContainer = document.getElementById('export-progress');
-      const progressFill = document.getElementById('progress-fill');
-      const progressStatus = document.getElementById('progress-status');
-      const progressPct = document.getElementById('progress-pct');
-      const steps = document.querySelectorAll('.export-step');
-      
+      const progressFill      = document.getElementById('progress-fill');
+      const progressStatus    = document.getElementById('progress-status');
+      const progressPct       = document.getElementById('progress-pct');
+      const steps             = document.querySelectorAll('.export-step');
+
       progressContainer.style.display = 'block';
       progressFill.style.width = '0%';
-      progressPct.textContent = '0%';
-      steps.forEach(s => { s.classList.remove('done', 'active'); });
+      progressPct.textContent  = '0%';
+      steps.forEach(s => s.classList.remove('done', 'active'));
 
+      // Animated progress steps (visual only — real work happens in parallel)
       const milestones = [
-        { pct: 20, label: 'Connecting to database', step: 0 },
-        { pct: 40, label: type === 'Full Export' ? 'Fetching all tables' : `Fetching ${type} records`, step: 1 },
-        { pct: 65, label: 'Building file structure', step: 2 },
-        { pct: 85, label: 'Finalizing export', step: 3 },
-        { pct: 100, label: 'Export complete', step: 3 }
+        { pct: 20, label: 'Connecting to database...', step: 0 },
+        { pct: 50, label: type === 'Full Export' ? 'Fetching all tables...' : `Fetching ${type} records...`, step: 1 },
+        { pct: 75, label: 'Building file structure...', step: 2 },
+        { pct: 90, label: 'Finalizing export...', step: 3 },
       ];
 
-      for (let m of milestones) {
-        progressStatus.textContent = m.label;
-        if (m.step < steps.length) steps[m.step].classList.add('active');
-        
-        let startPct = parseInt(progressPct.textContent);
-        let endPct = m.pct;
-        let duration = 600 + Math.random() * 400;
-        let start = Date.now();
-
-        await new Promise((resolve) => {
-          function frame() {
-            let now = Date.now();
-            let elapsed = now - start;
-            let progress = Math.min(elapsed / duration, 1);
-            let current = Math.floor(startPct + progress * (endPct - startPct));
-            progressFill.style.width = current + '%';
-            progressPct.textContent = current + '%';
-            if (progress < 1) requestAnimationFrame(frame);
-            else resolve();
-          }
-          requestAnimationFrame(frame);
-        });
-
-        if (m.pct < 100) steps[m.step].classList.replace('active', 'done');
-        else steps[m.step].classList.add('done');
+      let animDone = false;
+      async function animateProgress() {
+        for (let m of milestones) {
+          if (animDone) break;
+          progressStatus.textContent = m.label;
+          if (m.step < steps.length) steps[m.step].classList.add('active');
+          const startPct = parseInt(progressPct.textContent);
+          await new Promise(resolve => {
+            const duration = 600 + Math.random() * 400;
+            const start = Date.now();
+            function frame() {
+              const progress = Math.min((Date.now()-start)/duration, 1);
+              const current = Math.floor(startPct + progress * (m.pct - startPct));
+              progressFill.style.width = current + '%'; progressPct.textContent = current + '%';
+              if (progress < 1) requestAnimationFrame(frame); else resolve();
+            }
+            requestAnimationFrame(frame);
+          });
+          if (m.pct < 90) steps[m.step].classList.replace('active', 'done');
+        }
       }
 
-      await new Promise(r => setTimeout(r, 400));
-      progressContainer.style.display = 'none';
-      
-      // Add to history
-      const tableCount = type === 'Full Export' ? 6 : 1;
-      const rowCount = type === 'Full Export' ? 52 : MOCK_TABLE_COUNTS[type];
-      const estSize = `${Math.ceil(rowCount * (format === 'JSON' ? 0.6 : 0.4))} KB`;
-      
-      MOCK_EXPORT_HISTORY.unshift({
-        id: MOCK_EXPORT_HISTORY.length + 1,
-        type: type,
-        format: format,
-        tables: tableCount,
-        rows: rowCount,
-        timestamp: new Date().toISOString(),
-        size: estSize,
-        delivered: delivery
-      });
-      if (MOCK_EXPORT_HISTORY.length > 5) MOCK_EXPORT_HISTORY.pop();
-      
-      renderHistoryTable();
-      showToast(delivery === 'Email' ? `Export sent to ${MOCK_CONTACT_EMAIL} ✓` : `${type} exported as ${format} ✓`, 'success');
+      try {
+        // Start animation and API call in parallel
+        const animPromise = animateProgress();
+
+        let exportResult;
+        if (type === 'Full Export' || format === 'JSON') {
+          // JSON download: triggers browser download directly
+          exportResult = await triggerJsonDownload();
+        } else {
+          // CSV: server-side only (returns path, not streamable from browser)
+          exportResult = await apiCall('/export/csv', 'POST');
+        }
+
+        animDone = true;
+        await animPromise;
+
+        // Finish progress to 100%
+        progressStatus.textContent = 'Export complete!';
+        progressFill.style.width = '100%'; progressPct.textContent = '100%';
+        steps.forEach(s => s.classList.add('done'));
+        await new Promise(r => setTimeout(r, 400));
+        progressContainer.style.display = 'none';
+
+        // Record in history
+        const rowCount = type === 'Full Export'
+          ? Object.values(TABLE_COUNTS).reduce((s,c)=>s+c, 0)
+          : (TABLE_COUNTS[type] || '?');
+        const tableCount = type === 'Full Export' ? Object.keys(TABLE_COUNTS).length : 1;
+
+        exportHistory.unshift({
+          id:        exportHistory.length + 1,
+          type:      type,
+          format:    format,
+          tables:    tableCount,
+          rows:      rowCount,
+          timestamp: new Date().toISOString(),
+          size:      '—',
+          delivered: delivery
+        });
+        if (exportHistory.length > 10) exportHistory.pop();
+        renderHistoryTable();
+
+        const msg = delivery === 'Email'
+          ? `Export queued for ${contactEmail} ✓`
+          : `${type} exported as ${format} ✓`;
+        showToast(msg, 'success');
+
+      } catch(err) {
+        animDone = true;
+        progressContainer.style.display = 'none';
+        showToast(`Export failed: ${err.message}`, 'error');
+      }
       isExporting = false;
     }
 
-    // ── MAIN EXPORT ACTIONS ──
-    document.getElementById('btn-export-full').onclick = () => simulateExport(quickFormat, 'Full Export');
-    
-    document.getElementById('quick-format-selector').onclick = (e) => {
-      const pill = e.target.closest('.format-pill');
-      if (!pill) return;
-      quickFormat = pill.dataset.format;
-      refreshQuickFormat();
-    };
+    async function triggerJsonDownload() {
+      // Use a hidden anchor — the /export/json/download endpoint streams the file
+      const token = sessionStorage.getItem('ems_token');
+      const url   = `http://localhost:8000/export/json/download`;
 
-    function refreshQuickFormat() {
-      const pills = document.querySelectorAll('#quick-format-selector .format-pill');
-      pills.forEach(p => p.classList.toggle('active', p.dataset.format === quickFormat));
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Export failed'); }
+
+      const blob     = await res.blob();
+      const blobUrl  = URL.createObjectURL(blob);
+      const a        = document.createElement('a');
+      const today    = new Date().toISOString().split('T')[0];
+      a.href         = blobUrl;
+      a.download     = `ems_export_${today}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      return { ok: true };
     }
 
-    // ── TABLE CARDS ──
+    /* ── EXPORT BUTTONS ── */
+    document.getElementById('btn-export-full').onclick = () => runExport(quickFormat, 'Full Export');
+
+    /* ── TABLE EXPORT CARDS ── */
     function renderTableExportCards() {
-      const grid = document.getElementById('table-export-grid');
-      const tables = [
-        { name: 'employee', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
-        { name: 'department', icon: 'M3 21h18 M3 7v1h18V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z M5 21V8 M19 21V8 M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4' },
-        { name: 'project', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
-        { name: 'works_on', icon: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' },
-        { name: 'dependent', icon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z' },
-        { name: 'dept_locations', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' }
-      ];
+      const grid   = document.getElementById('table-export-grid');
+      const tables = Object.keys(TABLE_COLUMNS);
 
       grid.innerHTML = '';
-      tables.forEach((t, idx) => {
-        const count = MOCK_TABLE_COUNTS[t.name];
-        const format = tableFormats[t.name] || exportSettings.defaultFormat;
-        const estSize = `${Math.ceil(count * (format === 'JSON' ? 0.6 : 0.4))} KB`;
+      tables.forEach((name, idx) => {
+        const count  = TABLE_COUNTS[name] || '?';
+        const format = tableFormats[name] || exportSettings.defaultFormat;
+        const estSize = typeof count === 'number' ? `${Math.ceil(count * (format==='JSON'?0.6:0.4))} KB` : '—';
+        const icon   = TABLE_ICONS[name] || '';
+        const cols   = TABLE_COLUMNS[name];
+        const preview = (LIVE_DATA[name] || []).slice(0, 3);
 
         const card = document.createElement('div');
         card.className = 'table-export-card';
-        card.style.animationDelay = `${idx * 40}ms`;
+        card.style.animationDelay = `${idx*40}ms`;
         card.innerHTML = `
           <div class="card-table-header">
-            <div class="card-table-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${t.icon}"/></svg></div>
+            <div class="card-table-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${icon}"/></svg></div>
             <div style="flex:1">
-              <div class="card-table-name">${t.name}</div>
+              <div class="card-table-name">${name}</div>
               <div class="card-table-meta">${count} records · ~${estSize}</div>
             </div>
-            <button class="btn-secondary-action" onclick="openEmailModal('${t.name}')">✉</button>
+            <button class="btn-secondary-action" onclick="openEmailModal('${name}')">✉</button>
           </div>
-          <div class="format-selector-inline" data-table="${t.name}">
+          <div class="format-selector-inline" data-table="${name}">
             <div class="format-pill ${format==='XLSX'?'active':''}" data-format="XLSX">XLSX</div>
-            <div class="format-pill ${format==='CSV'?'active':''}" data-format="CSV">CSV</div>
+            <div class="format-pill ${format==='CSV'?'active':''}"  data-format="CSV">CSV</div>
             <div class="format-pill ${format==='JSON'?'active':''}" data-format="JSON">JSON</div>
           </div>
           <div class="card-actions">
-            <button class="small-export-btn" onclick="simulateExport(getTableFormat('${t.name}'), '${t.name}')">↓ Export</button>
-            <button class="small-secondary-btn" onclick="togglePreview('${t.name}', this)">Preview ▾</button>
+            <button class="small-export-btn" onclick="runExport(getTableFormat('${name}'), '${name}')">↓ Export</button>
+            <button class="small-secondary-btn" onclick="togglePreview('${name}', this)">Preview ▾</button>
           </div>
-          <div class="preview-panel" id="preview-${t.name}">
+          <div class="preview-panel" id="preview-${name}">
             <table class="preview-table">
-              <thead><tr>${MOCK_TABLE_COLUMNS[t.name].map(c => `<th>${c}</th>`).join('')}</tr></thead>
-              <tbody>${MOCK_PREVIEW_DATA[t.name].map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+              <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+              <tbody>
+                ${preview.length > 0
+                  ? preview.map(row => `<tr>${cols.map(c => `<td>${row[c] !== undefined ? row[c] : '—'}</td>`).join('')}</tr>`).join('')
+                  : `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--text-muted);padding:12px">No preview data</td></tr>`}
+              </tbody>
             </table>
-            <div class="preview-note">Showing 3 of ${count} rows</div>
-          </div>
-        `;
+            <div class="preview-note">Showing ${preview.length} of ${count} rows</div>
+          </div>`;
         grid.appendChild(card);
       });
     }
 
     window.getTableFormat = (name) => tableFormats[name] || exportSettings.defaultFormat;
-    
+
     document.getElementById('table-export-grid').onclick = (e) => {
-      const pill = e.target.closest('.format-pill');
-      if (!pill) return;
+      const pill = e.target.closest('.format-pill'); if (!pill) return;
       const table = pill.closest('.format-selector-inline').dataset.table;
       tableFormats[table] = pill.dataset.format;
-      // Refresh only this card's pills
       pill.closest('.format-selector-inline').querySelectorAll('.format-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
     };
@@ -964,111 +1001,128 @@
       btn.textContent = isOpen ? 'Preview ▴' : 'Preview ▾';
     };
 
-    // ── HISTORY TABLE ──
+    /* ── HISTORY TABLE ── */
     function renderHistoryTable() {
       const tbody = document.getElementById('history-table-body');
       tbody.innerHTML = '';
-      MOCK_EXPORT_HISTORY.forEach(ex => {
+      if (exportHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No exports yet this session.</td></tr>`;
+        return;
+      }
+      exportHistory.forEach(ex => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="id-col">#${ex.id}</td>
-          <td>
-            <div class="type-col">
-              ${ex.type === 'Full Export' ? '<span class="all-tables-badge">ALL</span>Full System Backup' : `<span class="single-table-tag">${ex.type}</span>`}
-            </div>
-          </td>
+          <td><div class="type-col">${ex.type==='Full Export' ? '<span class="all-tables-badge">ALL</span>Full System Backup' : `<span class="single-table-tag">${ex.type}</span>`}</div></td>
           <td><span class="format-badge ${ex.format.toLowerCase()}">${ex.format}</span></td>
-          <td>${ex.tables}</td>
-          <td>${ex.rows}</td>
-          <td>${ex.size}</td>
+          <td>${ex.tables}</td><td>${ex.rows}</td><td>${ex.size}</td>
           <td class="timestamp-cell">
             <span class="time-relative">${relativeTime(ex.timestamp)}</span>
             <span class="time-absolute">${absoluteTime(ex.timestamp)}</span>
           </td>
-          <td><span class="delivery-badge ${ex.delivered.toLowerCase()}">${ex.delivered}</span></td>
-        `;
+          <td><span class="delivery-badge ${ex.delivered.toLowerCase()}">${ex.delivered}</span></td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // ── MODALS ──
+    /* ── EMAIL MODAL ── */
     const emailModal = document.getElementById('email-modal');
-    let emailTarget = 'Full Export';
+    let emailTarget  = 'Full Export';
 
     window.openEmailModal = (type = 'Full Export') => {
       emailTarget = type;
-      if (!MOCK_CONTACT_EMAIL) {
+      if (!contactEmail) {
         document.getElementById('email-confirm-block').style.display = 'none';
-        document.getElementById('no-email-warning').style.display = 'block';
+        document.getElementById('no-email-warning').style.display   = 'block';
         document.getElementById('btn-modal-send').disabled = true;
       } else {
         document.getElementById('email-confirm-block').style.display = 'flex';
-        document.getElementById('no-email-warning').style.display = 'none';
-        document.getElementById('confirm-email-text').textContent = MOCK_CONTACT_EMAIL;
+        document.getElementById('no-email-warning').style.display   = 'none';
+        document.getElementById('confirm-email-text').textContent   = contactEmail;
         document.getElementById('btn-modal-send').disabled = false;
       }
       emailModal.classList.add('open');
-    }
-
-    document.getElementById('btn-email-full').onclick = () => openEmailModal('Full Export');
-    document.getElementById('btn-modal-cancel').onclick = () => emailModal.classList.remove('open');
-    document.getElementById('btn-modal-send').onclick = () => {
-      emailModal.classList.remove('open');
-      const format = emailTarget === 'Full Export' ? quickFormat : getTableFormat(emailTarget);
-      simulateExport(format, emailTarget, 'Email');
     };
 
-    document.getElementById('link-to-settings').onclick = (e) => { e.preventDefault(); emailModal.classList.remove('open'); switchTab('settings'); };
+    document.getElementById('btn-email-full').onclick    = () => openEmailModal('Full Export');
+    document.getElementById('btn-modal-cancel').onclick  = () => emailModal.classList.remove('open');
+    document.getElementById('btn-modal-send').onclick    = () => {
+      emailModal.classList.remove('open');
+      const format = emailTarget === 'Full Export' ? quickFormat : getTableFormat(emailTarget);
+      runExport(format, emailTarget, 'Email');
+    };
+    document.getElementById('link-to-settings').onclick  = (e) => { e.preventDefault(); emailModal.classList.remove('open'); switchTab('settings'); };
     document.getElementById('link-change-email').onclick = (e) => { e.preventDefault(); emailModal.classList.remove('open'); switchTab('settings'); };
 
-    // ── SETTINGS ──
+    /* ── SETTINGS TAB ── */
     document.getElementById('settings-format-selector').onclick = (e) => {
-      const pill = e.target.closest('.format-pill');
-      if (!pill) return;
+      const pill = e.target.closest('.format-pill'); if (!pill) return;
       exportSettings.defaultFormat = pill.dataset.format;
       document.querySelectorAll('#settings-format-selector .format-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
-      
-      // Update Tab 1 pre-selections
-      quickFormat = exportSettings.defaultFormat;
-      refreshQuickFormat();
+      quickFormat  = exportSettings.defaultFormat;
       tableFormats = {};
+      refreshQuickFormat();
       renderTableExportCards();
-      
       showToast(`Default format set to ${exportSettings.defaultFormat}`, 'success');
     };
 
     document.getElementById('btn-save-settings').onclick = () => {
       const email = document.getElementById('settings-email').value.trim();
       if (!email || !email.includes('@')) { showToast('Please enter a valid email', 'error'); return; }
-      MOCK_CONTACT_EMAIL = email;
+      contactEmail = email;
+      sessionStorage.setItem('ems_contact_email', email);
+      document.getElementById('confirm-email-text').textContent = email;
       showToast('Contact email updated', 'success');
     };
 
     document.getElementById('btn-clear-history').onclick = () => {
-      MOCK_EXPORT_HISTORY = [];
+      exportHistory = [];
       renderHistoryTable();
       showToast('Export history cleared', 'success');
     };
 
-    // ── TOASTS ──
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
+    /* ── LOAD LIVE DATA ── */
+    async function loadExportPage() {
+      try {
+        // Load all table data in parallel for counts + preview
+        const [emps, depts, projs, works, deps, locs] = await Promise.all([
+          apiCall('/employees'), apiCall('/departments'), apiCall('/projects'),
+          apiCall('/works-on'), apiCall('/dependents'), apiCall('/dept-locations')
+        ]);
 
-    // Sidebar Mobile
-    document.getElementById('hamburger-btn').onclick = () => {
-      document.getElementById('sidebar').classList.add('open');
-      document.getElementById('sidebar-overlay').classList.add('open');
-    };
+        LIVE_DATA = {
+          employee:       emps  || [],
+          department:     depts || [],
+          project:        projs || [],
+          works_on:       works || [],
+          dependent:      deps  || [],
+          dept_locations: locs  || [],
+        };
+
+        TABLE_COUNTS = {};
+        Object.entries(LIVE_DATA).forEach(([k, arr]) => { TABLE_COUNTS[k] = arr.length; });
+
+        // Prefill email from settings page if it was saved
+        const savedEmail = sessionStorage.getItem('ems_contact_email');
+        if (savedEmail) {
+          contactEmail = savedEmail;
+          document.getElementById('settings-email').value = savedEmail;
+          document.getElementById('confirm-email-text').textContent = savedEmail;
+        }
+
+        refreshQuickFormat();
+        renderTableExportCards();
+        renderHistoryTable();
+      } catch(err) {
+        showToast(`Failed to load: ${err.message}`, 'error');
+        // Still render cards with unknown counts
+        renderTableExportCards();
+        renderHistoryTable();
+      }
+    }
+    loadExportPage();
+
+  </script>
+</body>
+</html>
