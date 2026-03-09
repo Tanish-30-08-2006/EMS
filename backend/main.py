@@ -38,6 +38,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from jose import JWTError, jwt
+import httpx
 
 # --------------------------------------------------------------------------------------------------
 # IMPORT YOUR EXISTING BACKEND — ZERO CHANGES TO THESE FILES
@@ -78,6 +79,7 @@ from services.data_porter import export_company_data_json, export_company_data_c
 # JWT CONFIG  —  Change SECRET_KEY to a long random string before deploying
 # --------------------------------------------------------------------------------------------------
 SECRET_KEY = os.getenv("JWT_SECRET", "ems-super-secret-dev-key-change-in-production")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 ALGORITHM  = "HS256"
 TOKEN_EXPIRE_HOURS = 12
 
@@ -412,6 +414,67 @@ def delete_workspace(body: DeleteWorkspaceRequest):
     if not success:
         raise HTTPException(status_code=400, detail=msg)
     return {"message": msg}
+
+
+
+class SupabaseExchangeRequest(BaseModel):
+    access_token: str
+
+@app.post("/auth/supabase-exchange")
+async def supabase_exchange(body: SupabaseExchangeRequest):
+    """
+    Receives a Supabase access_token (from Google OAuth or Email OTP),
+    looks up which EMS workspace is registered with that email,
+    and returns an EMS JWT — same shape as /auth/login.
+    """
+    # 1. Ask Supabase who this token belongs to
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://xvajtgcetorlzrnmklao.supabase.co/auth/v1/user",
+                headers={
+                    "Authorization": f"Bearer {body.access_token}",
+                    "apikey": SUPABASE_ANON_KEY,
+                },
+                timeout=10,
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid Supabase token.")
+        user_email = resp.json().get("email")
+        if not user_email:
+            raise HTTPException(status_code=401, detail="No email found in Supabase token.")
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="Could not reach Supabase.")
+
+    # 2. Look up the EMS workspace by email
+    try:
+        with ConnectionFactory.get_admin_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT tenant_id, company_name FROM public.tenants WHERE email = %s",
+                    (user_email,)
+                )
+                row = cur.fetchone()
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No EMS workspace is registered with {user_email}. "
+                       "Log in with your company name and password, go to Settings → Contact, "
+                       "save this email address, then try again."
+            )
+        tenant_id, company_name = row
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # 3. Mint and return an EMS JWT — identical shape to /auth/login
+    token = create_token(tenant_id, company_name)
+    return {
+        "token":        token,
+        "company_name": company_name,
+        "tenant_id":    tenant_id,
+    }
 
 
 @app.get("/auth/me")

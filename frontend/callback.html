@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Signing in…</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0f0f0f;
+      color: #a1a1a1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      font-size: 14px;
+    }
+    .msg { text-align: center; }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid #2a2a2a;
+      border-top-color: #2952cc;
+      border-radius: 50%;
+      animation: spin 600ms linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <div class="spinner"></div>
+    Completing sign-in…
+  </div>
+
+  <script>
+    // This page is where Google redirects after the user picks their account.
+    // Supabase puts the session tokens in the URL hash (#access_token=...&refresh_token=...)
+    // We read them, pass them back to the login window, then close this popup.
+
+    const SUPABASE_URL  = 'https://xvajtgcetorlzrnmklao.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YWp0Z2NldG9ybHpybm1rbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODI3MjYsImV4cCI6MjA4Nzc1ODcyNn0.Tf31vlooUkG-K42C3WYhSctANQJyk9u-syDqn9dH70g';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    (async () => {
+      // getSession() reads the tokens Supabase placed in the URL hash automatically
+      const { data: { session }, error } = await sb.auth.getSession();
+
+      if (error || !session) {
+        // Something went wrong — tell the parent and close
+        if (window.opener) {
+          window.opener.postMessage({ type: 'EMS_GOOGLE_ERROR', error: error?.message || 'No session' }, '*');
+        }
+        window.close();
+        return;
+      }
+
+      // Send the access_token to the parent (login.html) window
+      if (window.opener) {
+        window.opener.postMessage({
+          type:         'EMS_GOOGLE_SUCCESS',
+          access_token: session.access_token,
+        }, '*');
+      }
+
+      window.close();
+    })();
+  </script>
+</body>
+</html>
