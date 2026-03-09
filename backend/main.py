@@ -79,7 +79,11 @@ from services.data_porter import export_company_data_json, export_company_data_c
 # JWT CONFIG  —  Change SECRET_KEY to a long random string before deploying
 # --------------------------------------------------------------------------------------------------
 SECRET_KEY = os.getenv("JWT_SECRET", "ems-super-secret-dev-key-change-in-production")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+SUPABASE_ANON_KEY = os.getenv(
+    "SUPABASE_ANON_KEY",
+    # Fallback: the public anon key for this Supabase project (safe to hardcode — it's public)
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YWp0Z2NldG9ybHpybm1rbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODI3MjYsImV4cCI6MjA4Nzc1ODcyNn0.Tf31vlooUkG-K42C3WYhSctANQJyk9u-syDqn9dH70g"
+)
 ALGORITHM  = "HS256"
 TOKEN_EXPIRE_HOURS = 12
 
@@ -439,12 +443,18 @@ async def supabase_exchange(body: SupabaseExchangeRequest):
                 timeout=10,
             )
         if resp.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid Supabase token.")
+            raise HTTPException(
+                status_code=401,
+                detail=f"Supabase token rejected (status {resp.status_code}). "
+                       f"Response: {resp.text[:200]}"
+            )
         user_email = resp.json().get("email")
         if not user_email:
             raise HTTPException(status_code=401, detail="No email found in Supabase token.")
-    except httpx.RequestError:
-        raise HTTPException(status_code=503, detail="Could not reach Supabase.")
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Could not reach Supabase: {str(e)}")
 
     # 2. Look up the EMS workspace by email
     try:
