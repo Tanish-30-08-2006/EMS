@@ -643,8 +643,8 @@
             <div class="form-subheading" style="margin-bottom:16px;">Enter the 6-digit code sent to your inbox</div>
             <div class="input-group">
               <label class="input-label">One-Time Code</label>
-              <input type="text" id="otp-code" class="input-field" placeholder="123456"
-                maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+              <input type="text" id="otp-code" class="input-field" placeholder="123456 or 12345678"
+                maxlength="8" inputmode="numeric" autocomplete="one-time-code">
             </div>
             <div id="otp-verify-error" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px;"></div>
             <button class="btn-submit" id="otp-verify-btn" onclick="verifyOtp()" type="button">
@@ -789,8 +789,8 @@
     const token = document.getElementById('otp-code').value.trim();
     const errEl = document.getElementById('otp-verify-error');
     errEl.style.display = 'none';
-    if (token.length !== 6) {
-      errEl.textContent = 'Code must be 6 digits.'; errEl.style.display = 'block'; return;
+    if (token.length < 6 || token.length > 8) {
+      errEl.textContent = 'Code must be 6 or 8 digits.'; errEl.style.display = 'block'; return;
     }
     const btn = document.getElementById('otp-verify-btn');
     btn.textContent = 'Verifying...'; btn.disabled = true;
@@ -834,28 +834,34 @@
   
   // -- GOOGLE SIGN-IN -------------------------------------------------------
   //
-  // HOW IT WORKS:
+  // HOW THE FLOW WORKS (step by step):
+  //
   //   1. User clicks "Sign in with Google"
-  //   2. We ask Supabase for the Google auth URL (skipBrowserRedirect keeps us in control)
-  //   3. We open that URL in a small popup — the redirectTo points to callback.html
-  //      on the SAME Live Server port, so it actually loads
-  //   4. callback.html reads the tokens from the URL hash, posts them back here, closes
-  //   5. We receive the access_token, send it to the EMS backend, get an EMS JWT, done
+  //   2. We call sb.auth.signInWithOAuth with redirectTo = THIS page (login.html)
+  //      skipBrowserRedirect:true means Supabase gives us the URL instead of redirecting
+  //   3. We open that URL in a small popup window
+  //   4. User picks their Google account in the popup
+  //   5. Google redirects to Supabase's callback URL (registered in Google Cloud Console)
+  //   6. Supabase processes the token and redirects to OUR redirectTo = login.html
+  //      The token is appended as a URL hash: login.html#access_token=...
+  //   7. login.html loads in the popup with the hash
+  //   8. The "handle OAuth callback" block at the top of this script detects the hash,
+  //      extracts the access_token, sends it to the EMS backend, gets an EMS JWT, done
   //
   async function signInWithGoogle() {
-    // Build the redirectTo URL pointing to callback.html on the same server
-    const callbackUrl = window.location.href.replace(/\/[^\/]*$/, '/callback.html');
+    // redirectTo = this exact page — Supabase will redirect back here after Google auth
+    const redirectTo = window.location.href.split('#')[0].split('?')[0];
 
     const { data, error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: callbackUrl,
+        redirectTo: redirectTo,
         skipBrowserRedirect: true,
       }
     });
     if (error) { alert('Google sign-in error: ' + error.message); return; }
 
-    // Open the Google account picker in a centred popup
+    // Open Google's account picker in a centred popup
     const w = 500, h = 600;
     const left = Math.round(screen.width  / 2 - w / 2);
     const top  = Math.round(screen.height / 2 - h / 2);
@@ -864,27 +870,45 @@
       'ems_google_login',
       `width=${w},height=${h},left=${left},top=${top},resizable=yes`
     );
-
-    // Listen for the message that callback.html will post back to us
-    window.addEventListener('message', async function handler(event) {
-      // Only handle our own message type
-      if (!event.data || !event.data.type || !event.data.type.startsWith('EMS_GOOGLE_')) return;
-
-      // Remove this listener immediately — one use only
-      window.removeEventListener('message', handler);
-
-      if (event.data.type === 'EMS_GOOGLE_ERROR') {
-        alert('Google sign-in failed: ' + (event.data.error || 'Unknown error'));
-        return;
-      }
-
-      if (event.data.type === 'EMS_GOOGLE_SUCCESS') {
-        await exchangeSession(event.data.access_token);
-      }
-    });
+    // The popup will land back on login.html with #access_token in the hash.
+    // The "handle OAuth callback" block below will fire in THAT popup window,
+    // exchange the token, and redirect the popup to dashboard.html.
+    // Meanwhile this parent window waits — user will notice they're logged in
+    // when the popup redirects to dashboard and they can close/use it.
   }
 
-  // Shared: swap a Supabase access_token for an EMS JWT
+  // -- HANDLE OAUTH CALLBACK (runs when this page loads with #access_token in URL) --
+  // This block fires in the popup after Google redirects back to login.html
+  (async () => {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token=')) return; // normal login page load, skip
+
+    // We are in the popup (or redirected page) — show a loading state
+    document.body.innerHTML = `
+      <div style="font-family:Inter,sans-serif;background:#0f0f0f;color:#a1a1a1;
+                  display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  min-height:100vh;gap:12px;font-size:14px;">
+        <div style="width:28px;height:28px;border:2px solid #2a2a2a;border-top-color:#2952cc;
+                    border-radius:50%;animation:spin 600ms linear infinite;"></div>
+        <span>Completing sign-in…</span>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      </div>`;
+
+    // Get the session Supabase placed in the hash
+    const { data: { session }, error } = await sb.auth.getSession();
+
+    if (error || !session) {
+      document.body.innerHTML = `<div style="font-family:Inter,sans-serif;background:#0f0f0f;
+        color:#ef4444;display:flex;align-items:center;justify-content:center;min-height:100vh;
+        font-size:14px;">Sign-in failed: ${error?.message || 'No session found'}</div>`;
+      return;
+    }
+
+    // Exchange Supabase access_token for EMS JWT
+    await exchangeSession(session.access_token);
+  })();
+
+  // Shared: swap a Supabase access_token for an EMS JWT, then go to dashboard
   async function exchangeSession(access_token) {
     try {
       const res = await fetch('http://localhost:8000/auth/supabase-exchange', {
@@ -894,7 +918,10 @@
       });
       const d = await res.json();
       if (!res.ok) {
-        alert(d.detail || 'Login failed.');
+        document.body.innerHTML = `<div style="font-family:Inter,sans-serif;background:#0f0f0f;
+          color:#ef4444;display:flex;align-items:center;justify-content:center;min-height:100vh;
+          padding:24px;text-align:center;font-size:14px;">${d.detail || 'Login failed.'}<br><br>
+          <a href="login.html" style="color:#a8bfff">← Back to login</a></div>`;
         return;
       }
       sessionStorage.setItem('ems_token',     d.token);
@@ -902,7 +929,11 @@
       sessionStorage.setItem('ems_tenant_id', d.tenant_id);
       window.location.href = 'dashboard.html';
     } catch (e) {
-      alert('Could not reach the EMS backend. Make sure uvicorn is running on port 8000.');
+      document.body.innerHTML = `<div style="font-family:Inter,sans-serif;background:#0f0f0f;
+        color:#ef4444;display:flex;align-items:center;justify-content:center;min-height:100vh;
+        padding:24px;text-align:center;font-size:14px;">Could not reach the EMS backend.<br>
+        Make sure uvicorn is running on port 8000.<br><br>
+        <a href="login.html" style="color:#a8bfff">← Back to login</a></div>`;
     }
   }
   // -- END GOOGLE SIGN-IN ---------------------------------------------------
