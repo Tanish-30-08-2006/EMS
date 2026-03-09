@@ -485,7 +485,10 @@
   </style>
 </head>
 <body>
-  <a href="index.html" style="position:fixed;top:16px;left:16px;font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;z-index:200;transition:color 200ms;font-family:Inter,sans-serif;" onmouseover="this.style.color='#a8bfff'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">← Home</a>
+  <a href="index.html" style="position:fixed;top:20px;left:20px;font-size:13px;color:var(--text-secondary);text-decoration:none;z-index:200;transition:color 200ms,opacity 200ms;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px;opacity:0.75;" onmouseover="this.style.color='#a8bfff';this.style.opacity='1'" onmouseout="this.style.color='var(--text-secondary)';this.style.opacity='0.75'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Home
+  </a>
 
   <!-- SVG Sprite/Defs (Shield Logo inside) -->
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
@@ -676,6 +679,7 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
     const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     const EYE_SLASH_SVG = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
@@ -718,7 +722,7 @@
 
       // REAL API CALL — POST /auth/login
       try {
-        const res = await fetch('http://localhost:8000/auth/login', {
+        const res = await fetch(window.API_BASE + '/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ company_name: companyName, password })
@@ -804,7 +808,7 @@
  
     // 2. Exchange Supabase session for EMS token
     try {
-      const res = await fetch('http://localhost:8000/auth/supabase-exchange', {
+      const res = await fetch(window.API_BASE + '/auth/supabase-exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: data.session.access_token })
@@ -901,7 +905,7 @@
   async function exchangeSession(access_token) {
     const pageContainer = document.querySelector('.page-container');
     try {
-      const res = await fetch('http://localhost:8000/auth/supabase-exchange', {
+      const res = await fetch(window.API_BASE + '/auth/supabase-exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token })

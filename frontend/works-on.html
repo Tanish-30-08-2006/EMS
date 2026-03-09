@@ -466,6 +466,7 @@
 
   <div class="toast-container" id="toast-container"></div>
 
+  <script src="config.js"></script>
   <script>
     // ── AUTH GUARD ──
     if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
@@ -475,7 +476,7 @@
       const token = sessionStorage.getItem('ems_token');
       const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
       if (body) opts.body = JSON.stringify(body);
-      const res = await fetch(`http://localhost:8000${url}`, opts);
+      const res = await fetch(`${window.API_BASE}${url}`, opts);
       if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Request failed');
@@ -787,7 +788,7 @@
     document.getElementById('sidebar-logo-btn').addEventListener('click', _openLogout);
     document.getElementById('logout-btn').addEventListener('click', _openLogout);
     document.getElementById('logout-cancel-btn').addEventListener('click', () => { _logoutModal.classList.remove('open'); if(_logoutBox)_logoutBox.style.transform='scale(0.95)'; });
-    document.getElementById('logout-confirm-btn').addEventListener('click', () => { sessionStorage.clear(); window.location.href='login.html'; });
+    document.getElementById('logout-confirm-btn').addEventListener('click', () => { sessionStorage.clear(); localStorage.clear(); window.location.href='login.html'; });
     _logoutModal.addEventListener('click', (e) => { if(e.target===_logoutModal){_logoutModal.classList.remove('open'); if(_logoutBox)_logoutBox.style.transform='scale(0.95)';} });
 
     /* ── INITIAL LOAD ── */
@@ -807,6 +808,19 @@
     loadWorksOnPage();
 
   </script>
+
+
+  <div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
