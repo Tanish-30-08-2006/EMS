@@ -844,18 +844,19 @@
   //      calls exchangeSession(), stores the EMS JWT, goes to dashboard
   //
   async function signInWithGoogle() {
-    // Use the current page URL (minus any existing hash) as the redirect target.
-    // Supabase will send the user back here with #access_token=... after Google auth.
-    const redirectTo = window.location.href.split('#')[0].split('?')[0];
+    // Build the redirectTo URL pointing exactly to login.html on this server.
+    // We derive it from window.location so it works on any port or path.
+    // Supabase will redirect back here with #access_token=... after Google auth.
+    const origin = window.location.origin;                       // e.g. http://127.0.0.1:5500
+    const dir    = window.location.pathname.replace(/\/[^/]*$/, ''); // folder path
+    const redirectTo = origin + dir + '/login.html';             // e.g. .../login.html
 
     const { data, error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: redirectTo }
-      // No skipBrowserRedirect — let Supabase navigate the full page to Google
+      // No skipBrowserRedirect — full page navigates to Google then back here
     });
 
-    // signInWithOAuth navigates the page away to Google automatically.
-    // If there's an error before navigation, show it.
     if (error) { alert('Google sign-in error: ' + error.message); }
   }
 
