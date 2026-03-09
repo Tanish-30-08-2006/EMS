@@ -12,4 +12,4 @@
 //
 // =============================================================================
 
-window.API_BASE = 'http://localhost:8000';
+window.API_BASE = 'https://ems-6syl.onrender.com';
