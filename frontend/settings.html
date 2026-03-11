@@ -691,10 +691,10 @@
       document.getElementById('confirm-name-challenge').textContent = companyName;
 
       // Apply saved preferences
-      const savedAccent = sessionStorage.getItem('ems_accent');
+      const savedAccent = localStorage.getItem('ems_accent');
       if (savedAccent) applyAccentColor(savedAccent);
       
-      const savedCompact = sessionStorage.getItem('ems_compact') === '1';
+      const savedCompact = localStorage.getItem('ems_compact') === '1';
       document.getElementById('compact-toggle').checked = savedCompact;
       applyCompactMode(savedCompact);
 
@@ -873,7 +873,7 @@
       root.style.setProperty('--accent-subtle', data.subtle);
       root.style.setProperty('--accent-text', data.text);
       
-      sessionStorage.setItem('ems_accent', hex);
+      localStorage.setItem('ems_accent', hex);
     }
 
     document.getElementById('compact-toggle').onchange = (e) => {
@@ -889,7 +889,7 @@
         root.style.removeProperty('--cell-padding');
         root.style.removeProperty('--base-font-size');
       }
-      sessionStorage.setItem('ems_compact', enabled ? '1' : '0');
+      localStorage.setItem('ems_compact', enabled ? '1' : '0');
     }
 
     // ── DANGER ZONE (DELETE) ──

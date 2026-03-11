@@ -1,5 +1,5 @@
 // ems-init.js — loaded on every EMS page after config.js
-// Handles: accent colour restore, compact mode restore
+// Restores accent colour and compact mode from localStorage (persists across pages/sessions)
 
 (function() {
   const ACCENT_MAP = {
@@ -11,19 +11,19 @@
     '#374151': { hover: '#1f2937', subtle: 'rgba(55,65,81,0.10)',   text: '#9ca3af'  },
   };
 
-  // Restore accent colour
-  const savedAccent = sessionStorage.getItem('ems_accent');
+  // Use localStorage so colour persists across ALL pages and sessions
+  const savedAccent = localStorage.getItem('ems_accent');
   if (savedAccent && ACCENT_MAP[savedAccent]) {
     const root = document.documentElement;
     const data = ACCENT_MAP[savedAccent];
-    root.style.setProperty('--accent',       savedAccent);
-    root.style.setProperty('--accent-hover', data.hover);
-    root.style.setProperty('--accent-subtle',data.subtle);
-    root.style.setProperty('--accent-text',  data.text);
+    root.style.setProperty('--accent',        savedAccent);
+    root.style.setProperty('--accent-hover',  data.hover);
+    root.style.setProperty('--accent-subtle', data.subtle);
+    root.style.setProperty('--accent-text',   data.text);
   }
 
   // Restore compact mode
-  if (sessionStorage.getItem('ems_compact') === '1') {
+  if (localStorage.getItem('ems_compact') === '1') {
     document.documentElement.classList.add('compact');
   }
 })();
