@@ -777,9 +777,6 @@
   </div>
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-  <!-- MOBILE SIDEBAR OVERLAY -->
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
   <!-- MAIN CONTENT -->
   <main class="main-content">
     <div class="page-header">
@@ -1099,6 +1096,7 @@
     loadDashboard();
 
     // ── LOGOUT MODAL ──
+    document.addEventListener(\'DOMContentLoaded\', function() {
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
     function _openLogout() {
@@ -1128,6 +1126,7 @@
     document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
       this.style.boxShadow='none';
     });
+    }); // end DOMContentLoaded for logout
     // ── MOBILE SIDEBAR ──
     const _hamburger = document.getElementById('hamburger-btn');
     const _sidebarEl = document.getElementById('sidebar');

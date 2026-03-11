@@ -323,6 +323,7 @@
     </div>
   
   </aside>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <main class="main-content">
     <div class="page-header">
@@ -783,6 +784,7 @@
     });
 
     /* ── LOGOUT ── */
+    document.addEventListener('DOMContentLoaded', function() {
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
     function _openLogout() { _logoutModal.classList.add('open'); setTimeout(()=>{if(_logoutBox)_logoutBox.style.transform='scale(1)';},10); }
@@ -791,6 +793,7 @@
     document.getElementById('logout-cancel-btn').addEventListener('click', () => { _logoutModal.classList.remove('open'); if(_logoutBox)_logoutBox.style.transform='scale(0.95)'; });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => { sessionStorage.clear(); localStorage.clear(); window.location.href='login.html'; });
     _logoutModal.addEventListener('click', (e) => { if(e.target===_logoutModal){_logoutModal.classList.remove('open'); if(_logoutBox)_logoutBox.style.transform='scale(0.95)';} });
+    }); // end DOMContentLoaded for logout
 
     /* ── INITIAL LOAD ── */
     async function loadWorksOnPage() {
