@@ -935,6 +935,7 @@
     loadDependentsPage();
 
     // ── LOGOUT MODAL ──
+    document.addEventListener(\'DOMContentLoaded\', function() {
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
     function _openLogout() {
@@ -964,6 +965,7 @@
     document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
       this.style.boxShadow='none';
     });
+    }); // end DOMContentLoaded for logout
     // ── MOBILE SIDEBAR ──
     const _hamburger = document.getElementById('hamburger-btn');
     const _sidebarEl = document.getElementById('sidebar');

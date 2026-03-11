@@ -448,7 +448,9 @@
     </div>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script src="config.js"></script>
+  <script src="ems-init.js"></script>
+  <script>
     // ── AUTH GUARD ──
     // When backend is live: replace 'ems_company' check with JWT token check:
     // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
@@ -475,6 +477,7 @@
     });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => {
       sessionStorage.clear();
+      localStorage.clear();
       window.location.href = 'login.html';
     });
     _logoutModal.addEventListener('click', (e) => {
