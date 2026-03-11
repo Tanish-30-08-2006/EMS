@@ -855,6 +855,18 @@
   <!-- TOASTS -->
   <div class="toast-container" id="toast-container"></div>
 
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="ems-init.js"></script>
   <script>
@@ -1365,7 +1377,6 @@
     loadEmployeesPage();
 
     // ── LOGOUT MODAL ──
-    document.addEventListener(\'DOMContentLoaded\', function() {
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
     function _openLogout() {
@@ -1395,7 +1406,6 @@
     document.getElementById('logout-confirm-btn').addEventListener('mouseleave', function(){
       this.style.boxShadow='none';
     });
-    }); // end DOMContentLoaded for logout
     // ── MOBILE SIDEBAR ──
     const _hamburger = document.getElementById('hamburger-btn');
     const _sidebarEl = document.getElementById('sidebar');
@@ -1420,18 +1430,5 @@
       });
     }
   </script>
-
-  <div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
-    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
-      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
-      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
-      <div style="display:flex;gap:10px;justify-content:center;">
-        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
-        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
