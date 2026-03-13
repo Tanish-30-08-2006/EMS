@@ -615,7 +615,10 @@
   </style>
 </head>
 <body>
-  <a href="index.html" style="position:fixed;top:16px;left:16px;font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;z-index:200;transition:color 200ms;font-family:Inter,sans-serif;" onmouseover="this.style.color='#a8bfff'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">← Home</a>
+    <a href="index.html" style="position:fixed;top:20px;left:20px;font-size:13px;color:var(--text-secondary);text-decoration:none;z-index:200;transition:color 200ms,opacity 200ms;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px;opacity:0.75;" onmouseover="this.style.color='#a8bfff';this.style.opacity='1'" onmouseout="this.style.color='var(--text-secondary)';this.style.opacity='0.75'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Home
+  </a>
 
   <!-- SVG Sprite/Defs (Shield Logo inside) -->
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
@@ -835,6 +838,7 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
     const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     const EYE_SLASH_SVG = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
@@ -1003,13 +1007,6 @@
     if (hamburgerBtn) hamburgerBtn.addEventListener("click", toggleMobileNav);
     if (mobileNavClose) mobileNavClose.addEventListener("click", toggleMobileNav);
 
-    // ══════════════════════════════════════════════════════
-    // REPLACE THIS BLOCK WITH REAL API CALL WHEN BACKEND READY
-    // API endpoint: POST /auth/signup
-    // Body: { company_name: string, password: string, contact_email?: string }
-    // Success: { tenant_id: string, company_name: string }
-    // Errors: 409 company name taken / 409 email taken / 422 validation
-    // ══════════════════════════════════════════════════════
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1035,12 +1032,38 @@
 
       setLoading(true);
 
-      // MOCK: simulate API delay
-      await new Promise(r => setTimeout(r, 1000));
+      // REAL API CALL — POST /auth/signup
+      try {
+        const res = await fetch(window.API_BASE + '/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company_name: companyName,
+            password: password,
+            email: email || null
+          })
+        });
 
-      // Mock success
-      showSuccess(companyName);
-      setLoading(false);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.detail || 'Signup failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        // Store session immediately after signup
+        sessionStorage.setItem('ems_token', data.token);
+        sessionStorage.setItem('ems_company', data.company_name);
+        sessionStorage.setItem('ems_tenant_id', data.tenant_id);
+
+        showSuccess(data.company_name, data.tenant_id);
+        setLoading(false);
+
+      } catch (err) {
+        showError('Cannot reach the server. Make sure the backend is running on port 8000.');
+        setLoading(false);
+      }
     });
 
     function showError(msg) {
@@ -1057,11 +1080,11 @@
       submitBtn.style.cursor = loading ? 'not-allowed' : 'pointer';
     }
 
-    function showSuccess(companyName) {
+    function showSuccess(companyName, tenantId) {
       document.getElementById('signup-form').style.display = 'none';
       const successState = document.getElementById('success-state');
       successState.style.display = 'block';
-      document.getElementById('tenant-value').textContent = `comp_${companyName}`;
+      document.getElementById('tenant-value').textContent = tenantId || `comp_${companyName}`;
 
       // Start progress bar
       const bar = document.getElementById('redirect-bar');
@@ -1071,7 +1094,7 @@
 
       // Redirect after 2.1s
       setTimeout(() => {
-        sessionStorage.setItem('ems_company', companyName);
+        // sessionStorage already set during API call above
         window.location.href = 'dashboard.html';
       }, 2100);
     }

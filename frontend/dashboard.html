@@ -777,9 +777,6 @@
   </div>
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-  <!-- MOBILE SIDEBAR OVERLAY -->
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
   <!-- MAIN CONTENT -->
   <main class="main-content">
     <div class="page-header">
@@ -921,49 +918,64 @@
     </div>
   </main>
 
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ems-init.js"></script>
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!// // FUTURE BUGS: F2(thread safety), F7(JWT tokens), F8(CORS) — see EMS_BUG_FIX_PROMPT.md
-    sessionStorage.getItem('ems_company')) {
+    if (!sessionStorage.getItem('ems_token')) {
       window.location.href = 'login.html';
     }
+
     /* Sidebar mobile toggle */
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const hamburgerBtn = document.getElementById('hamburger-btn');
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
-
-    const openSidebar = () => {
-      sidebar.classList.add('open');
-      sidebarOverlay.style.display = 'block';
-      document.body.style.overflow = 'hidden';
-    };
-    const closeSidebar = () => {
-      sidebar.classList.remove('open');
-      sidebarOverlay.style.display = 'none';
-      document.body.style.overflow = '';
-    };
-
+    const openSidebar  = () => { sidebar.classList.add('open'); sidebarOverlay.style.display = 'block'; document.body.style.overflow = 'hidden'; };
+    const closeSidebar = () => { sidebar.classList.remove('open'); sidebarOverlay.style.display = 'none'; document.body.style.overflow = ''; };
     hamburgerBtn.addEventListener('click', openSidebar);
     sidebarCloseBtn.addEventListener('click', closeSidebar);
     sidebarOverlay.addEventListener('click', closeSidebar);
 
-    /* Session Storage Greeting & Logout */
+    /* Company name greeting */
     const companyName = sessionStorage.getItem('ems_company') || 'My Company';
     document.getElementById('sidebar-company-name').textContent = companyName;
     document.getElementById('page-greeting').textContent = `Welcome back, ${companyName}`;
 
-    
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`${window.API_BASE}${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
+    }
 
-    /* Count-up animation */
+    /* ── COUNT-UP ANIMATION ── */
     function countUp(element, target, duration = 800) {
       const start = performance.now();
       const update = (time) => {
         const elapsed = time - start;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
         element.textContent = Math.floor(eased * target);
         if (progress < 1) requestAnimationFrame(update);
         else element.textContent = target;
@@ -971,112 +983,130 @@
       requestAnimationFrame(update);
     }
 
-    // Trigger stats after initial fade-in (400ms)
-    setTimeout(() => {
-      countUp(document.getElementById('stat-emp-count'), 12);
-      countUp(document.getElementById('stat-dept-count'), 4);
-      countUp(document.getElementById('stat-proj-count'), 6);
-      countUp(document.getElementById('stat-audit-count'), 23);
-    }, 400);
-
-    /* Render Dept Headcount mock data */
-    const deptData = [
-      { name: 'Research',    count: 5, manager: 'James Borg' },
-      { name: 'Engineering', count: 4, manager: 'Franklin T. Wong' },
-      { name: 'HR',          count: 2, manager: 'Jennifer Wallace' },
-      { name: 'Finance',     count: 1, manager: 'Alicia Zelaya' },
-    ];
-    const maxDeptCount = Math.max(...deptData.map(d => d.count));
-    const deptContainer = document.getElementById('dept-list-container');
-    
-    deptData.forEach((dept, index) => {
-      const row = document.createElement('div');
-      row.className = 'dept-row';
-      const percentage = (dept.count / maxDeptCount) * 100;
-      
-      row.innerHTML = `
-        <div class="dept-row-top">
-          <div class="dept-info">
-            <div class="dept-name">${dept.name}</div>
-            <div class="dept-manager">MGR: ${dept.manager}</div>
+    /* ── RENDER DEPT HEADCOUNT ── */
+    function renderDepts(deptBreakdown) {
+      const maxCount = Math.max(...deptBreakdown.map(d => d.headcount), 1);
+      const container = document.getElementById('dept-list-container');
+      container.innerHTML = '';
+      deptBreakdown.forEach((dept, index) => {
+        const pct = (dept.headcount / maxCount) * 100;
+        const row = document.createElement('div');
+        row.className = 'dept-row';
+        row.innerHTML = `
+          <div class="dept-row-top">
+            <div class="dept-info">
+              <div class="dept-name">${dept.dname}</div>
+              <div class="dept-manager">Dept #${dept.dno}</div>
+            </div>
+            <div class="dept-count-badge">${dept.headcount}</div>
           </div>
-          <div class="dept-count-badge">${dept.count}</div>
-        </div>
-        <div class="dept-bar-track">
-          <div class="dept-bar-fill" style="width: 0%" id="dept-bar-${index}"></div>
-        </div>
-      `;
-      deptContainer.appendChild(row);
-      
-      // Animate bar width after small staggered delay
-      setTimeout(() => {
-        document.getElementById(`dept-bar-${index}`).style.width = `${percentage}%`;
-      }, 500 + (index * 100));
-    });
-
-    /* Render Workload Panel mock data */
-    const workloadData = [
-      { name: 'John Smith',     dept: 'Research',    projects: 0, hours: 0   },
-      { name: 'Alice Zelaya',   dept: 'Finance',     projects: 1, hours: 20  },
-      { name: 'Franklin Wong',  dept: 'Engineering', projects: 2, hours: 35  },
-      { name: 'Joyce English',  dept: 'Research',    projects: 3, hours: 40  },
-      { name: 'James Borg',     dept: 'Research',    projects: 2, hours: 30  },
-    ];
-    const workloadContainer = document.getElementById('workload-list-container');
-
-    workloadData.forEach(emp => {
-      const row = document.createElement('div');
-      row.className = 'workload-row';
-      
-      let badgeClass = 'multi';
-      let badgeText = `${emp.projects} projects`;
-      if (emp.projects === 0) { badgeClass = 'zero'; badgeText = '0 projects'; }
-      else if (emp.projects === 1) { badgeClass = 'one'; badgeText = '1 project'; }
-
-      row.innerHTML = `
-        <div class="workload-row-top">
-          <div class="emp-info">
-            <div class="emp-name">${emp.name}</div>
-            <div class="emp-dept">${emp.dept}</div>
+          <div class="dept-bar-track">
+            <div class="dept-bar-fill" style="width:0%" id="dept-bar-${index}"></div>
           </div>
-          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px">
-            <div class="workload-badge ${badgeClass}">${badgeText}</div>
-            <div class="workload-hours">${emp.hours} hrs/week</div>
+        `;
+        container.appendChild(row);
+        setTimeout(() => {
+          document.getElementById(`dept-bar-${index}`).style.width = `${pct}%`;
+        }, 500 + index * 100);
+      });
+    }
+
+    /* ── RENDER AUDIT ACTIVITY ── */
+    function renderAudit(logs) {
+      const tbody = document.getElementById('audit-table-body');
+      tbody.innerHTML = '';
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">No recent activity</td></tr>';
+        return;
+      }
+      logs.forEach((log, i) => {
+        const tr = document.createElement('tr');
+        tr.style.animationDelay = `${i * 60 + 500}ms`;
+        const opLower = (log.operation || '').toLowerCase();
+        const timeStr = log.changed_at ? new Date(log.changed_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+        const detail  = log.new_data ? JSON.stringify(log.new_data).substring(0, 50) : '—';
+        tr.innerHTML = `
+          <td>${timeStr}</td>
+          <td><span class="table-tag">${log.table_name || '—'}</span></td>
+          <td><span class="op-badge ${opLower}">${log.operation || '—'}</span></td>
+          <td>${detail}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ── LOAD DASHBOARD ── */
+    async function loadDashboard() {
+      try {
+        const data = await apiCall('/dashboard/summary');
+        if (!data) return;
+
+        // Stat cards with count-up
+        setTimeout(() => {
+          countUp(document.getElementById('stat-emp-count'),   data.total_employees   || 0);
+          countUp(document.getElementById('stat-dept-count'),  data.total_departments || 0);
+          countUp(document.getElementById('stat-proj-count'),  data.total_projects    || 0);
+          countUp(document.getElementById('stat-audit-count'), data.total_assignments || 0);
+        }, 400);
+
+        // Dept headcount panel
+        if (data.dept_breakdown && data.dept_breakdown.length > 0) {
+          renderDepts(data.dept_breakdown);
+        }
+
+        // Workload panel — fetch works-on records separately
+        try {
+          const [employees, workRecords] = await Promise.all([
+            apiCall('/employees'),
+            apiCall('/works-on')
+          ]);
+          if (employees && workRecords) renderWorkload(employees, workRecords);
+        } catch(e) { /* workload panel fails silently */ }
+
+        // Audit activity
+        renderAudit(data.recent_activity || []);
+
+      } catch (err) {
+        console.error('Dashboard load failed:', err.message);
+        document.getElementById('audit-table-body').innerHTML =
+          `<tr><td colspan="4" style="text-align:center;color:var(--danger);padding:20px">Failed to load: ${err.message}</td></tr>`;
+      }
+    }
+
+    /* ── RENDER WORKLOAD ── */
+    function renderWorkload(employees, workRecords) {
+      // Build a map: eno → project count
+      const projCount = {};
+      workRecords.forEach(w => { projCount[w.eno] = (projCount[w.eno] || 0) + 1; });
+
+      const container = document.getElementById('workload-list-container');
+      container.innerHTML = '';
+
+      employees.slice(0, 5).forEach(emp => {
+        const count = projCount[emp.eno] || 0;
+        let badgeClass = count === 0 ? 'zero' : count === 1 ? 'one' : 'multi';
+        let badgeText  = count === 0 ? '0 projects' : count === 1 ? '1 project' : `${count} projects`;
+
+        const row = document.createElement('div');
+        row.className = 'workload-row';
+        row.innerHTML = `
+          <div class="workload-row-top">
+            <div class="emp-info">
+              <div class="emp-name">${emp.ename}</div>
+              <div class="emp-dept">Dept #${emp.dno}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+              <div class="workload-badge ${badgeClass}">${badgeText}</div>
+            </div>
           </div>
-        </div>
-      `;
-      workloadContainer.appendChild(row);
-    });
+        `;
+        container.appendChild(row);
+      });
+    }
 
-    /* Render Audit Activity Log mock data */
-    const auditData = [
-      { time: '2 min ago',  table: 'employee',   op: 'UPDATE', detail: 'Salary updated → John Smith' },
-      { time: '14 min ago', table: 'works_on',   op: 'INSERT', detail: 'New assignment → Joyce English / ProjectX' },
-      { time: '1 hr ago',   table: 'department', op: 'UPDATE', detail: 'Manager changed → Research dept' },
-      { time: '2 hrs ago',  table: 'employee',   op: 'INSERT', detail: 'New hire → Alice Zelaya added' },
-      { time: '3 hrs ago',  table: 'project',    op: 'INSERT', detail: 'New project → DataDrop created' },
-      { time: '5 hrs ago',  table: 'dependent',  op: 'INSERT', detail: 'Dependent added → Smith family' },
-      { time: 'Yesterday',  table: 'employee',   op: 'DELETE', detail: 'Record removed → ID 108' },
-      { time: 'Yesterday',  table: 'dept_locs',  op: 'UPDATE', detail: 'Location updated → Houston' },
-    ];
-    const auditBody = document.getElementById('audit-table-body');
+    /* ── KICK OFF ── */
+    loadDashboard();
 
-    auditData.forEach((log, i) => {
-      const tr = document.createElement('tr');
-      tr.style.animationDelay = `${i * 60 + 500}ms`; // stagger after panel fades in
-      
-      const opLower = log.op.toLowerCase();
-      
-      tr.innerHTML = `
-        <td>${log.time}</td>
-        <td><span class="table-tag">${log.table}</span></td>
-        <td><span class="op-badge ${opLower}">${log.op}</span></td>
-        <td>${log.detail}</td>
-      `;
-      auditBody.appendChild(tr);
-    });
-
-  
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
@@ -1092,6 +1122,7 @@
     });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => {
       sessionStorage.clear();
+      localStorage.clear();
       window.location.href = 'login.html';
     });
     _logoutModal.addEventListener('click', (e) => {

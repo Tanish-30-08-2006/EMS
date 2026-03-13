@@ -16,7 +16,7 @@ f.write(b'This is a test export file.')
 f.close()
 
 # 2. Attempt to send the email (REPLACE WITH YOUR PERSONAL EMAIL)
-target_email = "your_personal_email@gmail.com" 
+target_email = "your_email@example.com" 
 print(f"Testing sending an email to: {target_email}...")
 
 ok, msg = send_export_email(target_email, 'Test Company', f.name, 'Test')

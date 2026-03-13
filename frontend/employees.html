@@ -855,96 +855,73 @@
   <!-- TOASTS -->
   <div class="toast-container" id="toast-container"></div>
 
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ems-init.js"></script>
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
+    if (!sessionStorage.getItem('ems_token')) {
       window.location.href = 'login.html';
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA — Replace with real API calls when FastAPI is ready
-    //
-    // Endpoints needed for this page:
-    //   GET  /employees                    → get_all_employees()
-    //   GET  /employees/{eno}              → get_employee_by_id()
-    //   GET  /employees/search?name=X      → search_employees_by_name()
-    //   POST /employees                    → add_new_employee()
-    //   DELETE /employees/{eno}            → delete_employee()
-    //   PUT  /employees/{eno}/salary       → update_employee_salary()
-    //   GET  /employees/{eno}/salary-history → get_salary_history()
-    //   POST /employees/{eno}/transfer     → transfer_employee()
-    //   POST /employees/bulk-import        → bulk_import_employees()
-    // ══════════════════════════════════════════════════════════════════
 
-    // // FUTURE BUG F5: FK violations on employee delete
-    // Employee who is a dept manager / has dependents / has works_on records cannot be deleted.
-    // Backend returns HTTP 409. Frontend must catch error and NOT remove row from UI.
-    let MOCK_EMPLOYEES = [
-      { eno: 101, ename: 'James Borg',       dob: '1937-11-10', gender: 'M', salary: 55000, super_eno: null, dno: 1 },
-      { eno: 102, ename: 'Michael Wallace',  dob: '1965-04-20', gender: 'M', salary: 43000, super_eno: 101,  dno: 4 },
-      { eno: 103, ename: 'Franklin Wong',    dob: '1955-12-08', gender: 'M', salary: 40000, super_eno: 101,  dno: 5 },
-      { eno: 104, ename: 'Jennifer Wallace', dob: '1941-06-20', gender: 'F', salary: 43000, super_eno: 101,  dno: 4 },
-      { eno: 105, ename: 'Ramesh Narayan',   dob: '1962-09-15', gender: 'M', salary: 38000, super_eno: 103,  dno: 5 },
-      { eno: 106, ename: 'Joyce English',    dob: '1972-07-31', gender: 'F', salary: 25000, super_eno: 103,  dno: 5 },
-      { eno: 107, ename: 'Ahmad Jabbar',     dob: '1969-03-29', gender: 'M', salary: 25000, super_eno: 102,  dno: 4 },
-      { eno: 108, ename: 'Alicia Zelaya',    dob: '1968-01-19', gender: 'F', salary: 25000, super_eno: 104,  dno: 4 },
-      { eno: 109, ename: 'John Smith',       dob: '1965-01-09', gender: 'M', salary: 30000, super_eno: 103,  dno: 5 },
-      { eno: 110, ename: 'Tanish Sanghavi',  dob: '2006-08-30', gender: 'M', salary: 60000, super_eno: null, dno: 1 },
-    ];
-
-    let MOCK_DEPARTMENTS = [
-      { dno: 1, dname: 'Headquarters' },
-      { dno: 4, dname: 'Administration' },
-      { dno: 5, dname: 'Research' },
-    ];
-
-    let MOCK_SALARY_HISTORY = {
-      101: [
-        { date: '2020-01-01', old_salary: 48000, new_salary: 52000 },
-        { date: '2022-06-01', old_salary: 52000, new_salary: 55000 },
-      ],
-      110: [
-        { date: '2024-08-30', old_salary: null,  new_salary: 60000 },
-      ],
-    };
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts  = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(`${window.API_BASE}${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
+    }
 
     /* ── STATE ── */
-    let currentView = 'table';
-    let sortColumn = null;
-    let sortDirection = 'asc';
-    let filterID = '';
-    let filterName = '';
-    let filterDept = 'all';
-    let filterGender = 'all';
+    let ALL_EMPLOYEES  = [];   // canonical list from server
+    let ALL_DEPARTMENTS = [];  // for dropdowns
+    let currentView    = 'table';
+    let sortColumn     = null;
+    let sortDirection  = 'asc';
+    let filterID       = '';
+    let filterName     = '';
+    let filterDept     = 'all';
+    let filterGender   = 'all';
 
-    let activeEmployeeForSalary = null;
-    let activeEmployeeForDelete = null;
+    let activeEmployeeForSalary  = null;
+    let activeEmployeeForDelete  = null;
     let activeEmployeeForHistory = null;
-    
-    let importParsedData = [];
+    let importParsedData         = [];
 
-    // Formatter
-    const formatINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
-    const getDeptName = (dno) => MOCK_DEPARTMENTS.find(d => d.dno === dno)?.dname || 'Unknown';
+    /* ── FORMATTERS ── */
+    const formatINR  = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
+    const getDeptName = (dno) => ALL_DEPARTMENTS.find(d => d.dno === dno)?.dname || `Dept #${dno}`;
 
-    /* ── DOM ELEMENTS ── */
-    const tbody = document.getElementById('table-body');
-    const cardsGrid = document.getElementById('cards-grid');
+    /* ── DOM REFS ── */
+    const tbody       = document.getElementById('table-body');
+    const cardsGrid   = document.getElementById('cards-grid');
     const showingText = document.getElementById('showing-text');
-    const totalBadge = document.getElementById('total-badge');
+    const totalBadge  = document.getElementById('total-badge');
     const viewTableBtn = document.getElementById('view-table');
     const viewCardsBtn = document.getElementById('view-cards');
-    const tableView = document.getElementById('table-view');
-    const cardsView = document.getElementById('cards-view');
-    
-    // Sidebar & Auth
+    const tableView    = document.getElementById('table-view');
+    const cardsView    = document.getElementById('cards-view');
+
     const companyName = sessionStorage.getItem('ems_company') || 'My Company';
     document.getElementById('sidebar-company-name').textContent = companyName;
-    
-    
-    // Mobile Sidebar
+
+    /* ── MOBILE SIDEBAR ── */
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const toggleSidebar = (force) => {
       const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
@@ -971,28 +948,19 @@
       }, duration);
     }
 
-    /* ── DATA PROCESSING ── */
-    function getFilteredAndSortedData() {
-      let data = [...MOCK_EMPLOYEES];
-      // Filter ID
-      if (filterID) data = data.filter(e => e.eno.toString().includes(filterID));
-      // Filter Name
+    /* ── FILTER & SORT ── */
+    function getFilteredAndSorted() {
+      let data = [...ALL_EMPLOYEES];
+      if (filterID)   data = data.filter(e => String(e.eno).includes(filterID));
       if (filterName) data = data.filter(e => e.ename.toLowerCase().includes(filterName.toLowerCase()));
-      // Filter Dept
       if (filterDept !== 'all') data = data.filter(e => e.dno === parseInt(filterDept));
-      // Filter Gender
       if (filterGender !== 'all') data = data.filter(e => e.gender === filterGender);
-      
-      // Sort
       if (sortColumn) {
         data.sort((a, b) => {
-          let valA = a[sortColumn];
-          let valB = b[sortColumn];
-          if (sortColumn === 'dname') { valA = getDeptName(a.dno); valB = getDeptName(b.dno); }
-          
+          let valA = sortColumn === 'dname' ? getDeptName(a.dno) : a[sortColumn];
+          let valB = sortColumn === 'dname' ? getDeptName(b.dno) : b[sortColumn];
           if (typeof valA === 'string') valA = valA.toLowerCase();
           if (typeof valB === 'string') valB = valB.toLowerCase();
-          
           if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
           if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
           return 0;
@@ -1002,20 +970,20 @@
     }
 
     function renderActiveView() {
-      const data = getFilteredAndSortedData();
-      showingText.textContent = `Showing ${data.length} of ${MOCK_EMPLOYEES.length} employees`;
-      totalBadge.textContent = `${data.length} employees`;
+      const data = getFilteredAndSorted();
+      showingText.textContent = `Showing ${data.length} of ${ALL_EMPLOYEES.length} employees`;
+      totalBadge.textContent  = `${data.length} employees`;
 
       if (currentView === 'table') {
         tbody.innerHTML = '';
         data.forEach(e => {
           const mgr = e.super_eno ? e.super_eno : `<span class="manager-null">—</span>`;
-          const tr = document.createElement('tr');
-          tr.id = `row-${e.eno}`;
+          const tr  = document.createElement('tr');
+          tr.id     = `row-${e.eno}`;
           tr.innerHTML = `
             <td class="cell-id">${e.eno}</td>
             <td class="cell-name"><a href="#" onclick="openHistoryPanel(${e.eno}); return false;">${e.ename}</a></td>
-            <td>${e.dob}</td>
+            <td>${e.dob || '—'}</td>
             <td><span class="gender-badge">${e.gender}</span></td>
             <td class="cell-salary" id="cell-salary-${e.eno}">${formatINR(e.salary)}</td>
             <td>${mgr}</td>
@@ -1035,7 +1003,6 @@
         cardsGrid.innerHTML = '';
         data.forEach(e => {
           const initials = e.ename.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
-          const mgr = e.super_eno ? e.super_eno : '—';
           const card = document.createElement('div');
           card.className = 'emp-card';
           card.innerHTML = `
@@ -1048,13 +1015,13 @@
             </div>
             <div class="card-body">
               <div class="card-label">Dept</div><div class="card-val">${getDeptName(e.dno)}</div>
-              <div class="card-label">Salary</div><div class="card-val" style="color:#86efac; font-family:monospace">${formatINR(e.salary)}</div>
+              <div class="card-label">Salary</div><div class="card-val" style="color:#86efac;font-family:monospace">${formatINR(e.salary)}</div>
               <div class="card-label">Gender</div><div class="card-val">${e.gender}</div>
-              <div class="card-label">Manager</div><div class="card-val">${mgr}</div>
+              <div class="card-label">Manager</div><div class="card-val">${e.super_eno || '—'}</div>
             </div>
             <div class="card-footer">
-              <button class="btn-ghost" style="padding:4px 8px; font-size:11px" onclick="openSalaryModal(${e.eno})">Edit Salary</button>
-              <button class="btn-ghost" style="padding:4px 8px; font-size:11px; color:#fca5a5; border-color:rgba(239,68,68,0.4)" onclick="openDeleteModal(${e.eno})">Delete</button>
+              <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="openSalaryModal(${e.eno})">Edit Salary</button>
+              <button class="btn-ghost" style="padding:4px 8px;font-size:11px;color:#fca5a5;border-color:rgba(239,68,68,0.4)" onclick="openDeleteModal(${e.eno})">Delete</button>
             </div>
           `;
           cardsGrid.appendChild(card);
@@ -1062,59 +1029,49 @@
       }
     }
 
-    /* ── INIT DROPDOWNS ── */
+    /* ── DEPT DROPDOWNS ── */
     function populateDeptDropdowns() {
       const filterSelect = document.getElementById('filter-dept');
-      const addSelect = document.getElementById('add-dept');
-      
-      const renderOptions = (includeAll) => {
-        let html = includeAll ? '<option value="all">All Departments</option>' : '';
-        MOCK_DEPARTMENTS.forEach(d => { html += `<option value="${d.dno}">${d.dname}</option>`; });
-        return html;
-      };
-      
-      filterSelect.innerHTML = renderOptions(true);
-      addSelect.innerHTML = renderOptions(false);
+      const addSelect    = document.getElementById('add-dept');
+      let filterHtml = '<option value="all">All Departments</option>';
+      let addHtml    = '';
+      ALL_DEPARTMENTS.forEach(d => {
+        filterHtml += `<option value="${d.dno}">${d.dname}</option>`;
+        addHtml    += `<option value="${d.dno}">${d.dname}</option>`;
+      });
+      filterSelect.innerHTML = filterHtml;
+      addSelect.innerHTML    = addHtml;
     }
-    populateDeptDropdowns();
 
-    /* ── EVENT LISTENERS (FILTER / SORT / VIEW) ── */
+    /* ── FILTER EVENT LISTENERS ── */
     document.getElementById('filter-id').addEventListener('input', (e) => { filterID = e.target.value; renderActiveView(); });
-    
-    // Debounce name search
     let nameTimeout;
     document.getElementById('filter-name').addEventListener('input', (e) => {
       clearTimeout(nameTimeout);
       nameTimeout = setTimeout(() => { filterName = e.target.value; renderActiveView(); }, 300);
     });
-
     document.getElementById('filter-dept').addEventListener('change', (e) => { filterDept = e.target.value; renderActiveView(); });
-    
     document.querySelectorAll('#filter-gender .gender-pill').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         document.querySelectorAll('#filter-gender .gender-pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         filterGender = btn.dataset.val;
         renderActiveView();
       });
     });
-
     document.getElementById('btn-clear-filters').addEventListener('click', () => {
-      document.getElementById('filter-id').value = ''; filterID = '';
-      document.getElementById('filter-name').value = ''; filterName = '';
+      document.getElementById('filter-id').value = '';    filterID = '';
+      document.getElementById('filter-name').value = '';  filterName = '';
       document.getElementById('filter-dept').value = 'all'; filterDept = 'all';
-      
       document.querySelectorAll('#filter-gender .gender-pill').forEach(b => b.classList.remove('active'));
       document.querySelector('#filter-gender .gender-pill[data-val="all"]').classList.add('active');
       filterGender = 'all';
-      
       sortColumn = null; sortDirection = 'asc';
       document.querySelectorAll('th').forEach(th => { th.classList.remove('sorted'); th.querySelector('.sort-arrow').textContent = ''; });
-      
       renderActiveView();
     });
 
-    // Sub-view Toggles
+    /* ── VIEW TOGGLES ── */
     viewTableBtn.addEventListener('click', () => {
       currentView = 'table';
       viewTableBtn.classList.add('active'); viewCardsBtn.classList.remove('active');
@@ -1128,38 +1085,28 @@
       renderActiveView();
     });
 
-    // Sorting
+    /* ── SORT ── */
     document.querySelectorAll('th[data-sort]').forEach(th => {
       th.addEventListener('click', () => {
         const col = th.dataset.sort;
-        if (sortColumn === col) {
-          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-          sortColumn = col; sortDirection = 'asc';
-        }
-        
-        document.querySelectorAll('th').forEach(t => {
-          t.classList.remove('sorted');
-          t.querySelector('.sort-arrow').textContent = '';
-        });
+        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        else { sortColumn = col; sortDirection = 'asc'; }
+        document.querySelectorAll('th').forEach(t => { t.classList.remove('sorted'); t.querySelector('.sort-arrow').textContent = ''; });
         th.classList.add('sorted');
         th.querySelector('.sort-arrow').textContent = sortDirection === 'asc' ? '▲' : '▼';
-        
         renderActiveView();
       });
     });
 
-    /* ── PANELS LOGIC ── */
+    /* ── PANELS ── */
     const backdrop = document.getElementById('panel-backdrop');
-    function openPanel(id) { backdrop.classList.add('open'); document.getElementById(id).classList.add('open'); }
+    function openPanel(id)  { backdrop.classList.add('open'); document.getElementById(id).classList.add('open'); }
     function closePanel(id) { backdrop.classList.remove('open'); document.getElementById(id).classList.remove('open'); }
     backdrop.addEventListener('click', () => { closePanel('add-panel'); closePanel('history-panel'); closePanel('import-panel'); });
 
-    // Add Panel
     document.getElementById('btn-add-emp').addEventListener('click', () => openPanel('add-panel'));
     document.getElementById('close-add-panel').addEventListener('click', () => closePanel('add-panel'));
-    
-    // Add gender toggles inside add panel
+
     let addGender = 'M';
     document.querySelectorAll('#add-gender-group .gender-pill').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1168,217 +1115,267 @@
       });
     });
 
-    document.getElementById('add-emp-form').addEventListener('submit', (e) => {
+    /* ── ADD EMPLOYEE ── */
+    document.getElementById('add-emp-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const emp = {
-        eno: parseInt(document.getElementById('add-eno').value),
-        ename: document.getElementById('add-name').value,
-        dob: document.getElementById('add-dob').value,
-        gender: addGender,
-        salary: parseFloat(document.getElementById('add-salary').value),
+        eno:       parseInt(document.getElementById('add-eno').value),
+        ename:     document.getElementById('add-name').value,
+        dob:       document.getElementById('add-dob').value,
+        gender:    addGender,
+        salary:    parseFloat(document.getElementById('add-salary').value),
         super_eno: document.getElementById('add-mgr').value ? parseInt(document.getElementById('add-mgr').value) : null,
-        dno: parseInt(document.getElementById('add-dept').value),
+        dno:       parseInt(document.getElementById('add-dept').value),
       };
-      
-      MOCK_EMPLOYEES.unshift(emp);
-      closePanel('add-panel');
-      
-      // Auto switch to table to see flash
-      if(currentView !== 'table') viewTableBtn.click(); else renderActiveView();
-      
-      const newRow = document.getElementById(`row-${emp.eno}`);
-      if(newRow) newRow.classList.add('new-row');
-      
-      showToast('Employee added successfully', 'success');
-      e.target.reset();
+      try {
+        const newEmp = await apiCall('/employees', 'POST', emp);
+        if (!newEmp) return;
+        ALL_EMPLOYEES.unshift(newEmp);
+        closePanel('add-panel');
+        if (currentView !== 'table') viewTableBtn.click(); else renderActiveView();
+        const newRow = document.getElementById(`row-${newEmp.eno}`);
+        if (newRow) newRow.classList.add('new-row');
+        showToast('Employee added successfully', 'success');
+        e.target.reset();
+      } catch(err) {
+        showToast(err.message || 'Failed to add employee', 'error');
+      }
     });
 
-    // History & Transfer Panel
-    window.openHistoryPanel = (eno) => {
-      activeEmployeeForHistory = MOCK_EMPLOYEES.find(e => e.eno === eno);
+    /* ── HISTORY & TRANSFER PANEL ── */
+    window.openHistoryPanel = async (eno) => {
+      activeEmployeeForHistory = ALL_EMPLOYEES.find(e => e.eno === eno);
+      if (!activeEmployeeForHistory) return;
       document.getElementById('history-panel-title').textContent = `${activeEmployeeForHistory.ename} — History`;
       document.getElementById('history-current-val').textContent = formatINR(activeEmployeeForHistory.salary);
-      
+
       const tl = document.getElementById('history-timeline');
-      tl.innerHTML = '';
-      const hist = MOCK_SALARY_HISTORY[eno] || [];
-      if (hist.length === 0) {
-        tl.innerHTML = '<div class="history-empty">No salary changes recorded yet.</div>';
-      } else {
-        hist.forEach(h => {
-          let badge = '';
-          if (h.old_salary === null) badge = '<span class="direction-badge hire">● HIRED</span>';
-          else if (h.new_salary > h.old_salary) badge = '<span class="direction-badge raise">▲ RAISE</span>';
-          else if (h.new_salary < h.old_salary) badge = '<span class="direction-badge cut">▼ CUT</span>';
-          else badge = '<span class="direction-badge same">● SAME</span>';
-          
-          const centerText = h.old_salary ? `${formatINR(h.old_salary)} → ${formatINR(h.new_salary)}` : formatINR(h.new_salary);
-          
-          tl.innerHTML += `
-            <div class="history-entry">
-              <div class="history-date">${h.date}</div>
-              <div class="history-vals">${centerText}</div>
-              ${badge}
-            </div>
-          `;
-        });
-      }
+      tl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Loading...</div>';
 
       // Populate transfer dropdown
       const ts = document.getElementById('transfer-dept-select');
       ts.innerHTML = '';
-      MOCK_DEPARTMENTS.forEach(d => {
+      ALL_DEPARTMENTS.forEach(d => {
         const isCurrent = d.dno === activeEmployeeForHistory.dno;
         ts.innerHTML += `<option value="${d.dno}" ${isCurrent ? 'disabled' : ''}>${d.dname} ${isCurrent ? '(current)' : ''}</option>`;
       });
 
       openPanel('history-panel');
+
+      try {
+        const hist = await apiCall(`/employees/${eno}/salary-history`);
+        tl.innerHTML = '';
+        if (!hist || hist.length === 0) {
+          tl.innerHTML = '<div class="history-empty">No salary changes recorded yet.</div>';
+        } else {
+          hist.forEach(h => {
+            let badge = '';
+            if (!h.old_salary)               badge = '<span class="direction-badge hire">● HIRED</span>';
+            else if (h.new_salary > h.old_salary) badge = '<span class="direction-badge raise">▲ RAISE</span>';
+            else if (h.new_salary < h.old_salary) badge = '<span class="direction-badge cut">▼ CUT</span>';
+            else                              badge = '<span class="direction-badge same">● SAME</span>';
+            const centerText = h.old_salary
+              ? `${formatINR(h.old_salary)} → ${formatINR(h.new_salary)}`
+              : formatINR(h.new_salary);
+            const dateStr = h.changed_at ? new Date(h.changed_at).toLocaleDateString() : '—';
+            tl.innerHTML += `
+              <div class="history-entry">
+                <div class="history-date">${dateStr}</div>
+                <div class="history-vals">${centerText}</div>
+                ${badge}
+              </div>
+            `;
+          });
+        }
+      } catch(err) {
+        tl.innerHTML = `<div class="history-empty" style="color:var(--danger)">Failed to load: ${err.message}</div>`;
+      }
     };
+
     document.getElementById('close-history-panel').addEventListener('click', () => closePanel('history-panel'));
-    
-    document.getElementById('btn-transfer').addEventListener('click', () => {
+
+    document.getElementById('btn-transfer').addEventListener('click', async () => {
       const newDno = parseInt(document.getElementById('transfer-dept-select').value);
-      if(newDno === activeEmployeeForHistory.dno) return;
-      activeEmployeeForHistory.dno = newDno;
-      const deptName = getDeptName(newDno);
-      closePanel('history-panel');
-      showToast(`Employee transferred to ${deptName}`, 'success');
-      renderActiveView();
-      const row = document.getElementById(`row-${activeEmployeeForHistory.eno}`);
-      if(row) { row.classList.remove('new-row'); void row.offsetWidth; row.classList.add('new-row'); }
+      if (newDno === activeEmployeeForHistory.dno) return;
+      try {
+        await apiCall(`/employees/${activeEmployeeForHistory.eno}/transfer`, 'PATCH', { new_dno: newDno });
+        activeEmployeeForHistory.dno = newDno;
+        ALL_EMPLOYEES = ALL_EMPLOYEES.map(e => e.eno === activeEmployeeForHistory.eno ? { ...e, dno: newDno } : e);
+        closePanel('history-panel');
+        showToast(`Employee transferred to ${getDeptName(newDno)}`, 'success');
+        renderActiveView();
+      } catch(err) {
+        showToast(err.message || 'Transfer failed', 'error');
+      }
     });
 
-    // CSV Import Panel
+    /* ── CSV IMPORT PANEL ── */
     document.getElementById('btn-import').addEventListener('click', () => openPanel('import-panel'));
     document.getElementById('close-import-panel').addEventListener('click', () => closePanel('import-panel'));
     document.getElementById('btn-cancel-import').addEventListener('click', () => closePanel('import-panel'));
-    
+
     const uploadZone = document.getElementById('upload-zone');
-    const fileInput = document.getElementById('csv-file-input');
+    const fileInput  = document.getElementById('csv-file-input');
     uploadZone.addEventListener('click', () => fileInput.click());
-    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragover',  (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
     fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
     function handleFile(file) {
-      if(!file) return;
-      // mock parse
-      setTimeout(() => {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text   = e.target.result;
+        const lines  = text.trim().split('\n');
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        importParsedData = [];
+        const existingEnos = new Set(ALL_EMPLOYEES.map(e => e.eno));
+
+        lines.slice(1).forEach(line => {
+          if (!line.trim()) return;
+          const cols = line.split(',').map(c => c.trim());
+          const row  = {};
+          header.forEach((h, i) => row[h] = cols[i] || '');
+          const eno  = parseInt(row.eno);
+          row.valid  = !isNaN(eno) && !existingEnos.has(eno) && row.ename && row.dno;
+          row.eno    = eno;
+          row.salary = parseFloat(row.salary) || 0;
+          row.dno    = parseInt(row.dno) || 0;
+          importParsedData.push(row);
+        });
+
         uploadZone.style.display = 'none';
         document.getElementById('import-preview-area').style.display = 'block';
-        
-        // Mock 3 rows parsed
-        importParsedData = [
-          { eno: 901, ename: 'New Guy', dob: '1990-01-01', gender: 'M', salary: 45000, super_eno: null, dno: 1, valid: true },
-          { eno: 101, ename: 'Duplicate ID', dob: '1990-01-01', gender: 'M', salary: 40000, super_eno: null, dno: 1, valid: false },
-        ];
-        
-        const tbody = document.getElementById('preview-tbody');
-        tbody.innerHTML = '';
+
+        const previewTbody = document.getElementById('preview-tbody');
+        previewTbody.innerHTML = '';
         let vCount = 0, iCount = 0;
-        
         importParsedData.forEach(r => {
-          if(r.valid) vCount++; else iCount++;
-          tbody.innerHTML += `
+          if (r.valid) vCount++; else iCount++;
+          previewTbody.innerHTML += `
             <tr class="${r.valid ? '' : 'invalid'}">
-              <td>${r.eno}</td><td>${r.ename}</td><td>${r.dob}</td>
-              <td>${r.gender}</td><td>${r.salary}</td><td>${r.super_eno || '—'}</td><td>${r.dno}</td>
-            </tr>
-          `;
+              <td>${r.eno}</td><td>${r.ename}</td><td>${r.dob||'—'}</td>
+              <td>${r.gender||'—'}</td><td>${r.salary}</td><td>${r.super_eno||'—'}</td><td>${r.dno}</td>
+            </tr>`;
         });
-        
+
         document.getElementById('import-summary').innerHTML = `
           <div class="summary-item"><div class="summary-dot valid"></div> ${vCount} valid</div>
-          <div class="summary-item"><div class="summary-dot invalid"></div> ${iCount} invalid</div>
-        `;
-        
+          <div class="summary-item"><div class="summary-dot invalid"></div> ${iCount} invalid</div>`;
+
         const btnConf = document.getElementById('btn-confirm-import');
-        btnConf.disabled = vCount === 0;
+        btnConf.disabled  = vCount === 0;
         btnConf.textContent = `Import ${vCount} valid rows`;
-      }, 500);
+      };
+      reader.readAsText(file);
     }
 
-    document.getElementById('btn-confirm-import').addEventListener('click', () => {
-      const validRows = importParsedData.filter(r => r.valid);
-      MOCK_EMPLOYEES = [...validRows, ...MOCK_EMPLOYEES];
-      closePanel('import-panel');
-      showToast(`Imported ${validRows.length} employees successfully`, 'success');
-      renderActiveView();
-      // Reset
-      setTimeout(() => {
-        document.getElementById('upload-zone').style.display = 'block';
-        document.getElementById('import-preview-area').style.display = 'none';
-        fileInput.value = '';
-      }, 300);
+    document.getElementById('btn-confirm-import').addEventListener('click', async () => {
+      const validRows = importParsedData.filter(r => r.valid).map(r => ({
+        eno: r.eno, ename: r.ename, dob: r.dob || null,
+        gender: r.gender || 'M', salary: r.salary,
+        super_eno: r.super_eno ? parseInt(r.super_eno) : null,
+        dno: r.dno
+      }));
+      if (validRows.length === 0) return;
+      try {
+        const result = await apiCall('/employees/bulk-import', 'POST', { employees: validRows });
+        if (!result) return;
+        // Reload full list after bulk import
+        const fresh = await apiCall('/employees');
+        if (fresh) { ALL_EMPLOYEES = fresh; renderActiveView(); }
+        closePanel('import-panel');
+        showToast(`Imported ${result.imported || validRows.length} employees successfully`, 'success');
+        setTimeout(() => {
+          document.getElementById('upload-zone').style.display = 'block';
+          document.getElementById('import-preview-area').style.display = 'none';
+          fileInput.value = '';
+        }, 300);
+      } catch(err) {
+        showToast(err.message || 'Import failed', 'error');
+      }
     });
 
-    /* ── MODALS LOGIC ── */
+    /* ── SALARY MODAL ── */
     const overlaySalary = document.getElementById('salary-modal');
     const overlayDelete = document.getElementById('delete-modal');
 
-    // Salary Update Modal
     window.openSalaryModal = (eno) => {
-      activeEmployeeForSalary = MOCK_EMPLOYEES.find(e => e.eno === eno);
-      document.getElementById('salary-modal-sub').textContent = `Employee: ${activeEmployeeForSalary.ename} (ID: ${eno})`;
+      activeEmployeeForSalary = ALL_EMPLOYEES.find(e => e.eno === eno);
+      if (!activeEmployeeForSalary) return;
+      document.getElementById('salary-modal-sub').textContent     = `Employee: ${activeEmployeeForSalary.ename} (ID: ${eno})`;
       document.getElementById('salary-modal-current').textContent = `Current: ${formatINR(activeEmployeeForSalary.salary)}`;
-      document.getElementById('update-salary-input').value = activeEmployeeForSalary.salary;
+      document.getElementById('update-salary-input').value        = activeEmployeeForSalary.salary;
       overlaySalary.classList.add('open');
     };
     document.getElementById('btn-cancel-salary').addEventListener('click', () => overlaySalary.classList.remove('open'));
-    document.getElementById('btn-confirm-salary').addEventListener('click', () => {
+    document.getElementById('btn-confirm-salary').addEventListener('click', async () => {
       const newSal = parseFloat(document.getElementById('update-salary-input').value);
-      if(!newSal || newSal === activeEmployeeForSalary.salary) return;
-      
-      activeEmployeeForSalary.salary = newSal;
-      overlaySalary.classList.remove('open');
-      showToast('Salary updated successfully', 'success');
-      
-      // Flash cell logic
-      if(currentView === 'table') {
-        const salaryCell = document.getElementById(`cell-salary-${activeEmployeeForSalary.eno}`);
-        if(salaryCell) {
-          salaryCell.textContent = formatINR(newSal);
-          salaryCell.classList.add('flash-salary');
-          setTimeout(() => salaryCell.classList.remove('flash-salary'), 1000);
-        }
-      } else {
-        renderActiveView();
+      if (!newSal || newSal === activeEmployeeForSalary.salary) return;
+      try {
+        await apiCall(`/employees/${activeEmployeeForSalary.eno}/salary`, 'PATCH', { new_salary: newSal });
+        activeEmployeeForSalary.salary = newSal;
+        ALL_EMPLOYEES = ALL_EMPLOYEES.map(e => e.eno === activeEmployeeForSalary.eno ? { ...e, salary: newSal } : e);
+        overlaySalary.classList.remove('open');
+        showToast('Salary updated successfully', 'success');
+        if (currentView === 'table') {
+          const cell = document.getElementById(`cell-salary-${activeEmployeeForSalary.eno}`);
+          if (cell) { cell.textContent = formatINR(newSal); cell.classList.add('flash-salary'); setTimeout(() => cell.classList.remove('flash-salary'), 1000); }
+        } else { renderActiveView(); }
+      } catch(err) {
+        showToast(err.message || 'Salary update failed', 'error');
       }
     });
 
-    // Delete Modal
+    /* ── DELETE MODAL ── */
     window.openDeleteModal = (eno) => {
-      activeEmployeeForDelete = MOCK_EMPLOYEES.find(e => e.eno === eno);
-      document.getElementById('delete-modal-text').textContent = `Are you sure you want to permanently delete ${activeEmployeeForDelete.ename} (ID: ${eno})? This action cannot be undone.`;
+      activeEmployeeForDelete = ALL_EMPLOYEES.find(e => e.eno === eno);
+      if (!activeEmployeeForDelete) return;
+      document.getElementById('delete-modal-text').textContent =
+        `Are you sure you want to permanently delete ${activeEmployeeForDelete.ename} (ID: ${eno})? This action cannot be undone.`;
       overlayDelete.classList.add('open');
     };
     document.getElementById('btn-cancel-delete').addEventListener('click', () => overlayDelete.classList.remove('open'));
-    document.getElementById('btn-confirm-delete').addEventListener('click', () => {
+    document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
       overlayDelete.classList.remove('open');
-      if(currentView === 'table') {
-        const row = document.getElementById(`row-${activeEmployeeForDelete.eno}`);
-        if(row) {
-          row.classList.add('deleting-row');
-          setTimeout(() => {
-            MOCK_EMPLOYEES = MOCK_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno);
-            renderActiveView();
-            showToast('Employee record deleted', 'success');
-          }, 300);
+      try {
+        await apiCall(`/employees/${activeEmployeeForDelete.eno}`, 'DELETE');
+        if (currentView === 'table') {
+          const row = document.getElementById(`row-${activeEmployeeForDelete.eno}`);
+          if (row) { row.classList.add('deleting-row'); setTimeout(() => { ALL_EMPLOYEES = ALL_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno); renderActiveView(); }, 300); }
+          else { ALL_EMPLOYEES = ALL_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno); renderActiveView(); }
+        } else {
+          ALL_EMPLOYEES = ALL_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno);
+          renderActiveView();
         }
-      } else {
-        MOCK_EMPLOYEES = MOCK_EMPLOYEES.filter(e => e.eno !== activeEmployeeForDelete.eno);
-        renderActiveView();
         showToast('Employee record deleted', 'success');
+      } catch(err) {
+        showToast(err.message || 'Delete failed — employee may have linked records', 'error');
       }
     });
 
-    overlaySalary.addEventListener('click', (e) => { if(e.target === overlaySalary) overlaySalary.classList.remove('open'); });
-    overlayDelete.addEventListener('click', (e) => { if(e.target === overlayDelete) overlayDelete.classList.remove('open'); });
+    overlaySalary.addEventListener('click', (e) => { if (e.target === overlaySalary) overlaySalary.classList.remove('open'); });
+    overlayDelete.addEventListener('click', (e) => { if (e.target === overlayDelete) overlayDelete.classList.remove('open'); });
 
-    /* ── INIT LOAD ── */
-    renderActiveView();
-  
+    /* ── INITIAL LOAD ── */
+    async function loadEmployeesPage() {
+      try {
+        const [emps, depts] = await Promise.all([
+          apiCall('/employees'),
+          apiCall('/departments')
+        ]);
+        if (emps)  { ALL_EMPLOYEES  = emps;  }
+        if (depts) { ALL_DEPARTMENTS = depts; populateDeptDropdowns(); }
+        renderActiveView();
+      } catch(err) {
+        showToast(`Failed to load: ${err.message}`, 'error');
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:20px">
+          Failed to load employees: ${err.message}</td></tr>`;
+      }
+    }
+    loadEmployeesPage();
+
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
@@ -1394,6 +1391,7 @@
     });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => {
       sessionStorage.clear();
+      localStorage.clear();
       window.location.href = 'login.html';
     });
     _logoutModal.addEventListener('click', (e) => {

@@ -75,8 +75,15 @@
     .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+        .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; font-size: 13px; font-family: inherit;
+      color: var(--text-muted); background: transparent; border: none;
+      cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
     .logout-btn:hover { color: var(--danger); }
+    .logout-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+
 
     /* ── MAIN CONTENT ── */
     .main-content { margin-left: 240px; padding: 32px 36px; min-height: 100vh; }
@@ -260,23 +267,6 @@
 </head>
 <body>
 
-  <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="outerRing" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
-      <radialGradient id="ring2" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="100%" stop-color="#9ca3af"/></radialGradient>
-      <radialGradient id="ring3" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#c0392b"/><stop offset="100%" stop-color="#7b1010"/></radialGradient>
-      <radialGradient id="centerBlue" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#2d52d4"/><stop offset="100%" stop-color="#1e3a9e"/></radialGradient>
-      <g id="shield-logo">
-        <circle cx="50" cy="50" r="48" fill="url(#outerRing)"/><circle cx="50" cy="50" r="38" fill="url(#ring2)"/><circle cx="50" cy="50" r="28" fill="url(#ring3)"/><circle cx="50" cy="50" r="18" fill="url(#centerBlue)"/>
-        <polygon points="50,34 53.5,44 64,44 55.5,50.5 58.5,61 50,55 41.5,61 44.5,50.5 36,44 46.5,44" fill="#e8e8e8"/>
-      </g>
-    </defs>
-  </svg>
-
-  
-  <!-- SVG DEFS (Shield Logo) -->
-<!-- SIDEBAR -->
-  
   <!-- SVG DEFS (Shield Logo) -->
   <svg style="position:absolute;width:0;height:0;overflow:hidden;" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -391,11 +381,11 @@
       <!-- LEFT INNER NAV -->
       <nav class="settings-inner-nav">
         <div class="inner-nav-title">Sections</div>
-        <button class="inner-nav-item active" data-section="section-workspace">Workspace</button>
-        <button class="inner-nav-item" data-section="section-contact">Contact</button>
-        <button class="inner-nav-item" data-section="section-security">Security</button>
-        <button class="inner-nav-item" data-section="section-appearance">Appearance</button>
-        <button class="inner-nav-item" data-section="section-danger">Danger Zone</button>
+        <button type="button" class="inner-nav-item active" data-section="section-workspace">Workspace</button>
+        <button type="button" class="inner-nav-item" data-section="section-contact">Contact</button>
+        <button type="button" class="inner-nav-item" data-section="section-security">Security</button>
+        <button type="button" class="inner-nav-item" data-section="section-appearance">Appearance</button>
+        <button type="button" class="inner-nav-item" data-section="section-danger">Danger Zone</button>
       </nav>
 
       <!-- RIGHT CONTENT -->
@@ -468,11 +458,11 @@
               <div class="setting-control">
                 <div class="editable-field-form">
                   <div class="editable-field-row">
-                    <input type="email" id="contact-email-input" class="settings-input" value="tanish@daiict.ac.in">
-                    <button class="save-btn" id="btn-save-email">Save</button>
+                    <input type="email" id="contact-email-input" class="settings-input" value="">
+                    <button type="button" class="save-btn" id="btn-save-email">Save</button>
                   </div>
                   <div id="email-hint" class="field-hint"></div>
-                  <button class="secondary-btn" style="margin-top:4px;" id="btn-test-email">Test Email</button>
+                  <button type="button" class="secondary-btn" style="margin-top:4px;" id="btn-test-email">Test Email</button>
                 </div>
               </div>
             </div>
@@ -651,12 +641,14 @@
 
   <div class="toast-container" id="toast-container"></div>
 
+  <script src="config.js"></script>
+  <script src="ems-init.js"></script>
   <script>
 
     // ── AUTH GUARD ──
     // When backend is live: replace 'ems_company' check with JWT token check:
     // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
+    if (!sessionStorage.getItem('ems_token')) {
       window.location.href = 'login.html';
     }
     // ── CONFIG ──
@@ -671,41 +663,54 @@
 
     // ── STATE ──
     const companyName = sessionStorage.getItem('ems_company') || 'tanish';
+
+    // API helper — adds JWT to every backend request
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(`${window.API_BASE}${url}`, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
+    }
+
     
     // ── INITIALIZATION ──
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sidebar-company-name').textContent = companyName;
       document.getElementById('display-company-name').textContent = companyName;
-      document.getElementById('workspace-id-text').textContent = `comp_${companyName}`;
-      document.getElementById('schema-name-preview').textContent = `comp_${companyName}`;
+      document.getElementById('workspace-id-text').textContent = sessionStorage.getItem('ems_tenant_id') || `comp_${companyName}`;
+      document.getElementById('schema-name-preview').textContent = sessionStorage.getItem('ems_tenant_id') || `comp_${companyName}`;
       document.getElementById('confirm-name-challenge').textContent = companyName;
 
       // Apply saved preferences
-      const savedAccent = sessionStorage.getItem('ems_accent');
+      const savedAccent = localStorage.getItem('ems_accent');
       if (savedAccent) applyAccentColor(savedAccent);
       
-      const savedCompact = sessionStorage.getItem('ems_compact') === '1';
+      const savedCompact = localStorage.getItem('ems_compact') === '1';
       document.getElementById('compact-toggle').checked = savedCompact;
       applyCompactMode(savedCompact);
 
       setupIntersectionObserver();
-    });
 
-    // ── HELPERS ──
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
+      // Load real email from backend
+      (async () => {
+        try {
+          const me = await apiCall('/auth/me');
+          if (me && me.email) {
+            document.getElementById('contact-email-input').value = me.email;
+          }
+        } catch(e) {
+          // email column may not exist yet — leave blank
+        }
+      })();
 
     // ── INNER NAV & SCROLLING ──
     window.scrollToSection = (id) => {
@@ -719,7 +724,7 @@
     });
 
     function setupIntersectionObserver() {
-      const options = { threshold: 0.5 };
+      const options = { threshold: 0.2, rootMargin: "-10% 0px -60% 0px" };
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -750,27 +755,35 @@
     };
 
     // ── CONTACT EMAIL ──
-    document.getElementById('btn-save-email').onclick = function() {
+    document.getElementById('btn-save-email').onclick = async function() {
       const input = document.getElementById('contact-email-input');
-      const hint = document.getElementById('email-hint');
+      const hint  = document.getElementById('email-hint');
       const email = input.value.trim();
-      
+
       if (!email || !email.includes('@')) {
         hint.textContent = 'Please enter a valid email address.';
         hint.className = 'field-hint error';
         return;
       }
-      
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // POST /settings/contact-email
-      // Body: { email }
-      // ══════════════════════════════════════════════════════════
-      
-      hint.textContent = 'Email address saved ✓';
-      hint.className = 'field-hint success';
-      showToast('Contact email updated', 'success');
-      setTimeout(() => hint.textContent = '', 3000);
+
+      // REAL API CALL — POST /auth/update-email
+      try {
+        const password = await promptPassword('Enter your company password to update email:');
+        if (!password) return;
+        await apiCall('/auth/update-email', 'POST', {
+          company_name: companyName,
+          password:     password,
+          new_email:    email
+        });
+        hint.textContent = 'Email address saved ✓';
+        hint.className   = 'field-hint success';
+        showToast('Contact email updated', 'success');
+        setTimeout(() => { hint.textContent = ''; hint.className = 'field-hint'; }, 3000);
+      } catch (err) {
+        hint.textContent = err.message || 'Could not update email.';
+        hint.className   = 'field-hint error';
+        showToast(err.message || 'Update failed', 'error');
+      }
     };
 
     document.getElementById('btn-test-email').onclick = () => {
@@ -815,7 +828,7 @@
       }
     }
 
-    document.getElementById('btn-update-pass').onclick = function() {
+    document.getElementById('btn-update-pass').onclick = async function() {
       const current = document.getElementById('current-pass').value;
       const pass = newPassInput.value;
       const confirm = confirmPassInput.value;
@@ -823,19 +836,21 @@
       if (!current || !pass || !confirm) { showToast('Please fill all password fields', 'error'); return; }
       if (pass.length < 8) { showToast('New password must be at least 8 characters', 'error'); return; }
       if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
-      if (current !== 'password123') { showToast('Incorrect current password', 'error'); return; }
-
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // POST /auth/change-password
-      // Body: { current, pass }
-      // ══════════════════════════════════════════════════════════
-      
-      document.getElementById('current-pass').value = '';
-      newPassInput.value = '';
-      confirmPassInput.value = '';
-      showToast('Password updated successfully', 'success');
-      newPassInput.oninput();
+      // REAL API CALL — POST /auth/change-password
+      try {
+        await apiCall('/auth/change-password', 'POST', {
+          company_name: companyName,
+          current_password: current,
+          new_password: pass
+        });
+        document.getElementById('current-pass').value = '';
+        newPassInput.value = '';
+        confirmPassInput.value = '';
+        showToast('Password updated successfully', 'success');
+        newPassInput.oninput();
+      } catch (err) {
+        showToast(err.message || 'Incorrect current password', 'error');
+      }
     };
 
     // ── APPEARANCE ──
@@ -858,7 +873,7 @@
       root.style.setProperty('--accent-subtle', data.subtle);
       root.style.setProperty('--accent-text', data.text);
       
-      sessionStorage.setItem('ems_accent', hex);
+      localStorage.setItem('ems_accent', hex);
     }
 
     document.getElementById('compact-toggle').onchange = (e) => {
@@ -874,7 +889,7 @@
         root.style.removeProperty('--cell-padding');
         root.style.removeProperty('--base-font-size');
       }
-      sessionStorage.setItem('ems_compact', enabled ? '1' : '0');
+      localStorage.setItem('ems_compact', enabled ? '1' : '0');
     }
 
     // ── DANGER ZONE (DELETE) ──
@@ -912,13 +927,19 @@
       }
     };
 
-    document.getElementById('btn-final-delete').onclick = () => {
-      // ══════════════════════════════════════════════════════════
-      // REPLACE WITH REAL API CALL:
-      // DELETE /workspace
-      // ══════════════════════════════════════════════════════════
-      sessionStorage.clear();
-      window.location.href = 'index.html';
+    document.getElementById('btn-final-delete').onclick = async () => {
+      const password = await promptPassword('Enter your company password to permanently delete this workspace:');
+      if (!password) return;
+      try {
+        await apiCall('/auth/delete-workspace', 'DELETE', {
+          company_name: companyName,
+          password: password
+        });
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+      } catch (err) {
+        showToast(err.message || 'Deletion failed. Check your password.', 'error');
+      }
     };
 
   
@@ -937,6 +958,7 @@
     });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => {
       sessionStorage.clear();
+      localStorage.clear();
       window.location.href = 'login.html';
     });
     _logoutModal.addEventListener('click', (e) => {
@@ -974,6 +996,63 @@
         _overlayEl.classList.remove('open');
       });
     }
+    });
+
+    // ── HELPERS ──
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = '300ms';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ── PASSWORD PROMPT (replaces browser prompt()) ──
+    function promptPassword(message) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:360px;max-width:90vw;">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Confirm Identity</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${message}</div>
+            <input type="password" id="_pwd_input" placeholder="Enter password..." autocomplete="current-password"
+              style="width:100%;box-sizing:border-box;background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text-primary);font-size:14px;outline:none;margin-bottom:16px;">
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button id="_pwd_cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">Cancel</button>
+              <button id="_pwd_ok" style="background:var(--accent);border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">Confirm</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        const input = overlay.querySelector('#_pwd_input');
+        input.focus();
+        const cleanup = (val) => { document.body.removeChild(overlay); resolve(val); };
+        overlay.querySelector('#_pwd_cancel').onclick = () => cleanup(null);
+        overlay.querySelector('#_pwd_ok').onclick = () => cleanup(input.value);
+        input.addEventListener('keydown', (e) => { if(e.key==='Enter') cleanup(input.value); if(e.key==='Escape') cleanup(null); });
+      });
+    }
+
+
   </script>
+
+  <div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
 </body>
-</html>

@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       /* Backgrounds */
@@ -456,10 +457,38 @@
         padding: 28px 20px;
       }
     }
+  
+    /* Google button */
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-top: 10px;
+      transition: border-color 200ms, color 200ms;
+    }
+    .btn-google:hover {
+      border-color: #5f6368;
+      color: var(--text-primary);
+    }
+    .btn-google svg { flex-shrink: 0; }
   </style>
 </head>
 <body>
-  <a href="index.html" style="position:fixed;top:16px;left:16px;font-size:12px;color:rgba(255,255,255,0.3);text-decoration:none;z-index:200;transition:color 200ms;font-family:Inter,sans-serif;" onmouseover="this.style.color='#a8bfff'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">← Home</a>
+  <a href="index.html" style="position:fixed;top:20px;left:20px;font-size:13px;color:var(--text-secondary);text-decoration:none;z-index:200;transition:color 200ms,opacity 200ms;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px;opacity:0.75;" onmouseover="this.style.color='#a8bfff';this.style.opacity='1'" onmouseout="this.style.color='var(--text-secondary)';this.style.opacity='0.75'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Home
+  </a>
 
   <!-- SVG Sprite/Defs (Shield Logo inside) -->
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
@@ -598,11 +627,59 @@
               Don't have an account? <a href="signup.html" class="form-link">Create your workspace</a>
             </div>
           </form>
+                    <!-- -- EMAIL OTP SECTION --------------------------- -->
+          <div class="form-divider" style="margin-top:24px;"></div>
+ 
+          <div id="otp-send-panel">
+            <div class="form-subheading" style="margin-bottom:16px;">Or sign in with a one-time code</div>
+            <div class="input-group">
+              <label class="input-label">Email Address</label>
+              <input type="email" id="otp-email" class="input-field" placeholder="your@email.com">
+            </div>
+            <div id="otp-error" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px;"></div>
+            <button class="btn-submit" id="otp-send-btn" onclick="sendOtp()" type="button">
+              Send login code
+            </button>
+          </div>
+ 
+          <div id="otp-verify-panel" style="display:none;">
+            <div class="form-subheading" style="margin-bottom:16px;">Enter the 6-digit code sent to your inbox</div>
+            <div class="input-group">
+              <label class="input-label">One-Time Code</label>
+              <input type="text" id="otp-code" class="input-field" placeholder="123456 or 12345678"
+                maxlength="8" inputmode="numeric" autocomplete="one-time-code">
+            </div>
+            <div id="otp-verify-error" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px;"></div>
+            <button class="btn-submit" id="otp-verify-btn" onclick="verifyOtp()" type="button">
+              Verify code
+            </button>
+            <div style="text-align:center;margin-top:12px;">
+              <button onclick="resetOtp()" type="button"
+                style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">
+                Use a different email
+              </button>
+            </div>
+          </div>
+          <!-- -- END OTP SECTION -------------------------------- -->
+
+          <!-- Google Sign-In Button -->
+          <div class="form-divider" style="margin-top:8px; margin-bottom:8px;"></div>
+          <button class="btn-google" type="button" onclick="signInWithGoogle()">
+            <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <!-- End Google Sign-In Button -->
         </div>
       </div>
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
     const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     const EYE_SLASH_SVG = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
@@ -643,45 +720,33 @@
 
       setLoading(true);
 
-      // ══════════════════════════════════════════════════════
-      // REPLACE THIS BLOCK WITH REAL API CALL WHEN BACKEND READY
-      // ──────────────────────────────────────────────────────
-      
-    // ══════════════════════════════════════════════════════════════════
-    // FUTURE BUG F4 — MISSING .env ON SERVER
-    // If DB credentials are not set as env vars, every API call fails silently.
-    // FIX: In FastAPI startup event, raise RuntimeError if DB_HOST not set.
-    // On frontend: if fetch() times out after 8s, show specific error message.
-    //
-    // FUTURE BUG F7 — JWT: Login response must include:
-    //   { token, company_name, tenant_id }
-    //   sessionStorage.setItem('ems_token', data.token)
-    //   sessionStorage.setItem('ems_tenant_id', data.tenant_id)
-    // ══════════════════════════════════════════════════════════════════
-    // const res = await fetch('/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ company_name: companyName, password })
-      // });
-      // if (res.ok) {
-      //   const data = await res.json();
-      //   sessionStorage.setItem('ems_token', data.token);
-      //   sessionStorage.setItem('ems_company', data.company_name);
-      //   window.location.href = 'dashboard.html';
-      // } else {
-      //   const err = await res.json();
-      //   showError(err.detail || 'Invalid credentials.');
-      // }
-      // ══════════════════════════════════════════════════════
+      // REAL API CALL — POST /auth/login
+      try {
+        const res = await fetch(window.API_BASE + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name: companyName, password })
+        });
 
-      // MOCK: simulate API delay then redirect
-      await new Promise(r => setTimeout(r, 900));
+        const data = await res.json();
 
-      // Mock success — always passes for now
-      sessionStorage.setItem('ems_company', companyName);
-      window.location.href = 'dashboard.html';
+        if (!res.ok) {
+          showError(data.detail || 'Login failed. Please check your credentials.');
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
+        // Store session — token for API calls, company name for display
+        sessionStorage.setItem('ems_token', data.token);
+        sessionStorage.setItem('ems_company', data.company_name);
+        sessionStorage.setItem('ems_tenant_id', data.tenant_id);
+
+        window.location.href = 'dashboard.html';
+
+      } catch (err) {
+        showError('Cannot reach the server. Make sure the backend is running on port 8000.');
+        setLoading(false);
+      }
     });
 
     function showError(msg) {
@@ -701,6 +766,175 @@
     // Hide error banner when user starts typing
     document.getElementById('company-name').addEventListener('input', hideError);
     document.getElementById('password').addEventListener('input', hideError);
+    // -- SUPABASE OTP ------------------------------------------------------------
+  const SUPABASE_URL  = 'https://xvajtgcetorlzrnmklao.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YWp0Z2NldG9ybHpybm1rbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODI3MjYsImV4cCI6MjA4Nzc1ODcyNn0.Tf31vlooUkG-K42C3WYhSctANQJyk9u-syDqn9dH70g';  // from Step 3
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+ 
+  async function sendOtp() {
+    const email = document.getElementById('otp-email').value.trim();
+    const errEl = document.getElementById('otp-error');
+    errEl.style.display = 'none';
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Please enter a valid email address.';
+      errEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('otp-send-btn');
+    btn.textContent = 'Sending...'; btn.disabled = true;
+    const { error } = await sb.auth.signInWithOtp({ email });
+    btn.textContent = 'Send login code'; btn.disabled = false;
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    document.getElementById('otp-send-panel').style.display   = 'none';
+    document.getElementById('otp-verify-panel').style.display = 'block';
+  }
+ 
+  async function verifyOtp() {
+    const email = document.getElementById('otp-email').value.trim();
+    const token = document.getElementById('otp-code').value.trim();
+    const errEl = document.getElementById('otp-verify-error');
+    errEl.style.display = 'none';
+    if (token.length < 6 || token.length > 8) {
+      errEl.textContent = 'Code must be 6 or 8 digits.'; errEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('otp-verify-btn');
+    btn.textContent = 'Verifying...'; btn.disabled = true;
+ 
+    // 1. Verify OTP with Supabase
+    const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) {
+      btn.textContent = 'Verify code'; btn.disabled = false;
+      errEl.textContent = error.message; errEl.style.display = 'block'; return;
+    }
+ 
+    // 2. Exchange Supabase session for EMS token
+    try {
+      const res = await fetch(window.API_BASE + '/auth/supabase-exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: data.session.access_token })
+      });
+      const emsData = await res.json();
+      if (!res.ok) {
+        btn.textContent = 'Verify code'; btn.disabled = false;
+        errEl.textContent = emsData.detail || 'Login failed.'; errEl.style.display = 'block'; return;
+      }
+      // 3. Store EMS session exactly like the password login does
+      sessionStorage.setItem('ems_token',     emsData.token);
+      sessionStorage.setItem('ems_company',   emsData.company_name);
+      sessionStorage.setItem('ems_tenant_id', emsData.tenant_id);
+      window.location.href = 'dashboard.html';
+    } catch (e) {
+      btn.textContent = 'Verify code'; btn.disabled = false;
+      errEl.textContent = 'Could not reach the EMS server.'; errEl.style.display = 'block';
+    }
+  }
+ 
+  function resetOtp() {
+    document.getElementById('otp-send-panel').style.display   = 'block';
+    document.getElementById('otp-verify-panel').style.display = 'none';
+    document.getElementById('otp-code').value = '';
+  }
+  
+  
+  // -- GOOGLE SIGN-IN -------------------------------------------------------
+  //
+  // FLOW (full page redirect — most reliable, no popup issues):
+  //   1. User clicks "Sign in with Google"
+  //   2. This page navigates to Google's sign-in screen (no popup)
+  //   3. User picks their Google account
+  //   4. Google → Supabase callback → redirected back to THIS login.html URL
+  //      with #access_token=... appended to the URL hash
+  //   5. The IIFE below this function detects the hash on page load,
+  //      calls exchangeSession(), stores the EMS JWT, goes to dashboard
+  //
+  async function signInWithGoogle() {
+    // Build the redirectTo URL pointing exactly to login.html on this server.
+    // We derive it from window.location so it works on any port or path.
+    // Supabase will redirect back here with #access_token=... after Google auth.
+    const origin = window.location.origin;                       // e.g. http://127.0.0.1:5500
+    const dir    = window.location.pathname.replace(/\/[^/]*$/, ''); // folder path
+    const redirectTo = origin + dir + '/login.html';             // e.g. .../login.html
+
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectTo }
+      // No skipBrowserRedirect — full page navigates to Google then back here
+    });
+
+    if (error) { alert('Google sign-in error: ' + error.message); }
+  }
+
+  // -- HANDLE OAUTH CALLBACK (runs on every login.html load) --
+  // When Google redirects back, the URL looks like:
+  //   http://127.0.0.1:5500/frontend/login.html#access_token=eyJ...&token_type=bearer&...
+  // This block detects that and completes the login automatically.
+  (async () => {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token=')) return; // normal load, nothing to do
+
+    // Hide the login form and show a loading spinner
+    const pageContainer = document.querySelector('.page-container');
+    const nav = document.querySelector('nav');
+    if (nav) nav.style.display = 'none';
+    if (pageContainer) pageContainer.innerHTML = `
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;
+                  justify-content:center;min-height:100vh;gap:14px;color:#a1a1a1;font-size:14px;">
+        <div style="width:32px;height:32px;border:2px solid #2a2a2a;border-top-color:#2952cc;
+                    border-radius:50%;animation:spin 700ms linear infinite;"></div>
+        <span>Completing Google sign-in…</span>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      </div>`;
+
+    // Get the session Supabase placed in the URL hash
+    const { data: { session }, error } = await sb.auth.getSession();
+
+    if (error || !session) {
+      const msg = error?.message || 'No session found. Please try again.';
+      if (pageContainer) pageContainer.innerHTML =
+        `<div style="width:100%;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;min-height:100vh;gap:14px;color:#ef4444;font-size:14px;">
+          <span>Sign-in failed: ${msg}</span>
+          <a href="login.html" style="color:#a8bfff;font-size:13px;">← Back to login</a></div>`;
+      return;
+    }
+
+    await exchangeSession(session.access_token);
+  })();
+
+  // Exchange a Supabase access_token for an EMS JWT, then go to dashboard
+  async function exchangeSession(access_token) {
+    const pageContainer = document.querySelector('.page-container');
+    try {
+      const res = await fetch(window.API_BASE + '/auth/supabase-exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token })
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        if (pageContainer) pageContainer.innerHTML =
+          `<div style="width:100%;display:flex;flex-direction:column;align-items:center;
+              justify-content:center;min-height:100vh;gap:14px;padding:24px;text-align:center;
+              color:#ef4444;font-size:14px;">
+            <span>${d.detail || 'Login failed.'}</span>
+            <a href="login.html" style="color:#a8bfff;font-size:13px;">← Back to login</a></div>`;
+        return;
+      }
+      sessionStorage.setItem('ems_token',     d.token);
+      sessionStorage.setItem('ems_company',   d.company_name);
+      sessionStorage.setItem('ems_tenant_id', d.tenant_id);
+      window.location.href = 'dashboard.html';
+    } catch (e) {
+      if (pageContainer) pageContainer.innerHTML =
+        `<div style="width:100%;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;min-height:100vh;gap:14px;padding:24px;text-align:center;
+            color:#ef4444;font-size:14px;">
+          <span>Could not reach the EMS backend.<br>Make sure uvicorn is running on port 8000.</span>
+          <a href="login.html" style="color:#a8bfff;font-size:13px;">← Back to login</a></div>`;
+    }
+  }
+  // -- END GOOGLE SIGN-IN ---------------------------------------------------
+
   </script>
 </body>
 </html>

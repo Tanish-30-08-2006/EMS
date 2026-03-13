@@ -1,0 +1,11 @@
+psycopg2-binary
+python-dotenv
+bcrypt
+tabulate
+fastapi
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]
+pydantic
+httpx
+openpyxl

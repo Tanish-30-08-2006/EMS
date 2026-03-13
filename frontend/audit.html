@@ -71,7 +71,15 @@
     .company-name-display { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: none; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 120ms; }
+    .logout-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-muted);
+      background: transparent; border: none; cursor: pointer; border-radius: 0; transition: color 120ms;
+    }
+    .logout-icon {
+      width: 14px; height: 14px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
     .logout-btn:hover { color: var(--danger); }
 
     /* ── MAIN CONTENT ── */
@@ -575,166 +583,83 @@
 
   <div class="toast-container" id="toast-container"></div>
 
+<div class="modal-overlay" id="logout-confirm-modal" style="z-index:9999;">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);width:340px;max-width:90vw;padding:36px 32px;text-align:center;border-radius:0;transform:scale(0.95);transition:transform 200ms;" id="logout-modal-box">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;"><use href="#shield-logo"></use></svg>
+      <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Sign Out?</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6;">You'll be returned to the login screen.<br>Your workspace data is saved automatically.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="logout-cancel-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,color 120ms;">Stay</button>
+        <button id="logout-confirm-btn" style="padding:8px 24px;background:transparent;border:1px solid var(--danger);color:#fca5a5;font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px;transition:border-color 120ms,box-shadow 200ms;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ems-init.js"></script>
   <script>
 
     // ── AUTH GUARD ──
-    // When backend is live: replace 'ems_company' check with JWT token check:
-    // if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
-    if (!sessionStorage.getItem('ems_company')) {
-      window.location.href = 'login.html';
+    if (!sessionStorage.getItem('ems_token')) { window.location.href = 'login.html'; }
+
+    /* ── API HELPER ── */
+    async function apiCall(url, method = 'GET', body = null) {
+      const token = sessionStorage.getItem('ems_token');
+      const opts  = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(`${window.API_BASE}${url}`, opts);
+      if (res.status === 401) { sessionStorage.clear(); window.location.href = 'login.html'; return null; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+      return data;
     }
-    // ══════════════════════════════════════════════════════════════════
-    // MOCK DATA
-    // ══════════════════════════════════════════════════════════════════
 
-    const MOCK_AUDIT_LOG = [
-      {
-        log_id: 47,
-        table_name: 'employee',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-        old_data: { eno: 109, ename: 'John Smith', salary: 28000, dno: 5 },
-        new_data: { eno: 109, ename: 'John Smith', salary: 30000, dno: 5 },
-      },
-      {
-        log_id: 46,
-        table_name: 'works_on',
-        operation: 'INSERT',
-        changed_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-        old_data: null,
-        new_data: { eno: 106, pno: 3, hours: 40.0 },
-      },
-      {
-        log_id: 45,
-        table_name: 'department',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        old_data: { dno: 5, dname: 'Research', mgr_eno: 102 },
-        new_data: { dno: 5, dname: 'Research', mgr_eno: 103 },
-      },
-      {
-        log_id: 44,
-        table_name: 'employee',
-        operation: 'INSERT',
-        changed_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        old_data: null,
-        new_data: { eno: 110, ename: 'Tanish Sanghavi', salary: 60000, dno: 1 },
-      },
-      {
-        log_id: 43,
-        table_name: 'project',
-        operation: 'INSERT',
-        changed_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        old_data: null,
-        new_data: { pno: 30, pname: 'Newbenefits', plocation: 'Stafford', dno: 4 },
-      },
-      {
-        log_id: 42,
-        table_name: 'dependent',
-        operation: 'INSERT',
-        changed_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        old_data: null,
-        new_data: { eno: 109, dependent_name: 'Alice Smith', gender: 'F', relationship: 'Daughter' },
-      },
-      {
-        log_id: 41,
-        table_name: 'employee',
-        operation: 'DELETE',
-        changed_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-        old_data: { eno: 108, ename: 'Alicia Zelaya', salary: 25000, dno: 4 },
-        new_data: null,
-      },
-      {
-        log_id: 40,
-        table_name: 'dept_locations',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
-        old_data: { dno: 5, dlocation: 'Dallas' },
-        new_data: { dno: 5, dlocation: 'Houston' },
-      },
-      {
-        log_id: 39,
-        table_name: 'employee',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-        old_data: { eno: 103, ename: 'Franklin Wong', salary: 38000, dno: 5 },
-        new_data: { eno: 103, ename: 'Franklin Wong', salary: 40000, dno: 5 },
-      },
-      {
-        log_id: 38,
-        table_name: 'works_on',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(),
-        old_data: { eno: 103, pno: 1, hours: 28.0 },
-        new_data: { eno: 103, pno: 1, hours: 32.5 },
-      },
-      {
-        log_id: 37,
-        table_name: 'project',
-        operation: 'UPDATE',
-        changed_at: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-        old_data: { pno: 10, pname: 'Computerize', plocation: 'Houston', dno: 4 },
-        new_data: { pno: 10, pname: 'Computerize', plocation: 'Stafford', dno: 4 },
-      },
-      {
-        log_id: 36,
-        table_name: 'department',
-        operation: 'INSERT',
-        changed_at: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString(),
-        old_data: null,
-        new_data: { dno: 6, dname: 'Finance', mgr_eno: 108 },
-      },
-    ];
-
-    const MOCK_AUDIT_STATS = {
-      total_today: 23,
-      total_week: 89,
-      total_month: 234,
-      by_operation: { INSERT: 42, UPDATE: 61, DELETE: 8 },
-      by_table: {
-        employee:      { INSERT: 18, UPDATE: 31, DELETE: 5  },
-        department:    { INSERT: 4,  UPDATE: 12, DELETE: 1  },
-        project:       { INSERT: 8,  UPDATE: 9,  DELETE: 2  },
-        works_on:      { INSERT: 7,  UPDATE: 6,  DELETE: 0  },
-        dependent:     { INSERT: 4,  UPDATE: 2,  DELETE: 0  },
-        dept_locations:{ INSERT: 1,  UPDATE: 1,  DELETE: 0  },
-      },
-      daily_counts: [
-        { date: '2026-03-01', count: 28 },
-        { date: '2026-03-02', count: 15 },
-        { date: '2026-03-03', count: 42 },
-        { date: '2026-03-04', count: 9  },
-        { date: '2026-03-05', count: 31 },
-        { date: '2026-03-06', count: 89 },
-        { date: '2026-03-07', count: 23 },
-      ],
-    };
-
-    // ── STATE ──
-    let currentTab = 'log';
+    /* ── STATE ── */
+    let ALL_LOGS    = [];   // full log array from backend
+    let STATS_DATA  = null; // built from /audit/stats + /audit/operation-summary
+    let currentTab  = 'log';
     let filterTable = 'all';
-    let filterOp = 'all';
-    let filterTime = 'all';
-    let searchId = '';
+    let filterOp    = 'all';
+    let filterTime  = 'all';
+    let searchId    = '';
     let currentPage = 1;
-    const pageSize = 20;
+    const pageSize  = 20;
     let refreshInterval = null;
+    let isLive = false;
 
-    // ── DOM ELEMENTS ──
-    const tableBody = document.getElementById('table-body');
-    const showingText = document.getElementById('showing-text');
+    /* ── DOM ── */
+    const tableBody    = document.getElementById('table-body');
+    const showingText  = document.getElementById('showing-text');
     const refreshToggle = document.getElementById('refresh-toggle');
-    const liveDot = document.getElementById('live-dot');
+    const liveDot      = document.getElementById('live-dot');
 
-    // ── INITIALIZATION ──
-    document.addEventListener('DOMContentLoaded', () => {
-      const storedCompany = sessionStorage.getItem('ems_company') || 'Enterprise Admin';
-      document.getElementById('sidebar-company-name').textContent = storedCompany;
-      
-      renderAll();
-    });
+    /* ── SIDEBAR ── */
+    const companyName = sessionStorage.getItem('ems_company') || 'My Company';
+    document.getElementById('sidebar-company-name').textContent = companyName;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const toggleSidebar = (force) => {
+      const isOpen = force !== undefined ? force : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', isOpen);
+      sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+    document.getElementById('hamburger-btn').addEventListener('click', () => toggleSidebar(true));
+    document.getElementById('sidebar-close-btn').addEventListener('click', () => toggleSidebar(false));
+    sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
 
-    // ── HELPERS ──
+    /* ── TOASTS ── */
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'success') toast.style.borderLeftColor = 'var(--success)';
+      if (type === 'error')   toast.style.borderLeftColor = 'var(--danger)';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(20px)'; toast.style.transition='300ms'; setTimeout(()=>toast.remove(),300); }, 3000);
+    }
+
+    /* ── TIME HELPERS ── */
     function relativeTime(isoString) {
       const diff = Date.now() - new Date(isoString).getTime();
       const seconds = Math.floor(diff / 1000);
@@ -743,8 +668,8 @@
       const days    = Math.floor(hours / 24);
       if (seconds < 60) return 'just now';
       if (minutes < 60) return `${minutes} min ago`;
-      if (hours < 24)   return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-      if (days === 1)   return 'Yesterday';
+      if (hours   < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      if (days    === 1) return 'Yesterday';
       return `${days} days ago`;
     }
 
@@ -755,20 +680,22 @@
       });
     }
 
+    /* ── SUMMARY GENERATOR ── */
     function generateSummary(entry) {
       const { table_name, operation, old_data, new_data } = entry;
       if (operation === 'INSERT') {
-        const id = new_data?.eno || new_data?.dno || new_data?.pno || Object.values(new_data || {})[0];
+        const d = new_data || {};
+        const id = d.eno || d.dno || d.pno || Object.values(d)[0];
         return `New ${table_name} record created (ID: ${id})`;
       }
       if (operation === 'DELETE') {
-        const id = old_data?.eno || old_data?.dno || old_data?.pno || Object.values(old_data || {})[0];
+        const d = old_data || {};
+        const id = d.eno || d.dno || d.pno || Object.values(d)[0];
         return `${table_name} record deleted (ID: ${id})`;
       }
       if (operation === 'UPDATE') {
-        const changedFields = getChangedFields(old_data, new_data);
-        if (changedFields.length === 0) return `${table_name} record updated`;
-        return `${table_name}: ${changedFields.join(', ')} changed`;
+        const changed = getChangedFields(old_data, new_data);
+        return changed.length === 0 ? `${table_name} record updated` : `${table_name}: ${changed.join(', ')} changed`;
       }
       return `${table_name} ${operation}`;
     }
@@ -778,93 +705,85 @@
       return Object.keys(newData).filter(k => JSON.stringify(oldData[k]) !== JSON.stringify(newData[k]));
     }
 
-    // ── TAB SWITCHING ──
-    document.getElementById('tab-log').onclick = () => switchTab('log');
+    /* ── TABS ── */
+    document.getElementById('tab-log').onclick   = () => switchTab('log');
     document.getElementById('tab-stats').onclick = () => switchTab('stats');
 
     function switchTab(tab) {
       currentTab = tab;
       document.getElementById('tab-log').classList.toggle('active', tab === 'log');
       document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
-      document.getElementById('tab1-content').style.display = tab === 'log' ? 'block' : 'none';
+      document.getElementById('tab1-content').style.display = tab === 'log'   ? 'block' : 'none';
       document.getElementById('tab2-content').style.display = tab === 'stats' ? 'block' : 'none';
-      renderAll();
-      if (tab === 'stats') {
-        startStatsAnimations();
-      }
+      if (tab === 'stats') loadAndRenderStats();
+      else renderLog();
     }
 
-    // ── FILTERS ──
-    document.getElementById('search-id').oninput = (e) => { searchId = e.target.value; currentPage = 1; renderAll(); };
-    document.getElementById('filter-table').onchange = (e) => { filterTable = e.target.value; currentPage = 1; renderAll(); };
-    document.getElementById('filter-time').onchange = (e) => { filterTime = e.target.value; currentPage = 1; renderAll(); };
-    
+    /* ── FILTERS ── */
+    document.getElementById('search-id').oninput   = (e) => { searchId    = e.target.value; currentPage = 1; renderLog(); };
+    document.getElementById('filter-table').onchange = (e) => { filterTable = e.target.value; currentPage = 1; renderLog(); };
+    document.getElementById('filter-time').onchange  = (e) => { filterTime  = e.target.value; currentPage = 1; renderLog(); };
+
     document.querySelectorAll('.pill').forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         filterOp = btn.dataset.op;
         currentPage = 1;
-        renderAll();
+        renderLog();
       };
     });
 
     document.getElementById('btn-clear-filters').onclick = () => {
-      searchId = ''; filterTable = 'all'; filterTime = 'all'; filterOp = 'all';
-      document.getElementById('search-id').value = '';
-      document.getElementById('filter-table').value = 'all';
-      document.getElementById('filter-time').value = 'all';
+      searchId=''; filterTable='all'; filterTime='all'; filterOp='all';
+      document.getElementById('search-id').value      = '';
+      document.getElementById('filter-table').value   = 'all';
+      document.getElementById('filter-time').value    = 'all';
       document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
       document.querySelector('[data-op="all"]').classList.add('active');
-      renderAll();
+      currentPage = 1;
+      renderLog();
     };
 
-    // ── AUTO REFRESH ──
+    /* ── AUTO REFRESH ── */
     refreshToggle.onchange = () => {
-      if (refreshToggle.checked) {
-        liveDot.style.display = 'inline-block';
-        refreshInterval = setInterval(() => renderAll(), 15000);
+      isLive = refreshToggle.checked;
+      liveDot.style.display = isLive ? 'inline-block' : 'none';
+      if (isLive) {
+        refreshInterval = setInterval(() => loadAuditLogs(true), 15000);
       } else {
-        liveDot.style.display = 'none';
         clearInterval(refreshInterval);
       }
     };
 
-    // ── RENDERING ──
-    // // FUTURE BUG F9: API format - backend must return {log_id,table_name,operation,old_data,new_data,changed_at}
-    // These match tenant_template.sql audit_log columns exactly.
-    // Endpoint: GET /audit?table=X&op=Y&page=N&limit=20  Response: {entries:[...],total:N}
-    function renderAll() {
-      if (currentTab === 'log') {
-        renderLog();
-      } else {
-        renderStats();
-      }
-    }
-
+    /* ── RENDER LOG TAB ── */
     function renderLog() {
-      const filtered = MOCK_AUDIT_LOG.filter(log => {
-        const matchId = !searchId || log.log_id.toString() === searchId;
+      const now = Date.now();
+      const filtered = ALL_LOGS.filter(log => {
+        const matchId    = !searchId || log.log_id.toString() === searchId;
         const matchTable = filterTable === 'all' || log.table_name === filterTable;
-        const matchOp = filterOp === 'all' || log.operation === filterOp;
-        
+        const matchOp    = filterOp === 'all' || log.operation === filterOp;
         let matchTime = true;
         if (filterTime !== 'all') {
-          const hoursDiff = (Date.now() - new Date(log.changed_at).getTime()) / (1000 * 60 * 60);
-          if (filterTime === 'today') matchTime = hoursDiff < 24;
-          else if (filterTime === 'week') matchTime = hoursDiff < 168;
-          else if (filterTime === 'month') matchTime = hoursDiff < 720;
+          const hrs = (now - new Date(log.changed_at).getTime()) / 3600000;
+          if (filterTime === 'today') matchTime = hrs < 24;
+          else if (filterTime === 'week')  matchTime = hrs < 168;
+          else if (filterTime === 'month') matchTime = hrs < 720;
         }
-        
         return matchId && matchTable && matchOp && matchTime;
       });
 
-      showingText.textContent = `Showing ${filtered.length} of ${MOCK_AUDIT_LOG.length} entries`;
+      showingText.textContent = `Showing ${filtered.length} of ${ALL_LOGS.length} entries`;
 
       const start = (currentPage - 1) * pageSize;
       const paginated = filtered.slice(start, start + pageSize);
-      
+
       tableBody.innerHTML = '';
+      if (paginated.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--text-muted)">No audit entries match the current filters.</td></tr>`;
+        updatePagination(0);
+        return;
+      }
       paginated.forEach((log, idx) => {
         const tr = document.createElement('tr');
         tr.style.animationDelay = `${idx * 35}ms`;
@@ -879,15 +798,13 @@
           <td class="summary-cell" title="${generateSummary(log)}">${generateSummary(log)}</td>
           <td style="text-align:center">
             <button class="details-btn" onclick="openDiffModal(${log.log_id})">View diff →</button>
-          </td>
-        `;
+          </td>`;
         tableBody.appendChild(tr);
       });
-
       updatePagination(filtered.length);
     }
 
-    // ── PAGINATION ──
+    /* ── PAGINATION ── */
     function updatePagination(totalFiltered) {
       const totalPages = Math.ceil(totalFiltered / pageSize) || 1;
       document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
@@ -898,27 +815,27 @@
       pageNumbers.innerHTML = '';
       for (let i = 1; i <= totalPages; i++) {
         if (totalPages > 5 && i > 3 && i < totalPages) {
-          if (i === 4) pageNumbers.innerHTML += `<span style="padding:0 4px; color:var(--text-muted)">...</span>`;
+          if (i === 4) pageNumbers.innerHTML += `<span style="padding:0 4px;color:var(--text-muted)">...</span>`;
           continue;
         }
         const btn = document.createElement('button');
         btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
         btn.textContent = i;
-        btn.onclick = () => { currentPage = i; renderAll(); };
+        btn.onclick = () => { currentPage = i; renderLog(); };
         pageNumbers.appendChild(btn);
       }
     }
 
-    document.getElementById('prev-page').onclick = () => { if(currentPage > 1) { currentPage--; renderAll(); } };
-    document.getElementById('next-page').onclick = () => { 
-      const totalFiltered = MOCK_AUDIT_LOG.length; // Simplified
-      if(currentPage < Math.ceil(totalFiltered/pageSize)) { currentPage++; renderAll(); } 
+    document.getElementById('prev-page').onclick = () => { if (currentPage > 1) { currentPage--; renderLog(); } };
+    document.getElementById('next-page').onclick = () => {
+      const total = Math.ceil(ALL_LOGS.length / pageSize);
+      if (currentPage < total) { currentPage++; renderLog(); }
     };
 
-    // ── DIFF MODAL ──
+    /* ── DIFF MODAL ── */
     const diffModal = document.getElementById('diff-modal');
     window.openDiffModal = (logId) => {
-      const log = MOCK_AUDIT_LOG.find(l => l.log_id === logId);
+      const log = ALL_LOGS.find(l => l.log_id === logId);
       if (!log) return;
 
       document.getElementById('modal-op-badge').className = `op-badge ${log.operation.toLowerCase()}`;
@@ -931,16 +848,15 @@
 
       if (log.operation === 'INSERT') {
         renderInsertDiff(log.new_data, body);
-        document.getElementById('modal-diff-summary').textContent = `New record created with ${Object.keys(log.new_data).length} fields.`;
+        document.getElementById('modal-diff-summary').textContent = `New record created with ${Object.keys(log.new_data || {}).length} fields.`;
       } else if (log.operation === 'DELETE') {
         renderDeleteDiff(log.old_data, body);
-        document.getElementById('modal-diff-summary').textContent = `Record deleted. Previewed ${Object.keys(log.old_data).length} fields.`;
+        document.getElementById('modal-diff-summary').textContent = `Record deleted. Previewed ${Object.keys(log.old_data || {}).length} fields.`;
       } else {
         const changed = getChangedFields(log.old_data, log.new_data);
         renderUpdateDiff(log.old_data, log.new_data, changed, body);
         document.getElementById('modal-diff-summary').innerHTML = `<strong>${changed.length} field(s) changed:</strong> ${changed.join(', ')}`;
       }
-
       diffModal.classList.add('open');
     };
 
@@ -949,15 +865,9 @@
         <div class="diff-block diff-insert">
           <div class="diff-label" style="color:#86efac">New Record</div>
           <table class="diff-fields">
-            ${Object.entries(data).map(([k, v]) => `
-              <tr class="diff-row">
-                <td class="diff-key">${k}</td>
-                <td class="diff-val val-ins">${v}</td>
-              </tr>
-            `).join('')}
+            ${Object.entries(data || {}).map(([k,v]) => `<tr class="diff-row"><td class="diff-key">${k}</td><td class="diff-val val-ins">${v}</td></tr>`).join('')}
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
     function renderDeleteDiff(data, container) {
@@ -965,195 +875,191 @@
         <div class="diff-block diff-delete">
           <div class="diff-label" style="color:#fca5a5">Deleted Record</div>
           <table class="diff-fields">
-            ${Object.entries(data).map(([k, v]) => `
-              <tr class="diff-row">
-                <td class="diff-key">${k}</td>
-                <td class="diff-val val-del">${v}</td>
-              </tr>
-            `).join('')}
+            ${Object.entries(data || {}).map(([k,v]) => `<tr class="diff-row"><td class="diff-key">${k}</td><td class="diff-val val-del">${v}</td></tr>`).join('')}
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
     function renderUpdateDiff(oldData, newData, changedFields, container) {
-      const keys = Object.keys(newData);
+      const keys = Object.keys(newData || {});
       container.innerHTML = `
         <div class="diff-columns">
           <div class="diff-col before">
             <div class="diff-col-label">Before</div>
             <table class="diff-fields">
-              ${keys.map(k => `
-                <tr class="diff-row ${changedFields.includes(k) ? 'changed-field' : ''}">
-                  <td class="diff-key">${k}</td>
-                  <td class="diff-val ${changedFields.includes(k) ? 'val-old' : ''}">${oldData[k]}</td>
-                </tr>
-              `).join('')}
+              ${keys.map(k => `<tr class="diff-row ${changedFields.includes(k)?'changed-field':''}"><td class="diff-key">${k}</td><td class="diff-val ${changedFields.includes(k)?'val-old':''}">${(oldData||{})[k]}</td></tr>`).join('')}
             </table>
           </div>
           <div class="diff-col after">
             <div class="diff-col-label">After</div>
             <table class="diff-fields">
-              ${keys.map(k => `
-                <tr class="diff-row ${changedFields.includes(k) ? 'changed-field' : ''}">
-                  <td class="diff-key">${k}</td>
-                  <td class="diff-val ${changedFields.includes(k) ? 'val-new' : ''}">${newData[k]}</td>
-                </tr>
-              `).join('')}
+              ${keys.map(k => `<tr class="diff-row ${changedFields.includes(k)?'changed-field':''}"><td class="diff-key">${k}</td><td class="diff-val ${changedFields.includes(k)?'val-new':''}">${(newData||{})[k]}</td></tr>`).join('')}
             </table>
           </div>
-        </div>
-      `;
+        </div>`;
     }
 
     document.getElementById('modal-close-btn').onclick = () => diffModal.classList.remove('open');
-    diffModal.onclick = (e) => { if(e.target === diffModal) diffModal.classList.remove('open'); };
+    diffModal.onclick = (e) => { if (e.target === diffModal) diffModal.classList.remove('open'); };
 
-    // ── ACTIVITY STATS (TAB 2) ──
-    function renderStats() {
-      // Basic counts
-      document.getElementById('stat-today').dataset.target = MOCK_AUDIT_STATS.total_today;
-      document.getElementById('stat-week').dataset.target = MOCK_AUDIT_STATS.total_week;
-      document.getElementById('stat-month').dataset.target = MOCK_AUDIT_STATS.total_month;
-      
-      // Most active table
-      const entries = Object.entries(MOCK_AUDIT_STATS.by_table);
-      const activeTable = entries.sort((a,b) => (b[1].INSERT + b[1].UPDATE + b[1].DELETE) - (a[1].INSERT + a[1].UPDATE + a[1].DELETE))[0];
-      document.getElementById('stat-active-table').textContent = activeTable[0];
-      document.getElementById('stat-active-count').textContent = `${activeTable[1].INSERT + activeTable[1].UPDATE + activeTable[1].DELETE} changes total`;
-
-      // Op breakdown
-      document.getElementById('stat-op-ins').dataset.target = MOCK_AUDIT_STATS.by_operation.INSERT;
-      document.getElementById('stat-op-upd').dataset.target = MOCK_AUDIT_STATS.by_operation.UPDATE;
-      document.getElementById('stat-op-del').dataset.target = MOCK_AUDIT_STATS.by_operation.DELETE;
-
-      // Table bars
+    /* ── STATS TAB ── */
+    async function loadAndRenderStats() {
       const barsContainer = document.getElementById('table-bars-container');
-      barsContainer.innerHTML = '';
-      const totalChanges = Object.values(MOCK_AUDIT_STATS.by_table).reduce((acc, curr) => acc + curr.INSERT + curr.UPDATE + curr.DELETE, 0);
-      
-      entries.forEach((entry, idx) => {
-        const [name, data] = entry;
-        const sum = data.INSERT + data.UPDATE + data.DELETE;
-        const iW = (data.INSERT / totalChanges) * 100;
-        const uW = (data.UPDATE / totalChanges) * 100;
-        const dW = (data.DELETE / totalChanges) * 100;
+      barsContainer.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center">Loading stats...</div>';
 
-        const row = document.createElement('div');
-        row.className = 'breakdown-row';
-        row.style.animation = `sectionFadeIn 400ms ease both ${idx * 80}ms`;
-        row.innerHTML = `
-          <div class="breakdown-table-name">${name}</div>
-          <div class="breakdown-bar-track">
-            <div class="bar-seg ins" style="width:0; left:0" data-width="${iW}"></div>
-            <div class="bar-seg upd" style="width:0; left:${iW}%" data-width="${uW}"></div>
-            <div class="bar-seg del" style="width:0; left:${iW + uW}%" data-width="${dW}"></div>
-          </div>
-          <div class="breakdown-count">${sum}</div>
-        `;
-        barsContainer.appendChild(row);
-      });
+      try {
+        const [statsRaw, opRaw] = await Promise.all([
+          apiCall('/audit/stats'),
+          apiCall('/audit/operation-summary')
+        ]);
+        if (!statsRaw || !opRaw) return;
 
-      // Sparkline
-      document.getElementById('sparkline-container').innerHTML = buildSparklineSVG(MOCK_AUDIT_STATS.daily_counts);
-      document.getElementById('sparkline-labels').innerHTML = MOCK_AUDIT_STATS.daily_counts.map(d => `
-        <div class="spark-day">
-          <span class="spark-day-label">${new Date(d.date).toLocaleDateString('en-US', {weekday: 'short'})}</span>
-          <span class="spark-day-count">${d.count}</span>
-        </div>
-      `).join('');
+        // Build structured object: { table_name: { INSERT:N, UPDATE:N, DELETE:N, total:N } }
+        const byTable = {};
+        opRaw.forEach(row => {
+          if (!byTable[row.table_name]) byTable[row.table_name] = { INSERT: 0, UPDATE: 0, DELETE: 0 };
+          byTable[row.table_name][row.operation] = (byTable[row.table_name][row.operation] || 0) + row.count;
+        });
+        // Also add any tables from /audit/stats not in opRaw
+        statsRaw.forEach(row => {
+          if (!byTable[row.table_name]) byTable[row.table_name] = { INSERT: 0, UPDATE: 0, DELETE: 0 };
+        });
+
+        const byOperation = { INSERT: 0, UPDATE: 0, DELETE: 0 };
+        Object.values(byTable).forEach(t => { byOperation.INSERT += t.INSERT; byOperation.UPDATE += t.UPDATE; byOperation.DELETE += t.DELETE; });
+
+        // Derive time-window counts from ALL_LOGS (already loaded)
+        const now = Date.now();
+        const total_today = ALL_LOGS.filter(l => (now - new Date(l.changed_at).getTime()) < 86400000).length;
+        const total_week  = ALL_LOGS.filter(l => (now - new Date(l.changed_at).getTime()) < 604800000).length;
+        const total_month = ALL_LOGS.filter(l => (now - new Date(l.changed_at).getTime()) < 2592000000).length;
+
+        // Most active table
+        const entries = Object.entries(byTable);
+        const activeEntry = entries.sort((a,b) => (b[1].INSERT+b[1].UPDATE+b[1].DELETE) - (a[1].INSERT+a[1].UPDATE+a[1].DELETE))[0] || ['—', {INSERT:0,UPDATE:0,DELETE:0}];
+        document.getElementById('stat-active-table').textContent = activeEntry[0];
+        document.getElementById('stat-active-count').textContent = `${activeEntry[1].INSERT + activeEntry[1].UPDATE + activeEntry[1].DELETE} changes total`;
+
+        // Stat counters
+        document.getElementById('stat-today').dataset.target = total_today;
+        document.getElementById('stat-week').dataset.target  = total_week;
+        document.getElementById('stat-month').dataset.target = total_month;
+        document.getElementById('stat-op-ins').dataset.target = byOperation.INSERT;
+        document.getElementById('stat-op-upd').dataset.target = byOperation.UPDATE;
+        document.getElementById('stat-op-del').dataset.target = byOperation.DELETE;
+
+        // Table breakdown bars
+        const totalChanges = byOperation.INSERT + byOperation.UPDATE + byOperation.DELETE || 1;
+        barsContainer.innerHTML = '';
+        Object.entries(byTable).forEach(([name, data], idx) => {
+          const sum = data.INSERT + data.UPDATE + data.DELETE;
+          const iW  = (data.INSERT / totalChanges) * 100;
+          const uW  = (data.UPDATE / totalChanges) * 100;
+          const dW  = (data.DELETE / totalChanges) * 100;
+          const row = document.createElement('div');
+          row.className = 'breakdown-row';
+          row.style.animation = `sectionFadeIn 400ms ease both ${idx * 80}ms`;
+          row.innerHTML = `
+            <div class="breakdown-table-name">${name}</div>
+            <div class="breakdown-bar-track">
+              <div class="bar-seg ins" style="width:0;left:0"            data-width="${iW}"></div>
+              <div class="bar-seg upd" style="width:0;left:${iW}%"       data-width="${uW}"></div>
+              <div class="bar-seg del" style="width:0;left:${iW+uW}%"    data-width="${dW}"></div>
+            </div>
+            <div class="breakdown-count">${sum}</div>`;
+          barsContainer.appendChild(row);
+        });
+
+        // Op proportion bars (need real totals)
+        const opTotal = byOperation.INSERT + byOperation.UPDATE + byOperation.DELETE || 1;
+        document.getElementById('bar-op-ins').style.width = (byOperation.INSERT / opTotal * 100) + '%';
+        document.getElementById('bar-op-upd').style.width = (byOperation.UPDATE / opTotal * 100) + '%';
+        document.getElementById('bar-op-del').style.width = (byOperation.DELETE / opTotal * 100) + '%';
+
+        // Sparkline — build daily_counts from ALL_LOGS
+        const daily = buildDailyCounts(ALL_LOGS, 7);
+        document.getElementById('sparkline-container').innerHTML = buildSparklineSVG(daily);
+        document.getElementById('sparkline-labels').innerHTML = daily.map(d => `
+          <div class="spark-day">
+            <span class="spark-day-label">${new Date(d.date+'T12:00:00').toLocaleDateString('en-US', {weekday: 'short'})}</span>
+            <span class="spark-day-count">${d.count}</span>
+          </div>`).join('');
+
+        startStatsAnimations();
+
+      } catch(err) {
+        barsContainer.innerHTML = `<div style="color:var(--danger);padding:20px;text-align:center">${err.message}</div>`;
+      }
+    }
+
+    function buildDailyCounts(logs, days) {
+      const result = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = logs.filter(l => l.changed_at && l.changed_at.startsWith(dateStr)).length;
+        result.push({ date: dateStr, count });
+      }
+      return result;
     }
 
     function startStatsAnimations() {
-      // Counter animations
-      const counters = document.querySelectorAll('.stat-value, .op-value');
-      counters.forEach(c => {
+      document.querySelectorAll('.stat-value, .op-value').forEach(c => {
         const target = parseInt(c.dataset.target || 0);
         let current = 0;
-        const speed = Math.max(10, 500 / (target || 1));
         const itv = setInterval(() => {
           if (current >= target) { c.textContent = target; clearInterval(itv); }
-          else { current += Math.ceil(target / 50); if(current > target) current = target; c.textContent = current; }
+          else { current += Math.ceil(target / 50); if (current > target) current = target; c.textContent = current; }
         }, 20);
       });
-
-      // Proportion bars
-      const opTotal = MOCK_AUDIT_STATS.by_operation.INSERT + MOCK_AUDIT_STATS.by_operation.UPDATE + MOCK_AUDIT_STATS.by_operation.DELETE;
-      document.getElementById('bar-op-ins').style.width = (MOCK_AUDIT_STATS.by_operation.INSERT / opTotal * 100) + '%';
-      document.getElementById('bar-op-upd').style.width = (MOCK_AUDIT_STATS.by_operation.UPDATE / opTotal * 100) + '%';
-      document.getElementById('bar-op-del').style.width = (MOCK_AUDIT_STATS.by_operation.DELETE / opTotal * 100) + '%';
-
-      // Table bars
-      setTimeout(() => {
-        document.querySelectorAll('.bar-seg').forEach(s => {
-          s.style.width = s.dataset.width + '%';
-        });
-      }, 100);
+      setTimeout(() => { document.querySelectorAll('.bar-seg').forEach(s => { s.style.width = s.dataset.width + '%'; }); }, 100);
     }
 
     function buildSparklineSVG(data) {
       const counts = data.map(d => d.count);
-      const max = Math.max(...counts);
-      const min = Math.min(...counts);
-      const w = 600; const h = 80; const pad = 10;
+      const max = Math.max(...counts, 1);
+      const min = Math.min(...counts, 0);
+      const w = 600, h = 80, pad = 10;
       const points = counts.map((c, i) => {
         const x = pad + (i / (counts.length - 1)) * (w - 2 * pad);
         const y = h - pad - ((c - min) / (max - min || 1)) * (h - 2 * pad);
         return `${x},${y}`;
       }).join(' ');
-
       return `
-        <svg viewBox="0 0 600 80" preserveAspectRatio="none" style="width:100%; height:80px;">
-          <defs>
-            <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="rgba(41,82,204,0.25)" />
-              <stop offset="100%" stop-color="rgba(41,82,204,0)" />
-            </linearGradient>
-          </defs>
-          <polygon points="${points} 590,80 10,80" fill="url(#sparkGrad)" />
-          <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+        <svg viewBox="0 0 600 80" preserveAspectRatio="none" style="width:100%;height:80px;">
+          <defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(41,82,204,0.25)"/>
+            <stop offset="100%" stop-color="rgba(41,82,204,0)"/>
+          </linearGradient></defs>
+          <polygon points="${points} 590,80 10,80" fill="url(#sparkGrad)"/>
+          <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
           ${counts.map((c, i) => {
             const x = pad + (i / (counts.length - 1)) * (w - 2 * pad);
             const y = h - pad - ((c - min) / (max - min || 1)) * (h - 2 * pad);
             return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent-text)" stroke="var(--bg-surface)" stroke-width="2"/>`;
           }).join('')}
-        </svg>
-      `;
+        </svg>`;
     }
 
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast`;
-      if (type === 'success') toast.style.borderLeftColor = 'var(--success)';
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = '300ms';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    /* ── LOAD AUDIT LOGS ── */
+    async function loadAuditLogs(silent = false) {
+      if (!silent) tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading audit trail...</td></tr>`;
+      try {
+        const logs = await apiCall('/audit/global?limit=500');
+        if (!logs) return;
+        ALL_LOGS = logs;
+        if (currentTab === 'log') renderLog();
+        if (isLive) showToast('Audit log refreshed', 'info');
+      } catch(err) {
+        if (!silent) {
+          tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--danger)">${err.message}</td></tr>`;
+        }
+      }
     }
 
-    // Sidebar Mobile
-    const _menuBtn = document.getElementById('hamburger-btn');
-    const _sidebar = document.getElementById('sidebar');
-    const _overlay = document.getElementById('sidebar-overlay');
+    /* ── INIT ── */
+    loadAuditLogs();
 
-    if (_menuBtn) {
-      _menuBtn.onclick = () => {
-        _sidebar.classList.add('open');
-        _overlay.classList.add('open');
-      };
-    }
-    if (_overlay) {
-      _overlay.onclick = () => {
-        _sidebar.classList.remove('open');
-        _overlay.classList.remove('open');
-      };
-    }
-  
     // ── LOGOUT MODAL ──
     const _logoutModal = document.getElementById('logout-confirm-modal');
     const _logoutBox   = document.getElementById('logout-modal-box');
@@ -1169,6 +1075,7 @@
     });
     document.getElementById('logout-confirm-btn').addEventListener('click', () => {
       sessionStorage.clear();
+      localStorage.clear();
       window.location.href = 'login.html';
     });
     _logoutModal.addEventListener('click', (e) => {
