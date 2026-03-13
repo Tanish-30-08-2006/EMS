@@ -11,21 +11,23 @@ FastAPI backend · HTML/JS frontend · Supabase PostgreSQL · Deployed on Render
 ## App Screenshots
 
 <p align="center">
-  <img src="app_screenshots/Home_Page.png" width="48%" alt="Aegis Home Page" />
-  <img src="app_screenshots/Sign_in_page.png" width="48%" alt="Secure Sign-in" />
+  <img src="app_screenshots/Home_Page.png" width="97%" alt="Employee Management Home" />
 </p>
 
 <p align="center">
-  <img src="app_screenshots/Dashboard_page.png" width="48%" alt="Management Dashboard" />
-  <img src="app_screenshots/Departments_page.png" width="48%" alt="Department Management" />
+  <img src="app_screenshots/Sign_in_page.png" width="97%" alt="Secure Authentication" />
 </p>
 
 <p align="center">
-  <img src="app_screenshots/Audit_Activity.png" width="97%" alt="Global Audit Trail" />
+  <img src="app_screenshots/Dashboard_page.png" width="97%" alt="Management Dashboard" />
 </p>
 
 <p align="center">
-  <i>Modern Landing Page &nbsp; | &nbsp; Auth System &nbsp; | &nbsp; Dashboard &nbsp; | &nbsp; Dept. Logic &nbsp; | &nbsp; Security Audit Logs</i>
+  <img src="app_screenshots/Audit_Activity.png" width="97%" alt="System Audit Logs" />
+</p>
+
+<p align="center">
+  <i>Landing Page Interface &nbsp; | &nbsp; Auth System &nbsp; | &nbsp; Dashboard &nbsp; | &nbsp; Security Audit Trail</i>
 </p>
 
 ## Table of Contents
