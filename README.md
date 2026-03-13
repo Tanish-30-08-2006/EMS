@@ -1,12 +1,32 @@
 # Employee Management System (EMS)
 
-**Full-stack multi-tenant workforce management platform.**  
+**Multi-tenant workforce management platform.**  
 FastAPI backend · HTML/JS frontend · Supabase PostgreSQL · Deployed on Render + Vercel
 
 > Developer: Tanish Sanghavi · DAIICT Gandhinagar · Batch 2028  
 > GitHub: [Tanish-30-08-2006/EMS](https://github.com/Tanish-30-08-2006/EMS)
 
 ---
+
+## App Screenshots
+
+<p align="center">
+  <img src="app_screenshots/Home_Page.png" width="48%" alt="Aegis Home Page" />
+  <img src="app_screenshots/Sign_in_page.png" width="48%" alt="Secure Sign-in" />
+</p>
+
+<p align="center">
+  <img src="app_screenshots/Dashboard_page.png" width="48%" alt="Management Dashboard" />
+  <img src="app_screenshots/Departments_page.png" width="48%" alt="Department Management" />
+</p>
+
+<p align="center">
+  <img src="app_screenshots/Audit_Activity.png" width="97%" alt="Global Audit Trail" />
+</p>
+
+<p align="center">
+  <i>Modern Landing Page &nbsp; | &nbsp; Auth System &nbsp; | &nbsp; Dashboard &nbsp; | &nbsp; Dept. Logic &nbsp; | &nbsp; Security Audit Logs</i>
+</p>
 
 ## Table of Contents
 
